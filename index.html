@@ -2165,22 +2165,6 @@ function updateSyncIndicator(){
     setTimeout(()=>{ el.style.display='none'; }, 4000);
   }
 }
-  try {
-    await loadDocs();
-    // Fusionar con docs locales pendientes de sincronizar
-    const local = getDocsLocal();
-    local.forEach(ld => {
-      if(!_docsCache.find(x=>x.id===ld.id)) _docsCache.unshift(ld);
-    });
-  } catch(e){
-    console.warn('Supabase no disponible, usando localStorage:', e.message);
-    _docsCache = getDocsLocal();
-  } finally {
-    renderCot(); renderPed();
-    if(ME?.role==='admin'){ renderAdmin(); updateStats(); }
-    updateNavBadges();
-  }
-}
 
 function loadDocsLocal(){
   const raw = localStorage.getItem('rm_docs_local');
