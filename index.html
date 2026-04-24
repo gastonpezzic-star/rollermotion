@@ -2280,7 +2280,6 @@ async function saveDocToSupabase(doc){
       fecha:            d(doc.fecha),
       entrega:          d(doc.entrega),
       estado:           doc.estado || 'Borrador',
-      vendedor_id:      n(ME?.id),
       vendedor_nombre:  n(doc.vendedor),
       cliente:          doc.cliente,
       cuit:             n(doc.cuit),
@@ -2298,7 +2297,10 @@ async function saveDocToSupabase(doc){
       descuento:        doc.descuento||null,
       cotizacion_origen: n(doc.cotizacionOrigen),
     }, { onConflict: 'id' });
-  if(docErr) throw docErr;
+  if(docErr) {
+    console.error('❌ Error Supabase documentos:', JSON.stringify(docErr));
+    throw docErr;
+  }
 
   // Eliminar items viejos y reinsertar
   await _sb.from('items').delete().eq('documento_id', doc.id);
@@ -2333,7 +2335,10 @@ async function saveDocToSupabase(doc){
       insumo_id:       n(it.insumoId),
     }));
     const { error: itemsErr } = await _sb.from('items').insert(rows);
-    if(itemsErr) throw itemsErr;
+    if(itemsErr) {
+      console.error('❌ Error Supabase items:', JSON.stringify(itemsErr));
+      throw itemsErr;
+    }
   }
 }
 
