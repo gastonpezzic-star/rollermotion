@@ -2378,26 +2378,34 @@ const LOCAL_USERS = {
 
 
 function loginLocal(email, pass, errEl, btn){
-  const u = LOCAL_USERS[email.toLowerCase()];
-  if(!u || u.pass !== pass){
-    errEl.textContent = 'Email o contraseña incorrectos.';
+  try {
+    const u = LOCAL_USERS[email.toLowerCase()];
+    if(!u || u.pass !== pass){
+      errEl.textContent = 'Email o contraseña incorrectos.';
+      errEl.style.display = 'block';
+      if(btn){ btn.textContent = 'Iniciar sesión'; btn.disabled = false; }
+      return false;
+    }
+    ME = { id: email, name: u.nombre, role: u.role, email };
+    loadDocsLocal();
+    document.getElementById('login-screen').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('app').style.flexDirection='column';
+    document.getElementById('t-name').textContent = ME.name;
+    document.getElementById('t-rb').textContent = ME.role==='admin'?'Administrador':(ME.role==='fabrica'?'Fábrica':'Vendedor');
+    document.getElementById('t-rb').className = 't-role '+(ME.role==='admin'?'r-admin':'r-vendor');
+    buildNav(); renderCost(); switchPage('pg-cot'); renderCot(); renderPed();
+    if(ME.role==='admin'){ renderAdmin(); updateStats(); }
+    updateNavBadges();
+    updateSyncIndicator();
+    // Sincroniza con Supabase en segundo plano
+    loadDocsWithFallback();
+  } catch(e) {
+    console.error('Error en login:', e);
+    errEl.textContent = 'Error al iniciar sesión. Recargá la página.';
     errEl.style.display = 'block';
-    btn.textContent = 'Ingresar'; btn.disabled = false;
-    return false;
+    if(btn){ btn.textContent = 'Iniciar sesión'; btn.disabled = false; }
   }
-  ME = { id: email, name: u.nombre, role: u.role, email };
-  loadDocsLocal(); // Carga local inmediatamente para que la UI no quede vacía
-  document.getElementById('login-screen').style.display='none';
-  document.getElementById('app').style.display='flex';
-  document.getElementById('app').style.flexDirection='column';
-  document.getElementById('t-name').textContent = ME.name;
-  document.getElementById('t-rb').textContent = ME.role==='admin'?'Administrador':(ME.role==='fabrica'?'Fábrica':'Vendedor');
-  document.getElementById('t-rb').className = 't-role '+(ME.role==='admin'?'r-admin':'r-vendor');
-  buildNav(); renderCost(); switchPage('pg-cot'); renderCot(); renderPed();
-  if(ME.role==='admin'){ renderAdmin(); updateStats(); }
-  updateNavBadges();
-  // Luego sincroniza con Supabase en segundo plano
-  loadDocsWithFallback();
 }
 
 function doLogin(){
