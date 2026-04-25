@@ -1609,7 +1609,7 @@ const TELAS = {
   'blackout':   { label:'Roller Blackout',     grupo:'Cortinas', tipo:'cortina',   colorLabel:'Color',
                   colors:['Blanco','Ivory','Beige','Gris','Negro'], priceKey:'blackout' },
   'sunscreen5': { label:'Roller Sunscreen 5%',  grupo:'Cortinas', tipo:'cortina',   colorLabel:'Color',
-                  colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Bicolor Beige','Bicolor Marrón','Bicolor Negro','Otro'], priceKey:'screen5' },
+                  colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Negro','Bicolor Beige','Bicolor Marrón','Bicolor Negro','Otro'], priceKey:'screen5' },
   'sunscreen3': { label:'Roller Sunscreen 3%',  grupo:'Cortinas', tipo:'cortina',   colorLabel:'Color',
                   colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Otro'], priceKey:'screen3' },
   'sunscreen1': { label:'Roller Sunscreen 1%',  grupo:'Cortinas', tipo:'cortina',   colorLabel:'Color',
@@ -1656,7 +1656,7 @@ const TELAS = {
                   recargo:1.30,
                   items:[
                     { insumoId:'tela_blackout', nombre:'Blackout Vinílico',  unidad:'m2', colors:['Blanco','Ivory','Beige','Gris','Negro'] },
-                    { insumoId:'tela_screen5',  nombre:'Sunscreen 5%',       unidad:'m2', colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón'] },
+                    { insumoId:'tela_screen5',  nombre:'Sunscreen 5%',       unidad:'m2', colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Negro'] },
                     { insumoId:'tela_screen3',  nombre:'Sunscreen 3%',       unidad:'m2', colors:['Blanco','Beige','Gris Claro','Gris Oscuro'] },
                     { insumoId:'tela_screen1',  nombre:'Sunscreen 1%',       unidad:'m2', colors:['Blanco','Beige'] },
                   ]},
@@ -1767,7 +1767,7 @@ const TELAS = {
     subtipos: {
       'solo_riel':  { label:'Solo Riel',           insumoId:null,          colors:['—'] },
       'bv_blackout':{ label:'Blackout',             insumoId:'bv_blackout', colors:['Blanco','Ivory','Beige','Gris','Negro'] },
-      'bv_screen5': { label:'Sunscreen 5%',         insumoId:'bv_screen5',  colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón'] },
+      'bv_screen5': { label:'Sunscreen 5%',         insumoId:'bv_screen5',  colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Negro'] },
       'bv_screen3': { label:'Sunscreen 3%',         insumoId:'bv_screen3',  colors:['Blanco','Beige','Gris Claro','Gris Oscuro'] },
       'bv_screen1': { label:'Sunscreen 1%',         insumoId:'bv_screen1',  colors:['Blanco','Beige'] },
     },
@@ -4528,6 +4528,7 @@ async function confirmarPedido(){
 
   try {
     await saveDocToSupabase(order);
+    order._pendingSync = false;
     _docsCache.unshift(order);
     await updateStatusInSupabase(_pedidoSrcId, 'Aprobada');
     const qi = _docsCache.findIndex(x=>x.id===_pedidoSrcId);
@@ -4536,22 +4537,28 @@ async function confirmarPedido(){
     saveDocLocal({..._docsCache[_docsCache.findIndex(x=>x.id===_pedidoSrcId)], estado:'Aprobada'});
     renderCot(); renderPed();
     if(ME?.role==='admin') renderAdmin();
-    toast(`✅ ${next} creado desde ${src.numero||'cotización'}`, 'ok');
+    updateNavBadges();
+    updateSyncIndicator();
+    toast(`✅ ${next} creado desde ${src.numero||'cotización'} (sincronizado)`, 'ok');
     cerrarOverlayPedido();
   } catch(e) {
     // Fallback: guardar localmente si Supabase no está disponible
-    console.warn('Supabase no disponible, guardando local:', e);
+    console.error('❌ Error sincronizando pedido:', JSON.stringify(e), e);
+    order._pendingSync = true;
     saveDocLocal(order);
     _docsCache.unshift(order);
     // Actualizar estado de la cotización origen en local
     const qi = _docsCache.findIndex(x=>x.id===_pedidoSrcId);
     if(qi>=0){
       _docsCache[qi].estado='Aprobada';
+      _docsCache[qi]._pendingSync = true;
       saveDocLocal(_docsCache[qi]);
     }
     renderCot(); renderPed();
     if(ME?.role==='admin') renderAdmin();
-    toast(`💾 ${next} guardado localmente`, 'ok');
+    updateNavBadges();
+    updateSyncIndicator();
+    toast(`⚠️ ${next} guardado local — pendiente sincronizar`, 'err');
     cerrarOverlayPedido();
   }
 }
