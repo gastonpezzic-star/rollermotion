@@ -749,7 +749,7 @@ body{
         <input type="text" id="cq-q" placeholder="Buscar cliente o N°…" oninput="renderCot()">
         <select id="cq-s" onchange="renderCot()">
           <option value="">Todos los estados</option>
-          <option value="Borrador">Borrador</option><option value="Enviada">Enviada</option>
+          <option value="Cotización">Cotización</option><option value="Enviada">Enviada</option>
           <option value="Aprobada">Aprobada</option><option value="Rechazada">Rechazada</option>
         </select>
       </div>
@@ -892,7 +892,7 @@ body{
               <input type="text" id="f-num" readonly style="background:var(--bg);color:var(--accent);font-weight:700;font-size:15px;letter-spacing:.04em">
             </div>
             <div class="f"><label>Fecha</label><input type="date" id="f-fecha" oninput="autoValidez()"></div>
-            <div class="f"><label>Vendedor</label><input type="text" id="f-vend" readonly></div>
+            <div class="f"><label>Vendedor</label><input type="text" id="f-vend"></div>
             <div class="f"><label>Válido hasta</label><input type="date" id="f-ent"></div>
           </div>
         </div>
@@ -2215,7 +2215,7 @@ function normalizeDoc(d){
     vendedor:         d.vendedor_nombre,
     vendedor_id:      d.vendedor_id,
     entrega:          d.entrega,
-    estado:           d.estado,
+    estado:           d.estado === 'Borrador' ? 'Cotización' : d.estado,
     cliente:          d.cliente,
     cuit:             d.cuit||'',
     dir:              d.direccion||'',
@@ -2279,7 +2279,7 @@ async function saveDocToSupabase(doc){
       numero:           n(doc.numero),
       fecha:            d(doc.fecha),
       entrega:          d(doc.entrega),
-      estado:           doc.estado || 'Borrador',
+      estado:           doc.estado || 'Cotización',
       vendedor_nombre:  n(doc.vendedor),
       cliente:          doc.cliente,
       cuit:             n(doc.cuit),
@@ -2479,7 +2479,7 @@ function uid(){
 function fmtM(n){ return n?'$ '+Number(n).toLocaleString('es-AR'):'$ 0'; }
 
 const STATUS_HTML = {
-  'Borrador':      '<span class="badge s-q">📝 Borrador</span>',
+  'Cotización':      '<span class="badge s-q">📝 Cotización</span>',
   'Enviada':       '<span class="badge s-a">📬 Enviada</span>',
   'Aprobada':      '<span class="badge s-ok">✅ Aprobada</span>',
   'Rechazada':     '<span class="badge s-x">❌ Rechazada</span>',
@@ -4078,7 +4078,7 @@ async function saveDoc(andPreview){
   const items = getItems();
   const total = items.reduce((s,it)=>s+(parseFloat(it.precio)||0)*(parseInt(it.cant)||1),0)
                + getInstalTotal() + getAdicionalesTotal() + getDescuentoMonto();
-  const defaultStatus = currentType==='quote'?'Borrador':'Pendiente';
+  const defaultStatus = currentType==='quote'?'Cotización':'Pendiente';
 
   const doc = {
     id:       editId||uid(),
@@ -4143,7 +4143,7 @@ function buildDocFromForm(){
   const items = getItems();
   const total = items.reduce((s,it)=>s+(parseFloat(it.precio)||0)*(parseInt(it.cant)||1),0)
                + getInstalTotal() + getAdicionalesTotal() + getDescuentoMonto();
-  const defaultStatus = currentType==='quote'?'Borrador':'Pendiente';
+  const defaultStatus = currentType==='quote'?'Cotización':'Pendiente';
   return {
     id:       editId||uid(),
     type:     currentType,
@@ -4538,7 +4538,7 @@ function renderRow(d, isAdmin){
 
 function statusOpts(type, cur){
   const opts = type==='quote'
-    ? ['Borrador','Enviada','Aprobada','Rechazada']
+    ? ['Cotización','Enviada','Aprobada','Rechazada']
     : ['Pendiente','Aprobado','En Fabricación','Necesita Revisión','Finalizado','Cancelado'];
   return opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
 }
@@ -5654,7 +5654,7 @@ async function printDoc(){
     toast('✅ Guardado y enviando a impresión','ok');
   }
   // Si es cotización en Borrador → pasar a Enviada automáticamente
-  if(_overlayDoc && _overlayDoc.type === 'quote' && _overlayDoc.estado === 'Borrador'){
+  if(_overlayDoc && _overlayDoc.type === 'quote' && _overlayDoc.estado === 'Cotización'){
     await changeStatus(_overlayDoc.id, 'Enviada');
     _overlayDoc.estado = 'Enviada';
     toast('📬 Estado actualizado a Enviada','ok');
