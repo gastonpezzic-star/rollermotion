@@ -2173,11 +2173,37 @@ function loadDocsLocal(){
 
 async function loadDocsWithFallback(){
   try {
+    await loadConfigFromSupabase();
     await loadDocs();
-    // Después de cargar de Supabase, sincronizar pendientes locales
     syncPendingDocs();
   } catch(e){
     console.error('loadDocsWithFallback error:', e);
+  }
+}
+
+async function loadConfigFromSupabase(){
+  try {
+    const { data, error } = await _sb.from('config').select('*');
+    if(error) throw error;
+    (data||[]).forEach(row => {
+      if(row.key === 'costos' && Array.isArray(row.value)){
+        setCosts(row.value);
+      } else if(row.key === 'desperdicio' && row.value?.pct != null){
+        setFactorDesperdicio(1 + row.value.pct/100);
+      } else if(row.key === 'coef_cuotas' && row.value?.v != null){
+        setCoefCuotas(row.value.v);
+      } else if(row.key === 'insumos' && Array.isArray(row.value)){
+        setInsumos(row.value);
+      }
+    });
+    // Re-render config UI con valores frescos
+    renderCost();
+    const insp = document.getElementById('inp-desperdicio');
+    if(insp) insp.value = Math.round((getFactorDesperdicio()-1)*100);
+    const cinsp = document.getElementById('inp-coef-cuotas');
+    if(cinsp) cinsp.value = getCoefCuotas();
+  } catch(e){
+    console.warn('No se pudo cargar config de Supabase:', e.message);
   }
 }
 
@@ -4250,10 +4276,21 @@ async function changeStatus(id, val){
   renderCot(); renderPed(); if(ME?.role==='admin') renderAdmin(); updateStats();
   if(document.getElementById('pg-fab')?.classList.contains('on')) renderFab();
   updateNavBadges();
-  toast('Estado → '+val,'ok');
-  // 3. Intentar sincronizar con Supabase (silencioso si falla)
-  try { await updateStatusInSupabase(id, val); }
-  catch(e){ /* sin conexión, queda guardado localmente */ }
+  // 3. Intentar sincronizar con Supabase
+  try {
+    await updateStatusInSupabase(id, val);
+    // marcar como sincronizado
+    if(j>=0){ all[j]._pendingSync = false; setDocs(all); }
+    if(i>=0){ _docsCache[i]._pendingSync = false; }
+    toast('✅ Estado → '+val+' (sincronizado)','ok');
+  } catch(e){
+    // marcar pendiente para sincronizar después
+    if(j>=0){ all[j]._pendingSync = true; setDocs(all); }
+    if(i>=0){ _docsCache[i]._pendingSync = true; }
+    console.error('Error al cambiar estado en Supabase:', e);
+    toast('⚠️ Estado guardado local — pendiente de sincronizar','err');
+  }
+  updateSyncIndicator();
 }
 
 /* ════════════════════════════
@@ -4917,19 +4954,29 @@ function renderInsumosAdmin(){
 }
 
 
-function guardarCoefCuotas(){
+async function guardarCoefCuotas(){
   const inp = document.getElementById('inp-coef-cuotas');
   const v = parseFloat(inp?.value||'1.35');
   if(isNaN(v)||v<1||v>3){ toast('⚠ Valor inválido (debe ser entre 1 y 3)','err'); return; }
   setCoefCuotas(v);
-  toast(`✅ Coeficiente cuotas guardado: ${v}`, 'ok');
+  try {
+    await _sb.from('config').upsert({ key:'coef_cuotas', value:{ v } }, { onConflict:'key' });
+    toast(`✅ Coeficiente cuotas: ${v} (sincronizado)`, 'ok');
+  } catch(e){
+    toast(`⚠️ Coeficiente guardado local — sin conexión`, 'err');
+  }
 }
 
-function guardarDesperdicio(){
+async function guardarDesperdicio(){
   const inp = document.getElementById('inp-desperdicio');
   const pct = parseFloat(inp?.value)||0;
   setFactorDesperdicio(1 + pct/100);
-  toast(`✅ Factor de desperdicio guardado: ${pct}%`, 'ok');
+  try {
+    await _sb.from('config').upsert({ key:'desperdicio', value:{ pct } }, { onConflict:'key' });
+    toast(`✅ Desperdicio: ${pct}% (sincronizado)`, 'ok');
+  } catch(e){
+    toast(`⚠️ Desperdicio guardado local — sin conexión`, 'err');
+  }
 }
 
 function resetInsumos(){
@@ -5005,23 +5052,36 @@ function actualizarListaTelas(input){
   reader.readAsArrayBuffer(file);
 }
 
-function guardarInsumos(){
+async function guardarInsumos(){
   if(!_insumosBuffer) return;
   setInsumos(_insumosBuffer);
+  const insumos = _insumosBuffer;
   _insumosBuffer = null;
   const btn = document.getElementById('btn-guardar-insumos');
   if(btn){ btn.style.background=''; btn.textContent='💾 Guardar cambios'; }
-  toast('✅ Precios guardados correctamente','ok');
+  try {
+    await _sb.from('config').upsert({ key:'insumos', value: insumos }, { onConflict:'key' });
+    toast('✅ Precios guardados y sincronizados','ok');
+  } catch(e){
+    console.error('Error sincronizando insumos:', e);
+    toast('⚠️ Precios guardados local — sin conexión','err');
+  }
 }
 
-function deleteInsumo(id){
+async function deleteInsumo(id){
   if(!confirm('¿Eliminar este insumo?')) return;
   const arr = getInsumosBuffer();
   _insumosBuffer = arr.filter(x=>x.id!==id);
   setInsumos(_insumosBuffer);
+  const insumos = _insumosBuffer;
   _insumosBuffer = null;
   renderInsumosAdmin();
-  toast('🗑 Eliminado');
+  try {
+    await _sb.from('config').upsert({ key:'insumos', value: insumos }, { onConflict:'key' });
+    toast('🗑 Eliminado y sincronizado');
+  } catch(e){
+    toast('🗑 Eliminado local — sin conexión','err');
+  }
 }
 
 function addInsumo(){
@@ -5060,14 +5120,21 @@ function renderCost(){
     <td><input class="cost-input" data-i="${i}" type="number" value="${c.val}"></td>
   </tr>`).join('')}</tbody>`;
 }
-function saveCosts(){
+async function saveCosts(){
   const costs=getCosts();
   document.querySelectorAll('.cost-input').forEach(inp=>{
     const i=parseInt(inp.dataset.i);
     if(costs[i]) costs[i].val=parseFloat(inp.value)||0;
   });
   setCosts(costs);
-  toast('💰 Precios actualizados','ok');
+  // Sincronizar con Supabase
+  try {
+    await _sb.from('config').upsert({ key:'costos', value: costs }, { onConflict:'key' });
+    toast('💰 Precios actualizados y sincronizados','ok');
+  } catch(e){
+    console.error('Error sincronizando costos:', e);
+    toast('💰 Precios guardados local — sin conexión','err');
+  }
 }
 
 /* ════════════════════════════
