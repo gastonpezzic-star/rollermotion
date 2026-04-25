@@ -2152,17 +2152,19 @@ function updateSyncIndicator(){
   const el = document.getElementById('sync-indicator');
   if(!el) return;
   const pending = getDocsLocal().filter(d=>d._pendingSync).length;
+  el.style.display = 'flex';
+  el.style.alignItems = 'center';
+  el.style.gap = '6px';
   if(pending > 0){
-    el.style.display = 'block';
-    el.style.background = 'rgba(255,200,0,.2)';
-    el.style.color = '#ffd700';
-    el.textContent = `⚠️ ${pending} sin sincronizar`;
+    el.style.background = 'rgba(255,180,0,.22)';
+    el.style.color = '#ffc94a';
+    el.innerHTML = `<span style="font-size:13px">⚠️</span> ${pending} sin sincronizar`;
+    el.title = 'Hay cambios guardados localmente que no se subieron al servidor';
   } else {
-    el.style.display = 'block';
-    el.style.background = 'rgba(44,110,73,.25)';
+    el.style.background = 'rgba(44,180,110,.22)';
     el.style.color = '#6ddc9a';
-    el.textContent = '☁️ Sincronizado';
-    setTimeout(()=>{ el.style.display='none'; }, 4000);
+    el.innerHTML = `<span style="font-size:13px">☁️</span> Sincronizado`;
+    el.title = 'Todos los cambios están guardados en el servidor';
   }
 }
 
@@ -2374,8 +2376,21 @@ async function deleteDocFromSupabase(id){
 }
 
 async function updateStatusInSupabase(id, estado){
-  const { error } = await _sb.from('documentos').update({ estado }).eq('id', id);
-  if(error) throw error;
+  // También sincronizar las fechas de cambio de estado
+  const doc = _docsCache.find(x=>x.id===id);
+  const updateData = { estado };
+  if(doc?.fecha_inicio_fab)  updateData.fecha_inicio_fab  = doc.fecha_inicio_fab;
+  if(doc?.fecha_finalizado)  updateData.fecha_finalizado  = doc.fecha_finalizado;
+  const { data, error } = await _sb.from('documentos').update(updateData).eq('id', id).select();
+  if(error) {
+    console.error('❌ Error updateStatus:', JSON.stringify(error), 'id:', id, 'estado:', estado);
+    throw error;
+  }
+  if(!data || data.length === 0){
+    console.error('⚠️ updateStatus: ningún registro afectado. id:', id);
+    throw new Error('Documento no encontrado en Supabase');
+  }
+  console.log('✅ Estado actualizado en Supabase:', id, '→', estado);
 }
 
 // Costos: siguen en localStorage (config global, no por usuario)
