@@ -228,6 +228,10 @@ body{
 
 /* ── ITEM CARDS ── */
 .items-list{display:flex;flex-direction:column;gap:10px}
+#items-list tr{cursor:move;transition:background .15s}
+#items-list tr:hover td:first-child{position:relative}
+#items-list tr:hover td:first-child::before{content:'⋮⋮';position:absolute;left:2px;top:50%;transform:translateY(-50%);color:var(--accent);font-weight:700;letter-spacing:-2px;font-size:14px}
+#items-list tr input,#items-list tr select,#items-list tr textarea,#items-list tr button{cursor:auto}
 .item-card{background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;transition:border-color .18s,box-shadow .18s}
 .item-card:focus-within{border-color:var(--accent);box-shadow:0 0 0 3px rgba(255,255,255,.06)}
 .item-card-head{background:var(--brand);padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -2545,7 +2549,7 @@ const STATUS_HTML = {
    CUT CALCULATIONS
 ════════════════════════════ */
 function getEje(a){ a=parseInt(a)||0; if(a<=1600)return'32mm'; if(a<=2500)return'38mm'; if(a<=3000)return'50mm'; if(a<=3700)return'50R'; return'70mm'; }
-function corteEje(a){ a=parseInt(a)||0; return a?a-30:null; }
+function corteEje(a){ a=parseInt(a)||0; return a?a-35:null; }
 function corteTela(a){ a=parseInt(a)||0; return a?a-30:null; }
 function corteTelaH(h){ h=parseInt(h)||0; return h?h+350:null; }
 
@@ -2968,9 +2972,19 @@ function qaCalcPrecio(){
   const isAccesorio = telaInfoTypeCheck === 'accesorio' || telaInfoTypeCheck === 'cambiotela';
 
   if(!ancho || !alto){
-    // Para unitarios y accesorios no necesitamos ancho/alto
+    // Para unitarios, accesorios y rieles no necesitamos ancho/alto (rieles solo ancho)
     const telaInfoCheck = TELAS[tela];
-    if(telaInfoTypeCheck !== 'unitario' && !isAccesorio){
+    const isRielType = telaInfoTypeCheck === 'riel';
+    if(telaInfoTypeCheck !== 'unitario' && !isAccesorio && !isRielType){
+      disp.textContent = '—';
+      disp.style.color = 'var(--muted)';
+      subD.style.display = 'none';
+      btn.disabled = true; btn.style.opacity = '.4';
+      cutsEl.style.display = 'none';
+      return;
+    }
+    // Para riel, si no hay ancho aún → mostrar —
+    if(isRielType && !ancho){
       disp.textContent = '—';
       disp.style.color = 'var(--muted)';
       subD.style.display = 'none';
@@ -3138,15 +3152,13 @@ function qaCalcPrecio(){
 
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
-    subD.style.display = 'block';
-    const detalles = [
-      modoCalculo==='extendido' ? `Frunce real: ${frunceReal.toFixed(2)}` : '',
-      `Tela: ${metrosTela.toFixed(2)}m × ${fmtM(pTela)} = ${fmtM(Math.round(costoTela))}`,
-      `MO: ${fmtM(Math.round(costoMO))}`,
-      conRiel ? `Riel: ${anchoM.toFixed(2)}ml × ${fmtM(pRiel)} = ${fmtM(Math.round(costoRiel))}` : 'Sin riel',
-    ].filter(Boolean);
-    subD.textContent = detalles.join(' · ');
-    if(cant>1) subD.textContent += ` × ${cant} = ${fmtM(pu*cant)}`;
+    // Solo mostrar subtotal si cantidad > 1, sin detalle de cálculo
+    if(cant > 1){
+      subD.style.display = 'block';
+      subD.textContent = `× ${cant} = ${fmtM(pu*cant)}`;
+    } else {
+      subD.style.display = 'none';
+    }
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -3301,7 +3313,7 @@ function qaCalcPrecio(){
   const a = parseInt(ancho), h = parseInt(alto);
   if(a && h){
     cutsEl.style.display = 'block';
-    cutsEl.innerHTML = `Eje: <strong>${getEje(a)}</strong><br>C. eje: <strong>${a-30} mm</strong><br>C. tela: <strong>${a-30} × ${h+350} mm</strong>`;
+    cutsEl.innerHTML = `Eje: <strong>${getEje(a)}</strong><br>C. eje: <strong>${a-35} mm</strong><br>C. tela: <strong>${a-30} × ${h+350} mm</strong>`;
   } else {
     cutsEl.style.display = 'none';
   }
@@ -3796,10 +3808,18 @@ function addRow(item){
     arrastre:   item.arrastre??0,
     col:'Sí', adic:item.adic||'', ref:item.ref||'',
     precio, cant,
-    eje:getEje(item.ancho), ceje:parseInt(item.ancho)?parseInt(item.ancho)-30:null,
+    eje:getEje(item.ancho), ceje:parseInt(item.ancho)?parseInt(item.ancho)-35:null,
     ctela:parseInt(item.ancho)?parseInt(item.ancho)-30:null,
     ctelah:parseInt(item.alto)?parseInt(item.alto)+350:null,
   });
+
+  // Hacer la fila arrastrable
+  tr.setAttribute('draggable', 'true');
+  tr.addEventListener('dragstart', onItemDragStart);
+  tr.addEventListener('dragover',  onItemDragOver);
+  tr.addEventListener('dragleave', onItemDragLeave);
+  tr.addEventListener('drop',      onItemDrop);
+  tr.addEventListener('dragend',   onItemDragEnd);
 
   document.getElementById('items-list').appendChild(tr);
   recalcTotal();
@@ -3807,6 +3827,56 @@ function addRow(item){
 
   tr.style.background = 'rgba(255,255,255,.05)';
   setTimeout(()=>{ tr.style.background=''; tr.style.transition='background .6s'; }, 400);
+}
+
+// ── DRAG & DROP de items en formulario ──
+let _dragSrcRow = null;
+function onItemDragStart(e){
+  // No iniciar drag si el target es un input/select/textarea
+  if(e.target !== e.currentTarget && e.target.matches('input,select,textarea,button')){
+    e.preventDefault();
+    return;
+  }
+  _dragSrcRow = this;
+  this.style.opacity = '0.4';
+  e.dataTransfer.effectAllowed = 'move';
+  try { e.dataTransfer.setData('text/plain', 'item'); } catch(err){}
+}
+function onItemDragOver(e){
+  if(_dragSrcRow && _dragSrcRow !== this){
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    this.style.borderTop = '2px solid var(--accent)';
+  }
+  return false;
+}
+function onItemDragLeave(e){
+  this.style.borderTop = '';
+}
+function onItemDrop(e){
+  if(e.stopPropagation) e.stopPropagation();
+  this.style.borderTop = '';
+  if(_dragSrcRow && _dragSrcRow !== this){
+    const tbody = document.getElementById('items-list');
+    const rows = Array.from(tbody.children);
+    const srcIdx = rows.indexOf(_dragSrcRow);
+    const tgtIdx = rows.indexOf(this);
+    if(srcIdx < tgtIdx) tbody.insertBefore(_dragSrcRow, this.nextSibling);
+    else tbody.insertBefore(_dragSrcRow, this);
+    // Renumerar
+    document.querySelectorAll('#items-list tr').forEach((tr,i)=>{
+      const nc = tr.querySelector('td:first-child');
+      if(nc) nc.textContent = String(i+1).padStart(2,'0');
+    });
+    recalcTotal();
+    calcInstalacion();
+  }
+  return false;
+}
+function onItemDragEnd(e){
+  this.style.opacity = '';
+  document.querySelectorAll('#items-list tr').forEach(tr => tr.style.borderTop = '');
+  _dragSrcRow = null;
 }
 
 function recalcRow(input){
@@ -3928,10 +3998,11 @@ function calcInstalacion(){
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     try {
       const item = JSON.parse(tr.dataset.item||'{}');
+      if(!esItemConInstalacion(item)) return; // excluye tubos/ángulos/guías/cenefas
       const cantInput = tr.querySelector('input[type=number]');
       const cant = parseInt(cantInput?.value)||parseInt(item.cant)||1;
       if(item.tela === 'motores') unitsMotor += cant;
-      else if(['blackout','sunscreen5','sunscreen3','sunscreen1','cambiotela'].includes(item.tela)) unitsNormal += cant;
+      else unitsNormal += cant; // todo lo demás (rollers, doble, duozebra, bandas, venecianas, gasa lino, blackout tex, rieles, libre, etc.)
     } catch(e){}
   });
 
@@ -3950,12 +4021,25 @@ function calcInstalacion(){
 }
 
 
+// Helper: true si el item suma instalación (cortina, riel, banda vertical, motor, libre)
+// false si es accesorio (tubos, ángulos, guías, cenefas)
+function esItemConInstalacion(item){
+  const tela = (item.tela||'').toLowerCase();
+  const accesorios = ['tubos','angulos','guias','cenefas'];
+  if(accesorios.includes(tela)) return false;
+  const insumo = (item.insumoId||'').toLowerCase();
+  if(insumo.startsWith('tubo_') || insumo.startsWith('ang_') ||
+     insumo.startsWith('guia_') || insumo.startsWith('cenefa_')) return false;
+  return true;
+}
+
 function getInstalUnits(){
   if(!_instalacionActiva) return 0;
   let units = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     try {
       const item = JSON.parse(tr.dataset.item||'{}');
+      if(!esItemConInstalacion(item)) return;
       const cantInput = tr.querySelector('input[type=number]');
       units += parseInt(cantInput?.value)||parseInt(item.cant)||1;
     } catch(e){}
@@ -3978,6 +4062,7 @@ function getInstalTotal(){
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     try {
       const item = JSON.parse(tr.dataset.item||'{}');
+      if(!esItemConInstalacion(item)) return;
       const cantInput = tr.querySelector('input[type=number]');
       const cant = parseInt(cantInput?.value)||parseInt(item.cant)||1;
       if(item.tela === 'motores') unitsMotor += cant;
@@ -4288,6 +4373,42 @@ async function deleteDoc(id){
   } catch(e) {
     console.error('Error eliminando de Supabase:', e);
     toast('⚠️ Eliminado local — pendiente sincronizar','err');
+  }
+  updateSyncIndicator();
+}
+
+async function duplicateDoc(id){
+  const orig = getDocs().find(x=>x.id===id);
+  if(!orig){ toast('⚠ Cotización no encontrada','err'); return; }
+
+  const newDoc = JSON.parse(JSON.stringify(orig));
+  newDoc.id = uid();
+  newDoc.numero = autoNum('quote');
+  newDoc.fecha = new Date().toISOString().split('T')[0];
+  newDoc.estado = 'Cotización';
+  newDoc.type = 'quote';
+  delete newDoc.fecha_inicio_fab;
+  delete newDoc.fecha_finalizado;
+  delete newDoc._pendingSync;
+
+  // Validez: hoy + 7 días
+  const validez = new Date();
+  validez.setDate(validez.getDate() + 7);
+  newDoc.entrega = validez.toISOString().split('T')[0];
+
+  _docsCache.unshift(newDoc);
+  saveDocLocal(newDoc);
+  renderCot();
+  updateNavBadges();
+
+  try {
+    await saveDocToSupabase(newDoc);
+    toast(`📋 Cotización duplicada: ${newDoc.numero} (sincronizada)`, 'ok');
+  } catch(e){
+    console.error('Error duplicando en Supabase:', e);
+    newDoc._pendingSync = true;
+    saveDocLocal(newDoc);
+    toast(`📋 Duplicada local: ${newDoc.numero} — pendiente sincronizar`, 'err');
   }
   updateSyncIndicator();
 }
@@ -4629,6 +4750,7 @@ function renderRow(d, isAdmin){
       <div style="display:flex;gap:5px;align-items:center">
         <button class="btn-t" onclick="openDoc(getDocById('${d.id}'))">👁</button>
         ${canEdit?`<button class="btn-t" onclick="editDoc('${d.id}')">✏️</button>`:''}
+        ${isQuote&&canEdit?`<button class="btn-t" onclick="duplicateDoc('${d.id}')" title="Duplicar cotización">📋</button>`:''}
         ${isQuote&&canEdit?`<button class="btn-t ok" onclick="convertToOrder('${d.id}')" title="Convertir en pedido">📦</button>`:''}
         ${canEdit?`<button class="btn-t del" onclick="deleteDoc('${d.id}')" title="Eliminar">🗑</button>`:''}
       </div>
@@ -5796,12 +5918,17 @@ async function printDoc(){
     catch(e){ return ''; }
   }).join('\n');
 
+  // Nombre del archivo: "Cliente Numero Roller Motion" (sin guiones bajos)
+  const cliPdf = (_overlayDoc?.cliente||'Cliente').replace(/[\\/:*?"<>|]/g,'').trim();
+  const numPdf = (_overlayDoc?.numero||'').toString().trim();
+  const tituloPdf = `${cliPdf} ${numPdf} Roller Motion`.replace(/\s+/g,' ').trim();
+
   const win = window.open('','_blank','width=900,height=700');
   win.document.write(`<!DOCTYPE html>
 <html>
 <head>
 <meta charset="UTF-8">
-<title>Cotización RollerMotion</title>
+<title>${tituloPdf}</title>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
@@ -5836,7 +5963,7 @@ function getEjeInfo(ancho){
   return {mm:'70', lbl:'70 mm'};
 }
 function getCorteTela(ancho, alto){ return {a: (parseInt(ancho)||0)-40, h: (parseInt(alto)||0)+350}; }
-function getCorteEje(ancho){ return (parseInt(ancho)||0)-30; }
+function getCorteEje(ancho){ return (parseInt(ancho)||0)-35; }
 function getCorteZoc(ancho, zoc){
   const ct = (parseInt(ancho)||0)-40;
   return zoc && zoc.toLowerCase().includes('visto') ? ct+5 : ct;
@@ -6576,9 +6703,9 @@ function openEtiquetas(d){
 
   // Construir HTML de páginas
   var pagesHtml = etiquetas.map(function(e){
-    return '<div class="ep"><div style="position:relative;width:100%;height:100%">'
+    return '<div class="ep-wrap"><div class="ep"><div style="position:relative;width:100%;height:100%">'
       + buildEtiq(Object.assign({}, e, { ped: pedNum, cli: cli }))
-      + '</div></div>';
+      + '</div></div></div>';
   }).join('');
 
   // Abrir ventana nueva
@@ -6595,16 +6722,19 @@ function openEtiquetas(d){
     + '@page{size:62mm 29mm;margin:0}'
     + '@media print{'
     +   '*{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
-    +   'html,body{background:#fff!important;width:62mm!important}'
+    +   'html,body{background:#fff!important;width:62mm!important;margin:0!important;padding:0!important}'
     +   '.toolbar{display:none!important}'
     +   '.content{padding:0!important;gap:0!important}'
-    +   '.ep{width:62mm!important;height:29mm!important;page-break-after:always!important;page-break-inside:avoid!important;margin:0!important;box-shadow:none!important}'
+    +   '.ep-wrap{box-shadow:none!important;margin:0!important}'
+    +   '.ep{width:62mm!important;height:29mm!important;margin:0!important;page-break-inside:avoid!important;break-inside:avoid!important}'
+    +   '.ep-wrap:not(:last-child) .ep{page-break-after:always!important;break-after:page!important}'
     + '}'
     + '.toolbar{position:fixed;top:0;left:0;right:0;background:#1e2a38;color:#fff;padding:8px 16px;display:flex;justify-content:space-between;align-items:center;font-family:sans-serif;font-size:13px;z-index:99}'
     + '.tbtn{background:#f09620;color:#fff;border:none;border-radius:4px;padding:6px 16px;font-size:13px;font-weight:700;cursor:pointer;margin-left:8px}'
     + '.tclose{background:rgba(255,255,255,.12);color:#fff;border:none;border-radius:4px;padding:6px 12px;font-size:13px;cursor:pointer}'
     + '.content{padding-top:52px;padding-bottom:24px;display:flex;flex-direction:column;align-items:center;gap:12px}'
-    + '.ep{width:234px;height:110px;background:#fff;position:relative;box-shadow:0 2px 10px rgba(0,0,0,.5);overflow:hidden}'
+    + '.ep-wrap{box-shadow:0 2px 10px rgba(0,0,0,.5)}'
+    + '.ep{width:234px;height:110px;background:#fff;position:relative;overflow:hidden}'
     + '</style>'
     + '</head><body>'
     + '<div class="toolbar">'
