@@ -2092,6 +2092,14 @@ let _docsCache = [];
 let _loadingDocs = false;
 
 function getDocs(){ return _docsCache; }
+
+function setDocs(arr){
+  // Actualiza tanto el cache en memoria como localStorage
+  _docsCache = arr;
+  try {
+    localStorage.setItem('rm_docs_local', JSON.stringify(arr));
+  } catch(e){ console.error('Error guardando localStorage:', e); }
+}
 function getDocById(id){
   // Buscar en cache de Supabase primero
   let doc = _docsCache.find(x=>x.id===id);
@@ -5742,13 +5750,44 @@ async function printDoc(){
     _overlayDoc = doc;
     toast('✅ Guardado y enviando a impresión','ok');
   }
-  // Si es cotización en Borrador → pasar a Enviada automáticamente
+  // Si es cotización en Cotización → pasar a Enviada automáticamente
   if(_overlayDoc && _overlayDoc.type === 'quote' && _overlayDoc.estado === 'Cotización'){
     await changeStatus(_overlayDoc.id, 'Enviada');
     _overlayDoc.estado = 'Enviada';
     toast('📬 Estado actualizado a Enviada','ok');
   }
-  window.print();
+  // Abrir ventana nueva con el contenido del overlay y estilos forzados
+  const content = document.getElementById('doc-content').innerHTML;
+  const styles = Array.from(document.styleSheets).map(ss=>{
+    try{ return Array.from(ss.cssRules).map(r=>r.cssText).join('\n'); }
+    catch(e){ return ''; }
+  }).join('\n');
+
+  const win = window.open('','_blank','width=900,height=700');
+  win.document.write(`<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Cotización RollerMotion</title>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
+body{font-family:'DM Sans',sans-serif;background:#fff;color:#141414;font-size:13px}
+@page{size:A4 portrait;margin:8mm}
+${styles}
+.doc{position:static!important;padding:0!important}
+body *{visibility:visible!important}
+.overlay,.ptbar{display:none!important}
+</style>
+</head>
+<body>
+<div class="doc">${content}</div>
+<script>
+window.onload = function(){ setTimeout(function(){ window.print(); window.onafterprint = function(){ window.close(); }; }, 500); };
+<\/script>
+</body>
+</html>`);
+  win.document.close();
 }
 
 
