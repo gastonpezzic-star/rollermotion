@@ -2186,6 +2186,7 @@ async function loadDocsWithFallback(){
     await loadConfigFromSupabase();
     await loadDocs();
     syncPendingDocs();
+    syncPendingDeletes();
   } catch(e){
     console.error('loadDocsWithFallback error:', e);
   }
@@ -4266,13 +4267,45 @@ function editDoc(id){
 
 async function deleteDoc(id){
   if(!confirm('¿Eliminar este documento?')) return;
+  // 1. Eliminar localmente SIEMPRE
+  _docsCache = _docsCache.filter(x=>x.id!==id);
+  deleteDocLocal(id);
+  // 2. Marcar como pendiente eliminar en localStorage para reintentos
+  const pendingDeletes = JSON.parse(localStorage.getItem('rm_pending_deletes')||'[]');
+  if(!pendingDeletes.includes(id)) pendingDeletes.push(id);
+  localStorage.setItem('rm_pending_deletes', JSON.stringify(pendingDeletes));
+  // 3. Refrescar UI
+  renderCot(); renderPed();
+  if(ME?.role==='admin'){ renderAdmin(); updateStats(); }
+  updateNavBadges();
+  // 4. Intentar borrar de Supabase
   try {
     await deleteDocFromSupabase(id);
-    _docsCache = _docsCache.filter(x=>x.id!==id);
-    renderCot(); renderPed(); renderAdmin(); updateStats();
-    toast('🗑 Eliminado');
+    // limpiar de pending deletes
+    const pd = JSON.parse(localStorage.getItem('rm_pending_deletes')||'[]').filter(x=>x!==id);
+    localStorage.setItem('rm_pending_deletes', JSON.stringify(pd));
+    toast('🗑 Eliminado y sincronizado','ok');
   } catch(e) {
-    toast('⚠ Error al eliminar','err');
+    console.error('Error eliminando de Supabase:', e);
+    toast('⚠️ Eliminado local — pendiente sincronizar','err');
+  }
+  updateSyncIndicator();
+}
+
+async function syncPendingDeletes(){
+  const pendingDeletes = JSON.parse(localStorage.getItem('rm_pending_deletes')||'[]');
+  if(!pendingDeletes.length) return;
+  const remaining = [];
+  for(const id of pendingDeletes){
+    try {
+      await deleteDocFromSupabase(id);
+    } catch(e){
+      remaining.push(id);
+    }
+  }
+  localStorage.setItem('rm_pending_deletes', JSON.stringify(remaining));
+  if(pendingDeletes.length > remaining.length){
+    toast(`☁️ ${pendingDeletes.length - remaining.length} eliminación${pendingDeletes.length - remaining.length>1?'es':''} sincronizada${pendingDeletes.length - remaining.length>1?'s':''}`,'ok');
   }
 }
 
