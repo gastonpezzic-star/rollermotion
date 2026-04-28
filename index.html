@@ -2734,7 +2734,16 @@ function switchPage(id){
   if(id==='pg-fab') renderFab();
   if(id==='pg-lista') renderInsumosAdmin();
   if(id==='pg-clientes') renderClientes();
-  if(id==='pg-stock'){ renderStock(); renderMovStock(); updateStockStats(); refreshStockHoyWidget(); }
+  if(id==='pg-stock'){
+    // Asegurar que el panel Inventario esté visible al entrar
+    document.querySelectorAll('#pg-stock .stk-pane').forEach(p => {
+      const isInv = p.id === 'stk-pane-stk-inv';
+      p.style.display = isInv ? 'block' : 'none';
+      p.classList.toggle('on', isInv);
+    });
+    document.querySelectorAll('#pg-stock .stk-stab').forEach(t => t.classList.toggle('on', t.dataset.stab === 'stk-inv'));
+    renderStock(); renderMovStock(); updateStockStats(); refreshStockHoyWidget();
+  }
   if(id==='pg-dashboard') renderDashboard();
 }
 
@@ -9698,8 +9707,11 @@ function backupData(){
     version: 165, fecha: today(),
     docs:     getDocs(),
     clientes: getClientes(),
-    stock:    getStock(),
-    movStock: getMovStock(),
+    stock_items: typeof _stockItemsCache !== 'undefined' ? _stockItemsCache : [],
+    stock_partidas: typeof _stockPartidasCache !== 'undefined' ? _stockPartidasCache : [],
+    stock_movs: typeof _stockMovsCache !== 'undefined' ? _stockMovsCache : [],
+    proveedores: typeof _proveedoresCache !== 'undefined' ? _proveedoresCache : [],
+    recibos:  typeof _recibosCache !== 'undefined' ? _recibosCache : [],
     costs:    getCosts(),
   };
   const blob = new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
@@ -9746,7 +9758,7 @@ function updateNavBadges(){
   const docs = getDocs();
   const pendFab  = docs.filter(d=>d.type==='order'&&['Pendiente','Aprobado'].includes(d.estado)).length;
   const revision = docs.filter(d=>d.estado==='Necesita Revision').length;
-  const stockBajo= getStock().filter(it=>(parseFloat(it.actual)||0)<=(parseFloat(it.minimo)||0)&&it.minimo>0).length;
+  const stockBajo= (typeof _stockItemsCache !== 'undefined' ? _stockItemsCache : []).filter(i => i.activo!==false && (typeof getStockEstado==='function') && ['bajo','sin'].includes(getStockEstado(i))).length;
 
   document.querySelectorAll('.ntab').forEach(tab=>{
     const pg = tab.dataset.pg;
