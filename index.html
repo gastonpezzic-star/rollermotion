@@ -150,7 +150,8 @@ body{
    APP SHELL
 ══════════════════════════ */
 #app{display:none;flex-direction:column}
-.pg{display:none;height:0;overflow:hidden;position:relative}.pg.on{display:block;height:auto;overflow:visible}
+.pg{display:none}
+.pg.on{display:block}
 .pedido-only{display:none}
 .pedido-only.visible{display:block}
 /* El div de detalles técnicos cuando está visible */
@@ -2735,14 +2736,29 @@ function switchPage(id){
   if(id==='pg-lista') renderInsumosAdmin();
   if(id==='pg-clientes') renderClientes();
   if(id==='pg-stock'){
-    // Asegurar que el panel Inventario esté visible al entrar
-    document.querySelectorAll('#pg-stock .stk-pane').forEach(p => {
-      const isInv = p.id === 'stk-pane-stk-inv';
-      p.style.display = isInv ? 'block' : 'none';
-      p.classList.toggle('on', isInv);
-    });
-    document.querySelectorAll('#pg-stock .stk-stab').forEach(t => t.classList.toggle('on', t.dataset.stab === 'stk-inv'));
-    renderStock(); renderMovStock(); updateStockStats(); refreshStockHoyWidget();
+    console.log('[Stock] Entrando a pestaña Stock');
+    try {
+      // Asegurar que el panel Inventario esté visible al entrar
+      document.querySelectorAll('#pg-stock .stk-pane').forEach(p => {
+        const isInv = p.id === 'stk-pane-stk-inv';
+        p.style.display = isInv ? 'block' : 'none';
+        p.classList.toggle('on', isInv);
+      });
+      document.querySelectorAll('#pg-stock .stk-stab').forEach(t => t.classList.toggle('on', t.dataset.stab === 'stk-inv'));
+      console.log('[Stock] Panel Inventario forzado visible');
+    } catch(e){ console.error('[Stock] Error al cambiar panel:', e); }
+
+    try { if(typeof renderStock==='function') renderStock(); console.log('[Stock] renderStock OK'); }
+    catch(e){ console.error('[Stock] Error renderStock:', e); }
+
+    try { if(typeof renderMovStock==='function') renderMovStock(); console.log('[Stock] renderMovStock OK'); }
+    catch(e){ console.error('[Stock] Error renderMovStock:', e); }
+
+    try { if(typeof updateStockStats==='function') updateStockStats(); console.log('[Stock] updateStockStats OK'); }
+    catch(e){ console.error('[Stock] Error updateStockStats:', e); }
+
+    try { if(typeof refreshStockHoyWidget==='function') refreshStockHoyWidget(); console.log('[Stock] refreshStockHoyWidget OK'); }
+    catch(e){ console.error('[Stock] Error refreshStockHoyWidget:', e); }
   }
   if(id==='pg-dashboard') renderDashboard();
 }
