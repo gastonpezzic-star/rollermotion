@@ -1260,7 +1260,7 @@ body{
       </div>
       <div class="lt-wrap">
         <table class="lt"><thead><tr>
-          <th>Cliente</th><th>Tipo</th><th>CUIT</th><th>Teléfono</th><th>Cot.</th><th>Ped.</th><th>Total comprado</th><th>Pagado</th><th>Saldo</th><th>Acciones</th>
+          <th>Cliente</th><th>Etiquetas</th><th>Pedidos</th><th>Vendido</th><th>Pagado</th><th>Saldo</th><th>Tel.</th><th>Acciones</th>
         </tr></thead><tbody id="clientes-tbody"></tbody></table>
         <div id="clientes-empty" class="empty-st" style="display:none"><div class="ei">👥</div><div>No hay clientes registrados.</div></div>
       </div>
@@ -1379,6 +1379,16 @@ body{
         </div>
       </div>
 
+      <!-- Clientes con saldo pendiente -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-h" style="background:#fee2e2;color:#991b1b">⚠️ Clientes con saldo pendiente</div>
+        <div class="card-b" style="padding:0">
+          <table class="lt"><thead><tr>
+            <th>Cliente</th><th>Pedidos</th><th>Total vendido</th><th>Pagado</th><th>Saldo</th><th>Últ. pedido</th><th>Tel.</th><th></th>
+          </tr></thead><tbody id="dash-clientes-saldo"></tbody></table>
+        </div>
+      </div>
+
       <!-- Top clientes -->
       <div class="card">
         <div class="card-h">🏆 Top 10 clientes</div>
@@ -1419,6 +1429,11 @@ body{
         <div class="f"><label>Teléfono secundario</label><input type="text" id="cli-tel2-form" placeholder="Opcional"></div>
         <div class="f"><label>Email</label><input type="email" id="cli-email-form" placeholder="correo@ejemplo.com"></div>
         <div class="f"><label>Descuento habitual (%)</label><input type="number" id="cli-desc-form" min="0" max="100" placeholder="0" step="0.5"></div>
+        <div class="f s2"><label>Etiquetas <span style="color:var(--muted);font-weight:400">(podés elegir varias)</span></label>
+          <div id="cli-tags-form" style="display:flex;flex-wrap:wrap;gap:6px;padding:8px;background:var(--surface2);border-radius:6px;border:1.5px solid var(--border);min-height:40px">
+            <!-- populado por JS -->
+          </div>
+        </div>
         <div class="f s2"><label>Notas internas</label><textarea id="cli-notas-form" placeholder="Preferencias, condiciones especiales, observaciones…" style="min-height:60px"></textarea></div>
       </div>
     </div>
@@ -4549,14 +4564,11 @@ function renderReciboHTML(r, linkedDoc, yaCobradoAntes, saldoTrasPago){
   return `<div class="doc recibo-doc" style="padding:0;font-family:'DM Sans',sans-serif;background:#fff;color:#141414">
     <!-- Header -->
     <div style="padding:26px 32px 22px;border-bottom:3px solid #f09620;display:flex;justify-content:space-between;align-items:flex-start;gap:24px">
-      <div style="display:flex;align-items:center;gap:14px">
-        ${typeof logoImg !== 'undefined' ? `<img src="${logoImg}" alt="Roller Motion" style="height:44px;width:auto">` : ''}
-        <div>
-          <div style="font-family:'DM Serif Display',serif;font-size:26px;color:#141414;letter-spacing:-1px;line-height:1">Roller<em style="font-style:normal;color:#f09620">Motion</em></div>
-          <div style="font-size:9.5px;color:#888;margin-top:5px;line-height:1.55">
-            Luis María Drago 196 · Villa Adelina, Bs. As.<br>
-            CUIT 30-71614334-8 · info@rollermotion.com.ar
-          </div>
+      <div>
+        ${typeof logoImg !== 'undefined' ? `<img src="${logoImg}" alt="Roller Motion" style="height:38px;width:auto;display:block;margin-bottom:10px">` : ''}
+        <div style="font-size:9.5px;color:#888;line-height:1.6">
+          Luis María Drago 196 · Villa Adelina, Bs. As.<br>
+          CUIT 30-71614334-8 · info@rollermotion.com.ar
         </div>
       </div>
       <div style="text-align:right;flex-shrink:0">
@@ -5201,7 +5213,10 @@ async function confirmarPedido(){
     if(qi>=0) _docsCache[qi].estado='Aprobada';
     saveDocLocal(order);
     saveDocLocal({..._docsCache[_docsCache.findIndex(x=>x.id===_pedidoSrcId)], estado:'Aprobada'});
+    // Auto-crear cliente en CRM cuando se aprueba un pedido
+    autoCreateClienteFromDoc(order);
     renderCot(); renderPed();
+    if(typeof renderClientes==='function') renderClientes();
     if(ME?.role==='admin') renderAdmin();
     updateNavBadges();
     updateSyncIndicator();
@@ -5220,7 +5235,9 @@ async function confirmarPedido(){
       _docsCache[qi]._pendingSync = true;
       saveDocLocal(_docsCache[qi]);
     }
+    autoCreateClienteFromDoc(order);
     renderCot(); renderPed();
+    if(typeof renderClientes==='function') renderClientes();
     if(ME?.role==='admin') renderAdmin();
     updateNavBadges();
     updateSyncIndicator();
@@ -7452,6 +7469,44 @@ function getTotalBruto(){
 function getClientes(){ return JSON.parse(localStorage.getItem('rm_clientes')||'[]'); }
 function setClientes(a){ localStorage.setItem('rm_clientes', JSON.stringify(a)); }
 
+// Crea o actualiza un cliente a partir de los datos de un documento (cotización o pedido).
+// Match por nombre (case-insensitive). Si no existe, lo crea con defaults.
+function autoCreateClienteFromDoc(doc){
+  if(!doc?.cliente) return null;
+  const all = getClientes();
+  const norm = (doc.cliente||'').trim().toLowerCase();
+  let cli = all.find(c => (c.nombre||'').trim().toLowerCase() === norm);
+  if(cli){
+    // Completar campos faltantes con datos del doc (no pisar lo que ya tenga)
+    if(!cli.cuit && doc.cuit) cli.cuit = doc.cuit;
+    if(!cli.dir && doc.dir) cli.dir = doc.dir;
+    if(!cli.tel1 && doc.tel1) cli.tel1 = doc.tel1;
+    if(!cli.tel2 && doc.tel2) cli.tel2 = doc.tel2;
+    if(!cli.email && doc.email) cli.email = doc.email;
+    setClientes(all);
+    return cli;
+  }
+  // Crear nuevo
+  const nuevo = {
+    id:     uid(),
+    nombre: doc.cliente,
+    tipo:   'Particular',
+    cuit:   doc.cuit||'',
+    dir:    doc.dir||'',
+    tel1:   doc.tel1||'',
+    tel2:   doc.tel2||'',
+    email:  doc.email||'',
+    desc:   '',
+    notas:  '',
+    etiquetas: [],
+    creado_en: new Date().toISOString(),
+    origen: doc.numero||'',
+  };
+  all.unshift(nuevo);
+  setClientes(all);
+  return nuevo;
+}
+
 let _editClienteId = null;
 
 function abrirNuevoCliente(id){
@@ -7466,7 +7521,41 @@ function abrirNuevoCliente(id){
     if(el) el.value = cli ? (cli[key]||'') : '';
   });
   if(cli) document.getElementById('cli-tipo-form').value = cli.tipo||'Particular';
+  // Renderizar etiquetas
+  renderClienteTagsPicker(cli?.etiquetas || []);
   document.getElementById('overlay-cliente').classList.add('on');
+}
+
+const CLIENTE_TAGS = ['VIP','Frecuente','Mayorista','Recomendado','Nuevo','Problemático','En conflicto'];
+const CLIENTE_TAG_COLORS = {
+  'VIP':            ['#fef3c7','#92400e','⭐'],
+  'Frecuente':      ['#dcfce7','#166534','🔁'],
+  'Mayorista':      ['#dbeafe','#1e40af','📦'],
+  'Problemático':   ['#fee2e2','#991b1b','⚠️'],
+  'En conflicto':   ['#fee2e2','#991b1b','🚫'],
+  'Nuevo':          ['#e0e7ff','#3730a3','🆕'],
+  'Recomendado':    ['#fce7f3','#9d174d','💚'],
+};
+
+function renderClienteTagsPicker(selected){
+  const box = document.getElementById('cli-tags-form');
+  if(!box) return;
+  box.dataset.selected = JSON.stringify(selected||[]);
+  box.innerHTML = CLIENTE_TAGS.map(t=>{
+    const isOn = (selected||[]).includes(t);
+    const [bg,fg,ic] = CLIENTE_TAG_COLORS[t]||['#f3f4f6','#374151',''];
+    return `<button type="button" onclick="toggleClienteTag('${t}')" style="background:${isOn?bg:'#fff'};color:${isOn?fg:'#888'};border:1.5px solid ${isOn?fg:'var(--border)'};padding:5px 11px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-family:'DM Sans',sans-serif;transition:all .15s">${ic} ${t}</button>`;
+  }).join('');
+}
+
+function toggleClienteTag(tag){
+  const box = document.getElementById('cli-tags-form');
+  if(!box) return;
+  let sel;
+  try { sel = JSON.parse(box.dataset.selected||'[]'); } catch(e){ sel = []; }
+  if(sel.includes(tag)) sel = sel.filter(t=>t!==tag);
+  else sel.push(tag);
+  renderClienteTagsPicker(sel);
 }
 
 function cerrarOverlayCliente(){ document.getElementById('overlay-cliente').classList.remove('on'); }
@@ -7475,6 +7564,9 @@ function guardarCliente(){
   const nombre = document.getElementById('cli-nombre').value.trim();
   if(!nombre){ toast('⚠ Ingresá el nombre del cliente','err'); return; }
   const clientes = getClientes();
+  const tagsBox = document.getElementById('cli-tags-form');
+  let etiquetas = [];
+  try { etiquetas = JSON.parse(tagsBox?.dataset.selected || '[]'); } catch(e){}
   const c = {
     id:       _editClienteId || uid(),
     nombre,
@@ -7486,6 +7578,7 @@ function guardarCliente(){
     email:    document.getElementById('cli-email-form').value.trim(),
     desc:     parseFloat(document.getElementById('cli-desc-form').value)||0,
     notas:    document.getElementById('cli-notas-form').value.trim(),
+    etiquetas,
     creado:   _editClienteId ? (clientes.find(x=>x.id===_editClienteId)||{}).creado||today() : today(),
   };
   if(_editClienteId){ const i=clientes.findIndex(x=>x.id===_editClienteId); if(i>=0)clientes[i]=c; else clientes.push(c); }
@@ -7507,6 +7600,8 @@ function renderClientes(){
   const q = (document.getElementById('cli-q')?.value||'').toLowerCase();
   const tipo = document.getElementById('cli-tipo')?.value||'';
   const docs = getDocs();
+  const recibos = (typeof getRecibos==='function') ? getRecibos() : [];
+
   let data = getClientes().filter(c=>{
     if(tipo && c.tipo!==tipo) return false;
     if(q && !(c.nombre||'').toLowerCase().includes(q) && !(c.cuit||'').includes(q) && !(c.tel1||'').includes(q) && !(c.email||'').toLowerCase().includes(q)) return false;
@@ -7518,80 +7613,260 @@ function renderClientes(){
   if(!data.length){ tb.innerHTML=''; em.style.display='block'; return; }
   em.style.display='none';
 
+  // Ordenar: clientes con saldo pendiente primero (los que más nos deben)
+  data.sort((a,b)=>{
+    const sa = calcClienteSaldo(a, docs, recibos);
+    const sb = calcClienteSaldo(b, docs, recibos);
+    return sb - sa;
+  });
+
   tb.innerHTML = data.map(c=>{
     const cliDocs = docs.filter(d=>(d.cliente||'').toLowerCase()===c.nombre.toLowerCase());
-    const cots = cliDocs.filter(d=>d.type==='quote').length;
-    const peds = cliDocs.filter(d=>d.type==='order').length;
-    const total = cliDocs.filter(d=>d.type==='order').reduce((s,d)=>s+(d.total||0),0);
-    // Total cobrado por recibos asociados a este cliente
-    const cliRecibos = getRecibos().filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
+    const cliPedidos = cliDocs.filter(d=>d.type==='order');
+    const cliCotizaciones = cliDocs.filter(d=>d.type==='quote');
+    const total = cliPedidos.reduce((s,d)=>s+(d.total||0),0);
+    const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
     const pagado = cliRecibos.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
     const saldo = total - pagado;
     const initials = c.nombre.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
-    const tipoBadge = {Particular:'#dbeafe:#1e40af',Empresa:'#fef9c3:#854d0e',Arquitecto:'#f3e8ff:#6b21a8',Constructor:'#dcfce7:#15803d',Revendedor:'#fee2e2:#991b1b'}[c.tipo]||'#f3f4f6:#374151';
-    const [bgT,fgT]=tipoBadge.split(':');
     const saldoColor = saldo > 0 ? '#c0392b' : (saldo < 0 ? '#888' : '#15803d');
     const saldoLbl = saldo > 0 ? fmtM(saldo) : (saldo < 0 ? '+'+fmtM(Math.abs(saldo)) : '✓ Saldado');
-    return `<tr>
+
+    // Lista compacta de números de pedidos (máximo 3 visibles)
+    const pedNums = cliPedidos.slice(0, 3).map(p => `<span style="font-size:10px;background:#dbeafe;color:#1e40af;padding:2px 6px;border-radius:4px;font-weight:700">${p.numero||'s/n'}</span>`).join(' ');
+    const cotNums = cliCotizaciones.slice(0, 2).map(c => `<span style="font-size:10px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;font-weight:700">${c.numero||'s/n'}</span>`).join(' ');
+    const masPed = cliPedidos.length > 3 ? `<span style="font-size:10px;color:var(--muted)">+${cliPedidos.length-3}</span>` : '';
+    const masCot = cliCotizaciones.length > 2 ? `<span style="font-size:10px;color:var(--muted)">+${cliCotizaciones.length-2}</span>` : '';
+
+    // Etiquetas del cliente
+    const tagColors = {
+      'VIP':            ['#fef3c7','#92400e','⭐'],
+      'Frecuente':      ['#dcfce7','#166534','🔁'],
+      'Mayorista':      ['#dbeafe','#1e40af','📦'],
+      'Problemático':   ['#fee2e2','#991b1b','⚠️'],
+      'En conflicto':   ['#fee2e2','#991b1b','🚫'],
+      'Nuevo':          ['#e0e7ff','#3730a3','🆕'],
+      'Recomendado':    ['#fce7f3','#9d174d','💚'],
+    };
+    const tagsHtml = (c.etiquetas||[]).map(t=>{
+      const [bg,fg,ic] = tagColors[t] || ['#f3f4f6','#374151',''];
+      return `<span style="background:${bg};color:${fg};padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap;display:inline-flex;align-items:center;gap:3px">${ic} ${t}</span>`;
+    }).join(' ');
+
+    // WhatsApp link — limpiar teléfono y armar wa.me
+    const tel = (c.tel1||'').replace(/\D/g,'');
+    const waBtn = tel ? `<button class="btn-t" onclick="event.stopPropagation();openWhatsApp('${c.tel1}')" title="WhatsApp" style="background:#25d366;color:#fff;border-color:#25d366">💬</button>` : `<button class="btn-t" disabled title="Sin teléfono" style="opacity:.4">💬</button>`;
+
+    return `<tr style="cursor:pointer" onclick="verHistorialCliente('${c.id}')" title="Ver historial completo">
       <td style="vertical-align:middle">
         <div style="display:flex;align-items:center;gap:10px">
           <div class="cli-avatar">${initials}</div>
           <div>
-            <div style="font-weight:700;font-size:13px">${c.nombre}</div>
-            ${c.email?`<div style="font-size:11px;color:var(--muted)">${c.email}</div>`:''}
+            <div style="font-weight:700;font-size:13.5px">${c.nombre}</div>
+            <div style="display:flex;gap:5px;align-items:center;margin-top:3px">
+              ${cotNums}${masCot}
+              ${pedNums}${masPed}
+              ${cliPedidos.length===0&&cliCotizaciones.length===0?`<span style="font-size:10px;color:var(--muted);font-style:italic">Sin documentos</span>`:''}
+            </div>
           </div>
         </div>
       </td>
-      <td><span style="background:${bgT};color:${fgT};border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;white-space:nowrap">${c.tipo}</span></td>
-      <td style="font-size:12px;white-space:nowrap">${c.cuit||'—'}</td>
-      <td style="font-size:12px;white-space:nowrap">${[c.tel1,c.tel2].filter(Boolean).join(' / ')||'—'}</td>
-      <td style="text-align:center;font-size:13px">${cots}</td>
-      <td style="text-align:center;font-size:13px">${peds}</td>
-      <td style="font-weight:700;white-space:nowrap">${total?fmtM(total):'—'}</td>
-      <td style="font-weight:600;color:#15803d;white-space:nowrap">${pagado?fmtM(pagado):'—'}</td>
-      <td style="font-weight:700;color:${saldoColor};white-space:nowrap">${total||pagado?saldoLbl:'—'}</td>
-      <td>
+      <td style="vertical-align:middle">
+        <div style="display:flex;flex-wrap:wrap;gap:4px">${tagsHtml || '<span style="font-size:11px;color:var(--muted)">—</span>'}</div>
+      </td>
+      <td style="text-align:center;vertical-align:middle">
+        <div style="font-size:14px;font-weight:700">${cliPedidos.length}</div>
+        ${cliCotizaciones.length?`<div style="font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700">${cliCotizaciones.length} cot.</div>`:''}
+      </td>
+      <td style="font-weight:700;white-space:nowrap;vertical-align:middle;font-size:13px">${total?fmtM(total):'—'}</td>
+      <td style="font-weight:600;color:#15803d;white-space:nowrap;vertical-align:middle;font-size:13px">${pagado?fmtM(pagado):'—'}</td>
+      <td style="font-weight:700;color:${saldoColor};white-space:nowrap;vertical-align:middle;font-size:13px">${total||pagado?saldoLbl:'—'}</td>
+      <td style="font-size:11.5px;white-space:nowrap;vertical-align:middle">${c.tel1||'—'}</td>
+      <td onclick="event.stopPropagation()" style="vertical-align:middle">
         <div style="display:flex;gap:5px">
+          ${waBtn}
           <button class="btn-t" onclick="verHistorialCliente('${c.id}')" title="Ver historial">🔍</button>
-          <button class="btn-t" onclick="abrirNuevoCliente('${c.id}')">✏️</button>
-          <button class="btn-t del" onclick="eliminarCliente('${c.id}')">🗑</button>
+          <button class="btn-t" onclick="abrirNuevoCliente('${c.id}')" title="Editar">✏️</button>
+          <button class="btn-t del" onclick="eliminarCliente('${c.id}')" title="Eliminar">🗑</button>
         </div>
       </td>
     </tr>`;
   }).join('');
 }
 
+function calcClienteSaldo(c, docs, recibos){
+  const cliDocs = docs.filter(d=>(d.cliente||'').toLowerCase()===c.nombre.toLowerCase()&&d.type==='order');
+  const total = cliDocs.reduce((s,d)=>s+(d.total||0),0);
+  const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
+  const pagado = cliRecibos.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
+  return total - pagado;
+}
+
+function openWhatsApp(tel){
+  const numLimpio = (tel||'').replace(/\D/g,'');
+  if(!numLimpio){ toast('⚠ Cliente sin teléfono','err'); return; }
+  // Si el número empieza con 54, dejarlo. Si empieza con 0 o sin código, asumir Argentina
+  let final = numLimpio;
+  if(!final.startsWith('54')){
+    // Quitar 0 inicial si lo tiene
+    if(final.startsWith('0')) final = final.slice(1);
+    // Quitar 15 después del código de área (móviles AR)
+    final = final.replace(/^(\d{2,4})15/, '$1');
+    final = '54' + final;
+  }
+  window.open(`https://wa.me/${final}`, '_blank');
+}
+  }).join('');
+}
+
 function verHistorialCliente(id){
   const c = getClientes().find(x=>x.id===id);
   if(!c) return;
-  const cliDocs = getDocs().filter(d=>(d.cliente||'').toLowerCase()===c.nombre.toLowerCase()).reverse();
-  if(!cliDocs.length){ toast('Este cliente no tiene documentos asociados','err'); return; }
-  // Mostrar resumen en overlay
-  const total = cliDocs.filter(d=>d.type==='order').reduce((s,d)=>s+(d.total||0),0);
-  document.getElementById('overlay-title').textContent = `Historial — ${c.nombre}`;
-  document.getElementById('doc-content').innerHTML = `<div class="doc" style="padding:22px 28px">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid var(--border)">
-      <div class="cli-avatar" style="width:44px;height:44px;font-size:18px">${c.nombre.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase()}</div>
-      <div>
-        <div style="font-size:18px;font-weight:700;color:var(--brand)">${c.nombre}</div>
-        <div style="font-size:12px;color:var(--muted)">${c.tipo} · ${c.cuit||'Sin CUIT'} · ${c.tel1||'Sin tel'}</div>
+  const docs = getDocs();
+  const recibos = (typeof getRecibos==='function') ? getRecibos() : [];
+  const cliDocs = docs.filter(d=>(d.cliente||'').toLowerCase()===c.nombre.toLowerCase());
+  const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
+  const cliPedidos = cliDocs.filter(d=>d.type==='order');
+  const cliCotizaciones = cliDocs.filter(d=>d.type==='quote');
+
+  // Ordenar por número descendente (más nuevo primero)
+  const orderByNum = (a,b)=>{
+    const na = parseInt((a.numero||'').replace(/\D/g,''))||0;
+    const nb = parseInt((b.numero||'').replace(/\D/g,''))||0;
+    return nb - na;
+  };
+  cliPedidos.sort(orderByNum);
+  cliCotizaciones.sort(orderByNum);
+  cliRecibos.sort(orderByNum);
+
+  const totalVendido = cliPedidos.reduce((s,d)=>s+(d.total||0),0);
+  const totalPagado  = cliRecibos.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
+  const saldo = totalVendido - totalPagado;
+  const initials = c.nombre.split(' ').slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+
+  // Etiquetas badges
+  const tagColors = {
+    'VIP':            ['#fef3c7','#92400e','⭐'],
+    'Frecuente':      ['#dcfce7','#166534','🔁'],
+    'Mayorista':      ['#dbeafe','#1e40af','📦'],
+    'Problemático':   ['#fee2e2','#991b1b','⚠️'],
+    'En conflicto':   ['#fee2e2','#991b1b','🚫'],
+    'Nuevo':          ['#e0e7ff','#3730a3','🆕'],
+    'Recomendado':    ['#fce7f3','#9d174d','💚'],
+  };
+  const tagsHtml = (c.etiquetas||[]).map(t=>{
+    const [bg,fg,ic] = tagColors[t] || ['#f3f4f6','#374151',''];
+    return `<span style="background:${bg};color:${fg};padding:3px 9px;border-radius:5px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:3px">${ic} ${t}</span>`;
+  }).join(' ');
+
+  document.getElementById('overlay-title').textContent = `Cliente — ${c.nombre}`;
+  document.getElementById('doc-content').innerHTML = `<div class="doc" style="padding:24px 30px;font-family:'DM Sans',sans-serif">
+
+    <!-- HEADER -->
+    <div style="display:flex;align-items:flex-start;gap:18px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)">
+      <div class="cli-avatar" style="width:60px;height:60px;font-size:22px;flex-shrink:0">${initials}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-size:22px;font-weight:700;color:var(--brand);margin-bottom:4px">${c.nombre}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${c.tipo}${c.cuit?` · CUIT ${c.cuit}`:''}${c.dir?` · ${c.dir}`:''}</div>
+        <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
+          ${c.tel1?`<a href="#" onclick="event.preventDefault();openWhatsApp('${c.tel1}')" style="font-size:12px;color:#25d366;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:5px;background:#dcfce7;padding:4px 10px;border-radius:6px">💬 ${c.tel1}</a>`:''}
+          ${c.tel2?`<span style="font-size:12px;color:var(--muted)">📞 ${c.tel2}</span>`:''}
+          ${c.email?`<a href="mailto:${c.email}" style="font-size:12px;color:#1e40af;text-decoration:none">✉ ${c.email}</a>`:''}
+        </div>
+        ${tagsHtml?`<div style="margin-top:10px;display:flex;gap:5px;flex-wrap:wrap">${tagsHtml}</div>`:''}
       </div>
-      <div style="margin-left:auto;text-align:right">
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em">Total comprado</div>
-        <div style="font-size:22px;font-weight:700;color:var(--accent)">${fmtM(total)}</div>
+      <div style="display:flex;gap:6px;flex-shrink:0">
+        ${c.tel1?`<button class="btn btn-sm" onclick="openWhatsApp('${c.tel1}')" style="background:#25d366;color:#fff;border:none">💬 WhatsApp</button>`:''}
+        <button class="btn btn-outline btn-sm" onclick="abrirNuevoCliente('${c.id}');closeOverlay()">✏️ Editar</button>
       </div>
     </div>
-    <table class="dtbl" style="font-size:12px">
-      <thead><tr><th>#</th><th>Tipo</th><th>Fecha</th><th>Vendedor</th><th>Items</th><th>Total</th><th>Estado</th></tr></thead>
-      <tbody>${cliDocs.map(d=>`<tr>
-        <td><strong>#${d.numero||'—'}</strong></td>
-        <td><span class="${d.type==='quote'?'type-quote':'type-order'}">${d.type==='quote'?'Cotización':'Pedido'}</span></td>
-        <td>${fmtD(d.fecha)}</td><td>${d.vendedor}</td>
-        <td>${(d.items||[]).length}</td><td>${fmtM(d.total)}</td>
-        <td>${STATUS_HTML[d.estado]||d.estado}</td>
-      </tr>`).join('')}</tbody>
-    </table>
-    ${c.notas?`<div style="margin-top:14px;padding:10px 14px;background:var(--surface2);border-radius:7px;font-size:12px"><strong>Notas:</strong> ${c.notas}</div>`:''}
+
+    <!-- STATS -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px">
+      <div style="background:#f8f8f7;padding:14px;border-radius:8px">
+        <div style="font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Pedidos</div>
+        <div style="font-size:22px;font-weight:700;margin-top:4px">${cliPedidos.length}</div>
+        ${cliCotizaciones.length?`<div style="font-size:10px;color:var(--muted);margin-top:2px">+ ${cliCotizaciones.length} cot.</div>`:''}
+      </div>
+      <div style="background:#f8f8f7;padding:14px;border-radius:8px">
+        <div style="font-size:9.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;font-weight:700">Total vendido</div>
+        <div style="font-size:18px;font-weight:700;margin-top:4px;color:var(--brand)">${fmtM(totalVendido)}</div>
+      </div>
+      <div style="background:#dcfce7;padding:14px;border-radius:8px">
+        <div style="font-size:9.5px;color:#166534;text-transform:uppercase;letter-spacing:.1em;font-weight:700">Pagado</div>
+        <div style="font-size:18px;font-weight:700;margin-top:4px;color:#15803d">${fmtM(totalPagado)}</div>
+        ${cliRecibos.length?`<div style="font-size:10px;color:#166534;margin-top:2px">${cliRecibos.length} recibo${cliRecibos.length!==1?'s':''}</div>`:''}
+      </div>
+      <div style="background:${saldo>0?'#fee2e2':'#dcfce7'};padding:14px;border-radius:8px">
+        <div style="font-size:9.5px;color:${saldo>0?'#991b1b':'#166534'};text-transform:uppercase;letter-spacing:.1em;font-weight:700">Saldo pendiente</div>
+        <div style="font-size:18px;font-weight:700;margin-top:4px;color:${saldo>0?'#c0392b':'#15803d'}">${saldo>0?fmtM(saldo):(saldo<0?'A favor: '+fmtM(Math.abs(saldo)):'✓ Saldado')}</div>
+      </div>
+    </div>
+
+    ${cliPedidos.length?`
+    <!-- PEDIDOS -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--brand);margin-bottom:10px">📦 Pedidos (${cliPedidos.length})</div>
+      <table class="dtbl" style="font-size:12px;width:100%">
+        <thead><tr><th>N°</th><th>Fecha</th><th>Vendedor</th><th>Items</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+        <tbody>${cliPedidos.map(d=>`<tr>
+          <td style="white-space:nowrap"><strong>${d.numero||'—'}</strong></td>
+          <td style="white-space:nowrap">${fmtD(d.fecha)}</td>
+          <td>${d.vendedor||'—'}</td>
+          <td style="text-align:center">${(d.items||[]).reduce((s,it)=>s+(parseInt(it.cant)||1),0)}</td>
+          <td style="white-space:nowrap;font-weight:700">${fmtM(d.total)}</td>
+          <td>${STATUS_HTML[d.estado]||d.estado}</td>
+          <td><button class="btn-t" onclick="closeOverlay();setTimeout(()=>openDoc(getDocs().find(x=>x.id==='${d.id}')),200)" title="Ver">👁</button></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`:''}
+
+    ${cliCotizaciones.length?`
+    <!-- COTIZACIONES -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400e;margin-bottom:10px">📄 Cotizaciones (${cliCotizaciones.length})</div>
+      <table class="dtbl" style="font-size:12px;width:100%">
+        <thead><tr><th>N°</th><th>Fecha</th><th>Vendedor</th><th>Items</th><th>Total</th><th>Estado</th><th></th></tr></thead>
+        <tbody>${cliCotizaciones.map(d=>`<tr>
+          <td style="white-space:nowrap"><strong>${d.numero||'—'}</strong></td>
+          <td style="white-space:nowrap">${fmtD(d.fecha)}</td>
+          <td>${d.vendedor||'—'}</td>
+          <td style="text-align:center">${(d.items||[]).reduce((s,it)=>s+(parseInt(it.cant)||1),0)}</td>
+          <td style="white-space:nowrap;font-weight:700">${fmtM(d.total)}</td>
+          <td>${STATUS_HTML[d.estado]||d.estado}</td>
+          <td><button class="btn-t" onclick="closeOverlay();setTimeout(()=>openDoc(getDocs().find(x=>x.id==='${d.id}')),200)" title="Ver">👁</button></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`:''}
+
+    ${cliRecibos.length?`
+    <!-- RECIBOS -->
+    <div style="margin-bottom:20px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#15803d;margin-bottom:10px">🧾 Recibos (${cliRecibos.length})</div>
+      <table class="dtbl" style="font-size:12px;width:100%">
+        <thead><tr><th>N°</th><th>Fecha</th><th>Concepto</th><th>Tipo</th><th>Forma</th><th>Vinculado</th><th>Monto</th><th></th></tr></thead>
+        <tbody>${cliRecibos.map(r=>`<tr>
+          <td style="white-space:nowrap"><strong>${r.numero||'—'}</strong></td>
+          <td style="white-space:nowrap">${fmtD(r.fecha)}</td>
+          <td style="font-size:11px">${r.concepto||'—'}</td>
+          <td style="font-size:11px">${r.tipo||'—'}</td>
+          <td style="font-size:11px">${r.pago||'—'}</td>
+          <td style="white-space:nowrap;font-size:11px">${r.doc_numero?`<span style="background:#fff5e6;color:#c9750a;padding:2px 6px;border-radius:4px;font-weight:700">${r.doc_numero}</span>`:'<span style="color:var(--muted)">—</span>'}</td>
+          <td style="white-space:nowrap;font-weight:700;color:#15803d">${fmtM(r.monto)}</td>
+          <td><button class="btn-t" onclick="closeOverlay();setTimeout(()=>viewRecibo('${r.id}'),200)" title="Ver">👁</button></td>
+        </tr>`).join('')}</tbody>
+      </table>
+    </div>`:''}
+
+    ${(c.etiquetas||[]).length===0&&!c.notas&&!cliPedidos.length&&!cliCotizaciones.length&&!cliRecibos.length?`
+      <div style="text-align:center;padding:40px;color:var(--muted)"><div style="font-size:36px;margin-bottom:10px">👤</div><div>Cliente sin movimientos aún.</div></div>
+    `:''}
+
+    ${c.notas?`<div style="margin-top:14px;padding:14px 16px;background:#fffbeb;border-left:3px solid #f09620;border-radius:6px;font-size:12.5px;line-height:1.5">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400e;margin-bottom:5px">📝 Notas internas</div>
+      ${c.notas}
+    </div>`:''}
+
   </div>`;
   document.getElementById('overlay').classList.add('on');
 }
@@ -7928,6 +8203,38 @@ function renderDashboard(){
         <td style="font-size:12px;color:var(--muted)">${fmtD(d.ultimo)}</td>
       </tr>`).join('')
     : '<tr><td colspan="6" class="empty-st" style="padding:30px">Sin datos aún</td></tr>';
+
+  // Clientes con saldo pendiente
+  const recibos = (typeof getRecibos==='function') ? getRecibos() : [];
+  const clientes = getClientes();
+  const conSaldo = clientes.map(c => {
+    const cliPedidos = docs.filter(d=>d.type==='order' && (d.cliente||'').toLowerCase()===c.nombre.toLowerCase());
+    const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
+    const total = cliPedidos.reduce((s,d)=>s+(d.total||0),0);
+    const pagado = cliRecibos.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
+    const saldo = total - pagado;
+    const ultimo = cliPedidos.length ? cliPedidos.map(d=>d.fecha).sort().pop() : '';
+    return { cliente:c, total, pagado, saldo, ultimo, pedidos:cliPedidos.length };
+  }).filter(x => x.saldo > 0).sort((a,b) => b.saldo - a.saldo);
+
+  const tbSaldo = document.getElementById('dash-clientes-saldo');
+  if(tbSaldo){
+    tbSaldo.innerHTML = conSaldo.length
+      ? conSaldo.slice(0,15).map(x => {
+          const wa = x.cliente.tel1 ? `<button class="btn-t" onclick="openWhatsApp('${x.cliente.tel1}')" title="WhatsApp" style="background:#25d366;color:#fff;border-color:#25d366">💬</button>` : '';
+          return `<tr style="cursor:pointer" onclick="verHistorialCliente('${x.cliente.id}')">
+            <td style="font-weight:700">${x.cliente.nombre}</td>
+            <td style="text-align:center">${x.pedidos}</td>
+            <td style="font-weight:700;white-space:nowrap">${fmtM(x.total)}</td>
+            <td style="font-weight:600;color:#15803d;white-space:nowrap">${fmtM(x.pagado)}</td>
+            <td style="font-weight:700;color:#c0392b;white-space:nowrap">${fmtM(x.saldo)}</td>
+            <td style="white-space:nowrap;font-size:11.5px;color:var(--muted)">${x.ultimo?fmtD(x.ultimo):'—'}</td>
+            <td style="white-space:nowrap;font-size:11.5px">${x.cliente.tel1||'—'}</td>
+            <td onclick="event.stopPropagation()">${wa}</td>
+          </tr>`;
+        }).join('')
+      : '<tr><td colspan="8" class="empty-st" style="padding:24px;color:#15803d;font-weight:600">✓ Todos los clientes están al día</td></tr>';
+  }
 }
 
 function renderChartVentas(docs, dias){
