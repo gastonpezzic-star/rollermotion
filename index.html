@@ -468,6 +468,16 @@ body{
 
 /* ══ CLIENTES ══ */
 .cli-avatar{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;background:var(--brand);color:#fff}
+.stk-stab{padding:11px 18px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.05em}
+.stk-stab:hover{color:var(--ink)}
+.stk-stab.on{color:var(--brand);border-bottom-color:var(--brand)}
+.stk-pane{display:none}.stk-pane.on{display:block}
+.stk-row-status{width:6px;height:36px;border-radius:3px;display:inline-block}
+.stk-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.stk-pill.ok{background:#dcfce7;color:#15803d}
+.stk-pill.warn{background:#fff3cd;color:#a05c00}
+.stk-pill.bajo{background:#fee2e2;color:#c0392b}
+.stk-pill.sin{background:#f3f4f6;color:#6b7280}
 
 @media print{
   @page{size:A4 portrait;margin:8mm 8mm 8mm 8mm}
@@ -1276,55 +1286,176 @@ body{
       <div class="sh">
         <h2>📦 Gestión de Stock</h2>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-outline btn-sm" onclick="exportStockExcel()">📊 Exportar</button>
-          <button class="btn btn-primary" onclick="abrirMovStock()">＋ Movimiento</button>
+          <button class="btn btn-outline btn-sm" onclick="seedStockFromCatalog()" title="Crear items vacíos a partir de los insumos del cotizador">🌱 Inicializar desde catálogo</button>
+          <button class="btn btn-outline btn-sm" onclick="abrirIngresoMercaderia()">📥 Ingresar mercadería</button>
+          <button class="btn btn-primary" onclick="abrirNuevoStockItem()">＋ Nuevo Insumo</button>
         </div>
       </div>
 
-      <!-- Stats stock -->
-      <div class="stats" style="grid-template-columns:repeat(4,1fr);margin-bottom:18px">
-        <div class="stat-card"><div class="num" id="stk-total">0</div><div class="lbl">Artículos en stock</div></div>
-        <div class="stat-card"><div class="num" id="stk-bajo" style="color:var(--red)">0</div><div class="lbl">Stock bajo</div></div>
-        <div class="stat-card"><div class="num" id="stk-sin">0</div><div class="lbl">Sin stock</div></div>
-        <div class="stat-card"><div class="num" id="stk-valor">$0</div><div class="lbl">Valor total stock</div></div>
-      </div>
-
-      <!-- Alertas stock bajo -->
-      <div id="stk-alertas" style="margin-bottom:16px"></div>
-
-      <!-- Tabla stock -->
-      <div class="card">
-        <div class="card-h">📋 Inventario</div>
-        <div class="card-b" style="padding:0">
-          <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px">
-            <input type="text" id="stk-q" placeholder="Buscar insumo…" oninput="renderStock()" style="flex:1;padding:8px 11px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px">
-            <select id="stk-cat" onchange="renderStock()" style="padding:8px 11px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff">
-              <option value="">Todas las categorías</option>
-              <option value="Tela">Tela</option>
-              <option value="Aluminio">Aluminio</option>
-              <option value="Mecanismo">Mecanismo</option>
-              <option value="Accesorio">Accesorio</option>
-              <option value="Embalaje">Embalaje</option>
-              <option value="Otro">Otro</option>
-            </select>
+      <!-- WIDGET HOY: alertas en tiempo real -->
+      <div id="stk-hoy-widget" style="display:none;background:linear-gradient(135deg,#fff5f5 0%,#fff3cd 100%);border-left:4px solid #c0392b;border-radius:10px;padding:14px 18px;margin-bottom:16px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:14px">
+          <div style="flex:1">
+            <div style="font-weight:700;font-size:14px;color:#c0392b;margin-bottom:4px">⚠️ Atención hoy</div>
+            <div id="stk-hoy-text" style="font-size:12.5px;color:#555;line-height:1.6"></div>
           </div>
-          <table class="lt"><thead><tr>
-            <th>Código</th><th>Nombre</th><th>Categoría</th><th>Unidad</th><th>Stock actual</th><th>Stock mínimo</th><th>Precio costo</th><th>Ubicación</th><th>Acciones</th>
-          </tr></thead><tbody id="stock-tbody"></tbody></table>
-          <div id="stock-empty" class="empty-st" style="display:none"><div class="ei">📦</div><div>No hay insumos cargados.</div></div>
+          <div style="display:flex;gap:6px;flex-shrink:0">
+            <button class="btn btn-outline btn-sm" onclick="switchStockTab('stk-comprar')">🛒 Ver compras sugeridas</button>
+            <button class="btn-t" onclick="document.getElementById('stk-hoy-widget').style.display='none'" title="Cerrar">✕</button>
+          </div>
         </div>
       </div>
 
-      <!-- Movimientos recientes -->
-      <div class="card">
-        <div class="card-h">🔄 Últimos Movimientos</div>
-        <div class="card-b" style="padding:0">
-          <table class="lt"><thead><tr>
-            <th>Fecha</th><th>Insumo</th><th>Tipo</th><th>Cantidad</th><th>Usuario</th><th>Referencia</th>
-          </tr></thead><tbody id="movstock-tbody"></tbody></table>
-          <div id="movstock-empty" class="empty-st" style="display:none"><div class="ei">🔄</div><div>Sin movimientos registrados.</div></div>
+      <!-- SUB-TABS de stock -->
+      <div style="background:#fff;border-radius:10px 10px 0 0;border-bottom:1px solid var(--border);padding:0 8px;display:flex;gap:2px;margin-bottom:0">
+        <div class="stk-stab on" data-stab="stk-inv" onclick="switchStockTab('stk-inv')">📋 Inventario</div>
+        <div class="stk-stab" data-stab="stk-mov" onclick="switchStockTab('stk-mov')">📥 Movimientos</div>
+        <div class="stk-stab" data-stab="stk-proy" onclick="switchStockTab('stk-proy')">🔮 Proyectado</div>
+        <div class="stk-stab" data-stab="stk-comprar" onclick="switchStockTab('stk-comprar')">🛒 Comprar</div>
+        <div class="stk-stab" data-stab="stk-prov" onclick="switchStockTab('stk-prov')">🏢 Proveedores</div>
+        <div class="stk-stab" data-stab="stk-cfg" onclick="switchStockTab('stk-cfg')">⚙️ Configuración</div>
+      </div>
+
+      <!-- Stats compactos -->
+      <div class="stats" style="grid-template-columns:repeat(5,1fr);margin:14px 0 16px;gap:10px">
+        <div class="stat-card" style="padding:13px 16px"><div class="num" id="stk-total" style="font-size:22px">0</div><div class="lbl" style="font-size:10px">Insumos activos</div></div>
+        <div class="stat-card" style="padding:13px 16px"><div class="num" id="stk-ok" style="color:#15803d;font-size:22px">0</div><div class="lbl" style="font-size:10px">🟢 Stock OK</div></div>
+        <div class="stat-card" style="padding:13px 16px"><div class="num" id="stk-warn" style="color:#a05c00;font-size:22px">0</div><div class="lbl" style="font-size:10px">🟠 Por reponer</div></div>
+        <div class="stat-card" style="padding:13px 16px"><div class="num" id="stk-bajo" style="color:#c0392b;font-size:22px">0</div><div class="lbl" style="font-size:10px">🔴 Crítico</div></div>
+        <div class="stat-card" style="padding:13px 16px"><div class="num" id="stk-sin" style="color:#888;font-size:22px">0</div><div class="lbl" style="font-size:10px">⚫ Sin stock</div></div>
+      </div>
+
+      <!-- ─── INVENTARIO ─── -->
+      <div class="stk-pane on" id="stk-pane-stk-inv">
+        <div class="card">
+          <div class="card-b" style="padding:0">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <input type="text" id="stk-q" placeholder="Buscar por nombre, código o color…" oninput="renderStock()" style="flex:1;min-width:200px;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px">
+              <select id="stk-cat" onchange="renderStock()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff">
+                <option value="">Todas las categorías</option>
+                <option value="Telas">Telas</option>
+                <option value="Ejes">Ejes / Tubos</option>
+                <option value="Zócalos">Zócalos</option>
+                <option value="Mecanismos">Mecanismos</option>
+                <option value="Cadenas">Cadenas</option>
+                <option value="Soportes">Soportes</option>
+                <option value="Motores">Motores</option>
+                <option value="Accesorios">Accesorios</option>
+                <option value="Otros">Otros</option>
+              </select>
+              <select id="stk-status" onchange="renderStock()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff">
+                <option value="">Todos los estados</option>
+                <option value="ok">🟢 Stock OK</option>
+                <option value="warn">🟠 Por reponer</option>
+                <option value="bajo">🔴 Crítico</option>
+                <option value="sin">⚫ Sin stock</option>
+              </select>
+            </div>
+            <table class="lt"><thead><tr>
+              <th>Estado</th><th>Código</th><th>Insumo</th><th>Categoría</th><th>Variante</th><th>Stock</th><th>Mín / Punto pedido</th><th>Partidas</th><th style="width:160px">Acciones</th>
+            </tr></thead><tbody id="stock-tbody"></tbody></table>
+            <div id="stock-empty" class="empty-st" style="display:none;padding:48px 20px"><div class="ei">📦</div><div style="margin-top:8px">No hay insumos cargados.</div><div style="font-size:11.5px;margin-top:4px;color:var(--muted)">Hacé click en "🌱 Inicializar desde catálogo" para crear los insumos automáticamente.</div></div>
+          </div>
         </div>
       </div>
+
+      <!-- ─── MOVIMIENTOS ─── -->
+      <div class="stk-pane" id="stk-pane-stk-mov" style="display:none">
+        <div class="card">
+          <div class="card-b" style="padding:0">
+            <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;gap:8px;flex-wrap:wrap">
+              <input type="text" id="mov-q" placeholder="Buscar insumo o pedido…" oninput="renderMovStock()" style="flex:1;min-width:200px;padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px">
+              <select id="mov-tipo" onchange="renderMovStock()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff">
+                <option value="">Todos los tipos</option>
+                <option value="ingreso">📥 Ingreso</option>
+                <option value="egreso_fab">📤 Egreso fabricación</option>
+                <option value="ajuste_pos">➕ Ajuste positivo</option>
+                <option value="ajuste_neg">➖ Ajuste negativo</option>
+                <option value="reverso">↩️ Reverso</option>
+                <option value="merma">🗑 Merma</option>
+              </select>
+            </div>
+            <table class="lt"><thead><tr>
+              <th>Fecha</th><th>Tipo</th><th>Insumo</th><th>Cantidad</th><th>Saldo tras mov.</th><th>Pedido</th><th>Usuario</th><th>Notas</th>
+            </tr></thead><tbody id="movstock-tbody"></tbody></table>
+            <div id="movstock-empty" class="empty-st" style="display:none;padding:48px 20px"><div class="ei">🔄</div><div style="margin-top:8px">Sin movimientos registrados.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── COMPRAR ─── -->
+      <div class="stk-pane" id="stk-pane-stk-comprar" style="display:none">
+        <div class="card">
+          <div class="card-h">🛒 Lista de compras sugerida</div>
+          <div class="card-b">
+            <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Cálculo automático: <strong>insumos críticos o por reponer</strong> + cobertura para los próximos <strong>30 días</strong> según consumo histórico (90 días) y pedidos pendientes.</p>
+            <div style="background:#f5f4f0;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px;display:flex;gap:18px;flex-wrap:wrap">
+              <div><strong style="color:#c0392b">⚠️ Crítico:</strong> <span id="comprar-criticos">0</span></div>
+              <div><strong style="color:#a05c00">🟠 Por reponer:</strong> <span id="comprar-reponer">0</span></div>
+              <div><strong>Total a comprar:</strong> <span id="comprar-total">$ 0</span></div>
+              <div><strong>Proveedores:</strong> <span id="comprar-prov-count">0</span></div>
+            </div>
+            <div id="compras-por-prov"></div>
+            <div id="compras-empty" class="empty-st" style="display:none;padding:32px"><div class="ei">✅</div><div>Stock al día — no hay compras urgentes.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── PROVEEDORES ─── -->
+      <div class="stk-pane" id="stk-pane-stk-prov" style="display:none">
+        <div class="card">
+          <div class="card-h" style="display:flex;justify-content:space-between;align-items:center">
+            <span>🏢 Proveedores</span>
+            <button class="btn btn-primary btn-xs" onclick="abrirNuevoProveedor()" style="background:rgba(255,255,255,.2);border:1px solid rgba(255,255,255,.3)">＋ Nuevo</button>
+          </div>
+          <div class="card-b" style="padding:0">
+            <table class="lt"><thead><tr>
+              <th>Nombre</th><th>Contacto</th><th>Teléfono</th><th>Email</th><th>Lead time</th><th>Insumos</th><th>Acciones</th>
+            </tr></thead><tbody id="prov-tbody"></tbody></table>
+            <div id="prov-empty" class="empty-st" style="display:none;padding:32px"><div class="ei">🏢</div><div>Sin proveedores cargados.</div><div style="font-size:11.5px;margin-top:4px;color:var(--muted)">Agregalos para que aparezcan en los ingresos de mercadería.</div></div>
+          </div>
+        </div>
+      </div>
+      <div class="stk-pane" id="stk-pane-stk-proy" style="display:none">
+        <div class="card">
+          <div class="card-h">🔮 Proyección de stock para pedidos pendientes</div>
+          <div class="card-b">
+            <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Calculamos qué insumos te van a hacer falta según los pedidos que están <strong>Aprobados</strong> o <strong>En Fabricación</strong> sin cancelar. El stock proyectado = stock actual − consumo previsto.</p>
+            <div style="background:#f5f4f0;padding:10px 14px;border-radius:8px;font-size:12px;margin-bottom:14px">
+              <strong>Pedidos considerados:</strong> <span id="proy-count-pedidos">0</span> · <strong>Insumos a revisar:</strong> <span id="proy-count-items">0</span>
+            </div>
+            <table class="lt"><thead><tr>
+              <th>Estado proy.</th><th>Insumo</th><th>Categoría</th><th>Stock actual</th><th>Consumo previsto</th><th>Stock proyectado</th><th>Mín.</th><th>Pedidos</th>
+            </tr></thead><tbody id="proy-tbody"></tbody></table>
+            <div id="proy-empty" class="empty-st" style="display:none;padding:32px"><div class="ei">✅</div><div>Sin pedidos pendientes — todo el stock está disponible.</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ─── CONFIGURACIÓN ─── -->
+      <div class="stk-pane" id="stk-pane-stk-cfg" style="display:none">
+        <div class="card">
+          <div class="card-h">⚙️ Mínimos y punto de pedido masivo</div>
+          <div class="card-b">
+            <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Los <strong>mínimos</strong> y <strong>puntos de pedido</strong> determinan el color del semáforo de cada insumo. El punto de pedido es el momento ideal para comprar antes de quedarse sin stock.</p>
+            <div style="background:#f5f4f0;border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:12.5px;line-height:1.6">
+              🟢 <strong>Verde — Stock OK:</strong> cantidad ≥ punto de pedido<br>
+              🟠 <strong>Naranja — Reponer pronto:</strong> cantidad entre mínimo y punto de pedido<br>
+              🔴 <strong>Rojo — Crítico:</strong> cantidad menor que mínimo<br>
+              ⚫ <strong>Gris — Sin stock:</strong> cantidad = 0
+            </div>
+            <button class="btn btn-outline btn-sm" onclick="autoCalculatePuntoPedido()">🧮 Auto-calcular punto pedido = mínimo × 1.5 para todos</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-h">🌱 Inicialización</div>
+          <div class="card-b">
+            <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Crear todos los items de stock a partir del catálogo de insumos del cotizador (telas, rieles, motores, mecanismos, etc). Esta acción <strong>no duplica</strong> items ya existentes.</p>
+            <button class="btn btn-primary btn-sm" onclick="seedStockFromCatalog()">🌱 Inicializar desde catálogo</button>
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 
@@ -2526,6 +2657,8 @@ function loginLocal(email, pass, errEl, btn){
     // Sincroniza con Supabase en segundo plano
     loadDocsWithFallback();
     loadRecibos().then(()=>renderRecibos());
+    loadStock().then(()=>{ if(typeof renderStock==='function') renderStock(); });
+    loadProveedores();
     // Activar Realtime — escucha cambios de otros usuarios
     setupRealtime();
   } catch(e) {
@@ -2601,7 +2734,7 @@ function switchPage(id){
   if(id==='pg-fab') renderFab();
   if(id==='pg-lista') renderInsumosAdmin();
   if(id==='pg-clientes') renderClientes();
-  if(id==='pg-stock'){ renderStock(); renderMovStock(); updateStockStats(); }
+  if(id==='pg-stock'){ renderStock(); renderMovStock(); updateStockStats(); refreshStockHoyWidget(); }
   if(id==='pg-dashboard') renderDashboard();
 }
 
@@ -4955,6 +5088,7 @@ async function changeStatus(id, val){
   // 1. Aplicar localmente SIEMPRE (sin importar Supabase)
   const now = new Date().toISOString();
   const i = _docsCache.findIndex(x=>x.id===id);
+  const estadoAnterior = i>=0 ? _docsCache[i].estado : null;
   if(i>=0){
     _docsCache[i].estado = val;
     if(val==='En Fabricación' && !_docsCache[i].fecha_inicio_fab)
@@ -4974,15 +5108,34 @@ async function changeStatus(id, val){
   renderCot(); renderPed(); if(ME?.role==='admin') renderAdmin(); updateStats();
   if(document.getElementById('pg-fab')?.classList.contains('on')) renderFab();
   updateNavBadges();
+
+  // 2.5 STOCK: descontar/revertir según transición
+  const pedido = _docsCache[i];
+  if(pedido && pedido.type==='order'){
+    // Entró a fabricación → descontar
+    if(val==='En Fabricación' && estadoAnterior !== 'En Fabricación'){
+      try {
+        const r = await descontarStockPedido(pedido);
+        if(r.faltantes && r.faltantes.length){
+          toast(`⚠️ Faltó stock para ${r.faltantes.length} insumo(s) — ver Movimientos`,'err');
+        } else if(r.descontados && r.descontados.length){
+          toast(`📦 Stock descontado (${r.descontados.length} egresos)`, 'ok');
+        }
+      } catch(e){ console.error('descontarStockPedido:', e); }
+    }
+    // Salió de fabricación a Cancelado → revertir
+    if(val==='Cancelado' && estadoAnterior === 'En Fabricación'){
+      try { await reversarStockPedido(pedido); } catch(e){ console.error('reversarStockPedido:', e); }
+    }
+  }
+
   // 3. Intentar sincronizar con Supabase
   try {
     await updateStatusInSupabase(id, val);
-    // marcar como sincronizado
     if(j>=0){ all[j]._pendingSync = false; setDocs(all); }
     if(i>=0){ _docsCache[i]._pendingSync = false; }
     toast('✅ Estado → '+val+' (sincronizado)','ok');
   } catch(e){
-    // marcar pendiente para sincronizar después
     if(j>=0){ all[j]._pendingSync = true; setDocs(all); }
     if(i>=0){ _docsCache[i]._pendingSync = true; }
     console.error('Error al cambiar estado en Supabase:', e);
@@ -7914,223 +8067,1395 @@ function autoCrearCliente(nombre, datos){
   setClientes(clientes);
 }
 
+
 /* ═══════════════════════════════════════════
-   MÓDULO STOCK
+   MÓDULO STOCK — FASE 1
 ═══════════════════════════════════════════ */
-function getStock(){ return JSON.parse(localStorage.getItem('rm_stock')||'[]'); }
-function setStock(a){ localStorage.setItem('rm_stock', JSON.stringify(a)); }
-function getMovStock(){ return JSON.parse(localStorage.getItem('rm_movstock')||'[]'); }
-function setMovStock(a){ localStorage.setItem('rm_movstock', JSON.stringify(a)); }
+let _stockItemsCache = [];
+let _stockPartidasCache = [];
+let _stockMovsCache = [];
 
-let _editStockId = null;
+function getStockItems(){ return _stockItemsCache; }
+function getStockPartidas(){ return _stockPartidasCache; }
+function getStockMovs(){ return _stockMovsCache; }
 
-function abrirMovStock(){
-  // Populate insumo select
-  const sel = document.getElementById('mov-insumo-form');
-  const items = getStock();
-  sel.innerHTML = '<option value="">— Seleccionar —</option>' +
-    items.map(it=>`<option value="${it.id}">${it.codigo} — ${it.nombre} (Stock: ${it.actual} ${it.unidad})</option>`).join('');
-  document.getElementById('mov-insumo-form').onchange = function(){
-    const it = getStock().find(x=>x.id===this.value);
-    const el = document.getElementById('mov-stock-actual');
-    if(it) el.innerHTML = `Stock actual de <strong>${it.nombre}</strong>: <strong style="color:var(--brand)">${it.actual} ${it.unidad}</strong> · Mínimo: ${it.minimo} ${it.unidad}`;
-    else el.textContent = 'Seleccioná un insumo para ver el stock actual';
-  };
-  document.getElementById('overlay-mov-stock').classList.add('on');
+// Stock total de un item = suma de cantidad_actual de partidas activas
+function getStockActual(itemId){
+  return _stockPartidasCache
+    .filter(p => p.item_id === itemId && p.activa)
+    .reduce((s,p) => s + (parseFloat(p.cantidad_actual)||0), 0);
 }
 
-function guardarMovStock(){
-  const insumoId = document.getElementById('mov-insumo-form').value;
-  const tipo = document.getElementById('mov-tipo-form').value;
-  const cant = parseFloat(document.getElementById('mov-cant-form').value)||0;
-  const ref = document.getElementById('mov-ref-form').value.trim();
-  const notas = document.getElementById('mov-notas-form').value.trim();
-  if(!insumoId){ toast('⚠ Seleccioná un insumo','err'); return; }
-  if(!cant){ toast('⚠ Ingresá una cantidad','err'); return; }
+function getStockEstado(item){
+  const actual = getStockActual(item.id);
+  const min = parseFloat(item.stock_minimo)||0;
+  const pp = parseFloat(item.punto_pedido)||(min*1.5);
+  if(actual <= 0) return 'sin';
+  if(actual < min) return 'bajo';
+  if(actual < pp) return 'warn';
+  return 'ok';
+}
 
-  const stock = getStock();
-  const idx = stock.findIndex(x=>x.id===insumoId);
-  if(idx<0){ toast('⚠ Insumo no encontrado','err'); return; }
+const ESTADO_COLORS = {
+  ok:   { color:'#15803d', bg:'#dcfce7', emoji:'🟢', label:'Stock OK' },
+  warn: { color:'#a05c00', bg:'#fff3cd', emoji:'🟠', label:'Por reponer' },
+  bajo: { color:'#c0392b', bg:'#fee2e2', emoji:'🔴', label:'Crítico' },
+  sin:  { color:'#6b7280', bg:'#f3f4f6', emoji:'⚫', label:'Sin stock' },
+};
 
-  const delta = ['entrada','devolucion'].includes(tipo) ? cant : -cant;
-  stock[idx].actual = Math.max(0, (parseFloat(stock[idx].actual)||0) + delta);
-  setStock(stock);
+async function loadStock(){
+  try {
+    const [items, partidas, movs] = await Promise.all([
+      _sb.from('stock_items').select('*').order('categoria').order('nombre'),
+      _sb.from('stock_partidas').select('*').order('fecha_ingreso',{ascending:false}),
+      _sb.from('stock_movimientos').select('*').order('fecha',{ascending:false}).limit(500),
+    ]);
+    if(items.error) throw items.error;
+    if(partidas.error) throw partidas.error;
+    if(movs.error) throw movs.error;
+    _stockItemsCache = items.data || [];
+    _stockPartidasCache = partidas.data || [];
+    _stockMovsCache = movs.data || [];
+    localStorage.setItem('rm_stock_items', JSON.stringify(_stockItemsCache));
+    localStorage.setItem('rm_stock_partidas', JSON.stringify(_stockPartidasCache));
+    localStorage.setItem('rm_stock_movs', JSON.stringify(_stockMovsCache));
+  } catch(e){
+    console.warn('Cargando stock desde localStorage:', e.message);
+    _stockItemsCache = JSON.parse(localStorage.getItem('rm_stock_items')||'[]');
+    _stockPartidasCache = JSON.parse(localStorage.getItem('rm_stock_partidas')||'[]');
+    _stockMovsCache = JSON.parse(localStorage.getItem('rm_stock_movs')||'[]');
+  }
+}
 
-  const movs = getMovStock();
-  movs.unshift({
-    id: uid(), insumoId, nombre: stock[idx].nombre,
-    tipo, cant, delta, ref, notas,
-    usuario: ME?.name||'—', fecha: today(),
+// Switch sub-tabs
+function switchStockTab(stab){
+  document.querySelectorAll('.stk-stab').forEach(t=>t.classList.toggle('on', t.dataset.stab===stab));
+  document.querySelectorAll('.stk-pane').forEach(p=>{
+    const on = p.id === `stk-pane-${stab}`;
+    p.classList.toggle('on', on);
+    p.style.display = on ? 'block' : 'none';
   });
-  setMovStock(movs.slice(0,500)); // keep last 500
-
-  document.getElementById('overlay-mov-stock').classList.remove('on');
-  // Reset form
-  ['mov-cant-form','mov-ref-form','mov-notas-form'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  renderStock(); renderMovStock(); updateStockStats();
-  toast(`✅ Movimiento registrado · ${stock[idx].nombre}`, 'ok');
+  if(stab==='stk-inv') renderStock();
+  if(stab==='stk-mov') renderMovStock();
+  if(stab==='stk-proy') renderProyeccion();
+  if(stab==='stk-comprar') renderListaCompras();
+  if(stab==='stk-prov') renderProveedores();
 }
 
-function abrirStockItem(id){
-  _editStockId = id||null;
-  const it = id ? getStock().find(x=>x.id===id) : null;
-  document.getElementById('stk-overlay-title').textContent = it ? 'Editar Insumo' : 'Nuevo Insumo';
-  document.getElementById('stk-cod-form').value    = it?.codigo||'';
-  document.getElementById('stk-nombre-form').value = it?.nombre||'';
-  document.getElementById('stk-unidad-form').value = it?.unidad||'u';
-  document.getElementById('stk-cat-form').value    = it?.categoria||'Otro';
-  document.getElementById('stk-actual-form').value = it?.actual||0;
-  document.getElementById('stk-minimo-form').value = it?.minimo||0;
-  document.getElementById('stk-costo-form').value  = it?.costo||0;
-  document.getElementById('stk-ubicacion-form').value = it?.ubicacion||'';
-  document.getElementById('stk-proveedor-form').value = it?.proveedor||'';
-  document.getElementById('stk-notas-form').value  = it?.notas||'';
-  document.getElementById('overlay-stock-item').classList.add('on');
+function renderProyeccion(){
+  const tb = document.getElementById('proy-tbody');
+  const em = document.getElementById('proy-empty');
+  if(!tb) return;
+
+  // Pedidos relevantes: Aprobado o En Fabricación (no cancelados, no finalizados)
+  const pedidosPendientes = getDocs().filter(d => d.type==='order' &&
+    ['Aprobado','En Fabricación','Pendiente'].includes(d.estado));
+
+  // Para cada pedido, calcular insumos requeridos
+  // Para los que YA están en fabricación, ya descontamos → no proyectamos consumo extra
+  const consumoPorItem = {}; // { stockItemId: { cantidad, pedidos:[...] } }
+  pedidosPendientes.forEach(ped => {
+    // Solo proyectar si NO está aún en fabricación (porque si está, ya descontó)
+    if(ped.estado === 'En Fabricación') return;
+    (ped.items||[]).forEach(item => {
+      const reqs = calcInsumosParaItem(item);
+      reqs.forEach(req => {
+        const stockItem = buscarStockItem(req);
+        if(!stockItem) return;
+        if(!consumoPorItem[stockItem.id]){
+          consumoPorItem[stockItem.id] = { cantidad:0, pedidos:new Set() };
+        }
+        consumoPorItem[stockItem.id].cantidad += req.cantidad;
+        consumoPorItem[stockItem.id].pedidos.add(ped.numero);
+      });
+    });
+  });
+
+  document.getElementById('proy-count-pedidos').textContent = pedidosPendientes.filter(p=>p.estado!=='En Fabricación').length;
+  document.getElementById('proy-count-items').textContent = Object.keys(consumoPorItem).length;
+
+  if(!Object.keys(consumoPorItem).length){
+    tb.innerHTML = '';
+    em.style.display = 'block';
+    return;
+  }
+  em.style.display = 'none';
+
+  const rows = Object.entries(consumoPorItem).map(([itemId, data]) => {
+    const item = _stockItemsCache.find(i => i.id === itemId);
+    if(!item) return null;
+    const actual = getStockActual(itemId);
+    const consumoTotal = data.cantidad;
+    const proyectado = actual - consumoTotal;
+    const min = parseFloat(item.stock_minimo)||0;
+    let estado, color, bg, label;
+    if(proyectado < 0){ estado='falta'; color='#c0392b'; bg='#fee2e2'; label='⚠️ Falta'; }
+    else if(proyectado < min){ estado='bajo'; color='#a05c00'; bg='#fff3cd'; label='🟠 Quedará bajo'; }
+    else { estado='ok'; color='#15803d'; bg='#dcfce7'; label='✅ OK'; }
+    return { item, actual, consumoTotal, proyectado, min, estado, color, bg, label, pedidos:[...data.pedidos] };
+  }).filter(Boolean).sort((a,b) => a.proyectado - b.proyectado);
+
+  tb.innerHTML = rows.map(r => `<tr>
+    <td><span style="background:${r.bg};color:${r.color};padding:3px 10px;border-radius:5px;font-size:11px;font-weight:700;white-space:nowrap">${r.label}</span></td>
+    <td><strong style="font-size:13px">${r.item.nombre}</strong>${r.item.color?`<div style="font-size:11px;color:var(--muted)">${r.item.color}</div>`:''}</td>
+    <td style="font-size:11.5px">${r.item.categoria}</td>
+    <td style="font-weight:600;white-space:nowrap">${formatStockQty(r.actual, r.item.unidad)}</td>
+    <td style="color:#c0392b;font-weight:600;white-space:nowrap">−${formatStockQty(r.consumoTotal, r.item.unidad)}</td>
+    <td style="font-weight:700;color:${r.color};white-space:nowrap">${formatStockQty(r.proyectado, r.item.unidad)}</td>
+    <td style="font-size:11.5px;white-space:nowrap">${formatStockQty(r.min, r.item.unidad)}</td>
+    <td style="font-size:11px">${r.pedidos.map(p=>`<span style="background:#dbeafe;color:#1e40af;padding:1px 6px;border-radius:3px;font-weight:700;margin-right:3px">${p}</span>`).join('')}</td>
+  </tr>`).join('');
 }
 
-function cerrarOverlayStock(){ document.getElementById('overlay-stock-item').classList.remove('on'); }
-
-function guardarStockItem(){
-  const nombre = document.getElementById('stk-nombre-form').value.trim();
-  if(!nombre){ toast('⚠ Ingresá el nombre del insumo','err'); return; }
-  const stock = getStock();
-  const it = {
-    id:        _editStockId || uid(),
-    codigo:    document.getElementById('stk-cod-form').value.trim(),
-    nombre,
-    categoria: document.getElementById('stk-cat-form').value,
-    unidad:    document.getElementById('stk-unidad-form').value,
-    actual:    parseFloat(document.getElementById('stk-actual-form').value)||0,
-    minimo:    parseFloat(document.getElementById('stk-minimo-form').value)||0,
-    costo:     parseFloat(document.getElementById('stk-costo-form').value)||0,
-    ubicacion: document.getElementById('stk-ubicacion-form').value.trim(),
-    proveedor: document.getElementById('stk-proveedor-form').value.trim(),
-    notas:     document.getElementById('stk-notas-form').value.trim(),
-  };
-  if(_editStockId){ const i=stock.findIndex(x=>x.id===_editStockId); if(i>=0)stock[i]=it; else stock.push(it); }
-  else stock.push(it);
-  setStock(stock);
-  cerrarOverlayStock();
-  renderStock(); updateStockStats();
-  toast('✅ Insumo guardado','ok');
-}
-
-function eliminarStockItem(id){
-  if(!confirm('¿Eliminar este insumo del inventario?')) return;
-  setStock(getStock().filter(x=>x.id!==id));
-  renderStock(); updateStockStats();
-  toast('🗑 Insumo eliminado');
-}
-
+// ── STATS ──
 function updateStockStats(){
-  const stock = getStock();
-  document.getElementById('stk-total').textContent = stock.length;
-  document.getElementById('stk-bajo').textContent  = stock.filter(it=>it.actual>0&&it.actual<=it.minimo).length;
-  document.getElementById('stk-sin').textContent   = stock.filter(it=>!it.actual||it.actual<=0).length;
-  const val = stock.reduce((s,it)=>s+(it.actual||0)*(it.costo||0),0);
-  document.getElementById('stk-valor').textContent = val>999999?'$'+Math.round(val/1000)+'k':fmtM(val);
-
-  // Alertas
-  const alertasEl = document.getElementById('stk-alertas');
-  const alertas = stock.filter(it=>it.actual<=it.minimo||!it.actual);
-  if(!alertas.length){ alertasEl.innerHTML=''; return; }
-  alertasEl.innerHTML = alertas.slice(0,5).map(it=>{
-    const essin = !it.actual||it.actual<=0;
-    return `<div class="stk-alerta">
-      <div class="stk-icon">${essin?'🔴':'🟡'}</div>
-      <div>
-        <strong>${it.nombre}</strong> — 
-        ${essin?`<span style="color:var(--red)">Sin stock</span>`:`<span style="color:var(--amber)">Stock bajo: ${it.actual} ${it.unidad} (mínimo: ${it.minimo})</span>`}
-        ${it.proveedor?`<span style="font-size:10px;color:var(--muted)"> · Proveedor: ${it.proveedor}</span>`:''}
-      </div>
-    </div>`;
-  }).join('');
-  if(alertas.length>5) alertasEl.innerHTML += `<div style="font-size:12px;color:var(--muted);padding:6px 0">… y ${alertas.length-5} más con stock bajo.</div>`;
+  const items = _stockItemsCache.filter(i=>i.activo!==false);
+  let ok=0, warn=0, bajo=0, sin=0;
+  items.forEach(it=>{
+    const e = getStockEstado(it);
+    if(e==='ok') ok++;
+    else if(e==='warn') warn++;
+    else if(e==='bajo') bajo++;
+    else sin++;
+  });
+  const set = (id,v)=>{ const el=document.getElementById(id); if(el) el.textContent=v; };
+  set('stk-total', items.length);
+  set('stk-ok', ok);
+  set('stk-warn', warn);
+  set('stk-bajo', bajo);
+  set('stk-sin', sin);
 }
 
+// ── INVENTARIO ──
 function renderStock(){
   const q = (document.getElementById('stk-q')?.value||'').toLowerCase();
   const cat = document.getElementById('stk-cat')?.value||'';
-  const data = getStock().filter(it=>{
-    if(cat && it.categoria!==cat) return false;
-    if(q && !(it.nombre||'').toLowerCase().includes(q) && !(it.codigo||'').toLowerCase().includes(q)) return false;
+  const status = document.getElementById('stk-status')?.value||'';
+
+  const items = _stockItemsCache.filter(i => {
+    if(i.activo === false) return false;
+    if(cat && i.categoria !== cat) return false;
+    if(status && getStockEstado(i) !== status) return false;
+    if(q){
+      const hay = `${i.codigo||''} ${i.nombre||''} ${i.color||''} ${i.variante||''} ${i.subcategoria||''}`.toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
     return true;
   });
 
   const tb = document.getElementById('stock-tbody');
   const em = document.getElementById('stock-empty');
-  if(!data.length){ tb.innerHTML=''; em.style.display='block'; return; }
-  em.style.display='none';
+  if(!tb) return;
+  if(!items.length){ tb.innerHTML=''; if(em) em.style.display='block'; updateStockStats(); return; }
+  if(em) em.style.display='none';
 
-  tb.innerHTML = data.map(it=>{
-    const bajo = it.actual<=it.minimo&&it.actual>0;
-    const sin  = !it.actual||it.actual<=0;
-    const badge = sin
-      ? '<span class="stk-badge stk-out">Sin stock</span>'
-      : bajo
-        ? `<span class="stk-badge stk-low">⚠ ${it.actual} ${it.unidad}</span>`
-        : `<span class="stk-badge stk-ok">✓ ${it.actual} ${it.unidad}</span>`;
+  // Ordenar por estado: críticos arriba
+  const orden = { sin:0, bajo:1, warn:2, ok:3 };
+  items.sort((a,b)=>{
+    const ea = getStockEstado(a), eb = getStockEstado(b);
+    if(orden[ea] !== orden[eb]) return orden[ea] - orden[eb];
+    return (a.nombre||'').localeCompare(b.nombre||'');
+  });
+
+  tb.innerHTML = items.map(i=>{
+    const e = getStockEstado(i);
+    const ec = ESTADO_COLORS[e];
+    const actual = getStockActual(i.id);
+    const partidas = _stockPartidasCache.filter(p => p.item_id===i.id && p.activa && parseFloat(p.cantidad_actual)>0).length;
+    const variante = [i.color, i.variante, i.ancho_rollo?`${i.ancho_rollo}m ancho`:''].filter(Boolean).join(' · ') || '—';
     return `<tr>
-      <td style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:11px;color:var(--muted)">${it.codigo||'—'}</td>
-      <td style="font-weight:600">${it.nombre}</td>
-      <td><span style="font-size:11px;background:var(--surface2);padding:2px 8px;border-radius:4px;border:1px solid var(--border)">${it.categoria}</span></td>
-      <td style="font-size:12px;color:var(--muted)">${it.unidad}</td>
-      <td>${badge}</td>
-      <td style="font-size:12px;color:var(--muted)">${it.minimo} ${it.unidad}</td>
-      <td style="font-size:12px">${it.costo?fmtM(it.costo):'—'}</td>
-      <td style="font-size:11px;color:var(--muted)">${it.ubicacion||'—'}</td>
-      <td>
+      <td style="vertical-align:middle"><span class="stk-pill ${e}">${ec.emoji} ${ec.label}</span></td>
+      <td style="vertical-align:middle;font-family:'Manrope',sans-serif;font-weight:700;font-size:11.5px;color:var(--muted);white-space:nowrap">${i.codigo||'—'}</td>
+      <td style="vertical-align:middle;font-weight:600">${i.nombre}</td>
+      <td style="vertical-align:middle;font-size:11.5px;color:var(--muted);white-space:nowrap">${i.categoria}${i.subcategoria?` · ${i.subcategoria}`:''}</td>
+      <td style="vertical-align:middle;font-size:12px">${variante}</td>
+      <td style="vertical-align:middle;font-weight:700;white-space:nowrap;font-size:14px;color:${ec.color}">${formatStockQty(actual, i.unidad)}</td>
+      <td style="vertical-align:middle;font-size:11.5px;color:var(--muted);white-space:nowrap">${formatStockQty(i.stock_minimo,i.unidad)} / ${formatStockQty(i.punto_pedido,i.unidad)}</td>
+      <td style="vertical-align:middle;text-align:center">
+        ${partidas?`<button class="btn-t" onclick="verPartidas('${i.id}')" title="Ver ${partidas} partida${partidas!==1?'s':''}">📦 ${partidas}</button>`:'<span style="font-size:11px;color:var(--muted)">—</span>'}
+      </td>
+      <td style="vertical-align:middle;white-space:nowrap">
         <div style="display:flex;gap:5px">
-          <button class="btn-t ok" onclick="abrirMovStock()" title="Registrar movimiento" style="border-color:var(--blue);color:var(--blue)">±</button>
-          <button class="btn-t" onclick="abrirStockItem('${it.id}')">✏️</button>
-          <button class="btn-t del" onclick="eliminarStockItem('${it.id}')">🗑</button>
+          <button class="btn-t" onclick="abrirIngresoMercaderia('${i.id}')" title="Ingresar partida" style="background:#dcfce7;color:#15803d;border-color:#15803d">📥</button>
+          <button class="btn-t" onclick="abrirAjusteStock('${i.id}')" title="Ajuste manual">⚖️</button>
+          <button class="btn-t" onclick="abrirNuevoStockItem('${i.id}')" title="Editar">✏️</button>
+          <button class="btn-t del" onclick="eliminarStockItem('${i.id}')" title="Eliminar">🗑</button>
         </div>
       </td>
     </tr>`;
   }).join('');
+  updateStockStats();
 }
 
+function formatStockQty(qty, unidad){
+  const n = parseFloat(qty)||0;
+  const fmt = n % 1 === 0 ? n.toLocaleString('es-AR') : n.toLocaleString('es-AR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  const u = unidad === 'm2' ? 'm²' : unidad;
+  return `${fmt} <span style="font-size:10px;color:var(--muted);font-weight:500">${u}</span>`;
+}
+
+// ── MOVIMIENTOS ──
 function renderMovStock(){
-  const movs = getMovStock().slice(0,50);
+  const q = (document.getElementById('mov-q')?.value||'').toLowerCase();
+  const tipo = document.getElementById('mov-tipo')?.value||'';
+  const movs = _stockMovsCache.filter(m=>{
+    if(tipo && m.tipo !== tipo) return false;
+    if(q){
+      const item = _stockItemsCache.find(i=>i.id===m.item_id);
+      const hay = `${item?.nombre||''} ${m.pedido_numero||''} ${m.notas||''}`.toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+
   const tb = document.getElementById('movstock-tbody');
   const em = document.getElementById('movstock-empty');
-  if(!movs.length){ tb.innerHTML=''; em.style.display='block'; return; }
+  if(!tb) return;
+  if(!movs.length){ tb.innerHTML=''; if(em) em.style.display='block'; return; }
+  if(em) em.style.display='none';
+
+  const tipoLabels = {
+    'ingreso': ['📥 Ingreso','#15803d','#dcfce7'],
+    'egreso_fab': ['📤 Fabricación','#1e40af','#dbeafe'],
+    'ajuste_pos': ['➕ Ajuste +','#15803d','#dcfce7'],
+    'ajuste_neg': ['➖ Ajuste −','#c0392b','#fee2e2'],
+    'reverso': ['↩️ Reverso','#7c3aed','#ede9fe'],
+    'merma': ['🗑 Merma','#c0392b','#fee2e2'],
+  };
+
+  tb.innerHTML = movs.slice(0, 200).map(m=>{
+    const item = _stockItemsCache.find(i=>i.id===m.item_id);
+    const [lbl, color, bg] = tipoLabels[m.tipo] || ['—','#888','#f3f4f6'];
+    const esPositivo = ['ingreso','ajuste_pos','reverso'].includes(m.tipo);
+    const cant = parseFloat(m.cantidad)||0;
+    const cantStr = (esPositivo?'+':'−') + formatStockQty(Math.abs(cant), item?.unidad);
+    const fecha = new Date(m.fecha);
+    const fStr = `${String(fecha.getDate()).padStart(2,'0')}/${String(fecha.getMonth()+1).padStart(2,'0')}/${fecha.getFullYear()} ${String(fecha.getHours()).padStart(2,'0')}:${String(fecha.getMinutes()).padStart(2,'0')}`;
+    return `<tr>
+      <td style="font-size:11.5px;white-space:nowrap;color:var(--muted)">${fStr}</td>
+      <td style="white-space:nowrap"><span style="background:${bg};color:${color};padding:3px 9px;border-radius:4px;font-size:11px;font-weight:700">${lbl}</span></td>
+      <td style="font-size:12.5px">${item?.nombre||'(eliminado)'}<br><span style="font-size:10.5px;color:var(--muted)">${item?(item.color||'')+(item.variante?' · '+item.variante:''):''}</span></td>
+      <td style="font-weight:700;color:${esPositivo?'#15803d':'#c0392b'};white-space:nowrap;font-size:13px">${cantStr}</td>
+      <td style="font-size:11.5px;white-space:nowrap;color:var(--muted)">${m.saldo_resultante!=null?formatStockQty(m.saldo_resultante,item?.unidad):'—'}</td>
+      <td style="font-size:11.5px">${m.pedido_numero?`<span style="background:#fff5e6;color:#c9750a;padding:2px 7px;border-radius:4px;font-weight:700;font-size:10.5px">${m.pedido_numero}</span>`:'—'}</td>
+      <td style="font-size:11.5px;color:var(--muted)">${m.usuario||'—'}</td>
+      <td style="font-size:11.5px">${m.notas||'—'}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ── EDITOR DE ITEM ──
+let _editStockItemId = null;
+
+function abrirNuevoStockItem(id){
+  _editStockItemId = id||null;
+  const it = id ? _stockItemsCache.find(x=>x.id===id) : null;
+
+  document.getElementById('overlay-title').textContent = it ? `Editar Insumo — ${it.nombre}` : 'Nuevo Insumo';
+  document.getElementById('doc-content').innerHTML = `
+    <div style="padding:24px 28px;max-width:680px;margin:0 auto;background:#fff;font-family:'DM Sans',sans-serif">
+      <div class="card">
+        <div class="card-h">📦 Datos del insumo</div>
+        <div class="card-b">
+          <div class="fg c2">
+            <div class="f"><label>Código *</label><input type="text" id="sti-codigo" placeholder="Ej: TEL-BLA-001" value="${it?.codigo||''}"></div>
+            <div class="f"><label>Categoría *</label>
+              <select id="sti-cat" onchange="onStockCatChange()">
+                ${['Telas','Ejes','Zócalos','Mecanismos','Cadenas','Soportes','Motores','Accesorios','Otros'].map(c=>`<option ${(it?.categoria||'Telas')===c?'selected':''}>${c}</option>`).join('')}
+              </select>
+            </div>
+            <div class="f s2"><label>Nombre *</label><input type="text" id="sti-nombre" placeholder="Ej: Blackout Vertilux Fiberglass" value="${it?.nombre||''}"></div>
+            <div class="f"><label>Subcategoría</label><input type="text" id="sti-subcat" placeholder="Ej: Vertilux" value="${it?.subcategoria||''}"></div>
+            <div class="f"><label>Color</label><input type="text" id="sti-color" placeholder="Ej: Blanco" value="${it?.color||''}"></div>
+            <div class="f"><label>Variante extra</label><input type="text" id="sti-variante" placeholder="Ej: 5%, mate, etc." value="${it?.variante||''}"></div>
+            <div class="f"><label>Unidad *</label>
+              <select id="sti-unidad">
+                <option value="m" ${it?.unidad==='m'?'selected':''}>m (metros lineales)</option>
+                <option value="m2" ${it?.unidad==='m2'?'selected':''}>m² (metros cuadrados)</option>
+                <option value="unidad" ${(!it?.unidad||it?.unidad==='unidad')?'selected':''}>unidad</option>
+              </select>
+            </div>
+            <div class="f" id="sti-ancho-wrap" style="${it?.categoria==='Telas'?'':'display:none'}"><label>Ancho del rollo (m)</label><input type="number" id="sti-ancho" placeholder="Ej: 2.5" step="0.1" value="${it?.ancho_rollo||''}"></div>
+            <div class="f"><label>Stock mínimo</label><input type="number" id="sti-min" placeholder="0" step="0.01" value="${it?.stock_minimo||0}"></div>
+            <div class="f"><label>Punto de pedido</label><input type="number" id="sti-pp" placeholder="0" step="0.01" value="${it?.punto_pedido||0}"></div>
+            <div class="f s2"><label>Ubicación física <span style="color:var(--muted);font-weight:400">(opcional)</span></label><input type="text" id="sti-ubic" placeholder="Ej: Estante A2" value="${it?.ubicacion||''}"></div>
+            <div class="f s2"><label>Proveedor habitual <span style="color:var(--muted);font-weight:400">(para sugerencias de compra)</span></label>
+              <select id="sti-prov">
+                <option value="">— Sin proveedor —</option>
+                ${_proveedoresCache.map(p=>`<option value="${p.id}" ${it?.proveedor_id===p.id?'selected':''}>${p.nombre}${p.lead_time?` (entrega ${p.lead_time}d)`:''}</option>`).join('')}
+              </select>
+            </div>
+            <div class="f s2"><label>Notas</label><textarea id="sti-notas" placeholder="Notas internas...">${it?.notas||''}</textarea></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-outline" onclick="closeOverlay()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveStockItem()">💾 Guardar</button>
+      </div>
+    </div>`;
+  document.getElementById('overlay').classList.add('on');
+}
+
+function onStockCatChange(){
+  const cat = document.getElementById('sti-cat').value;
+  const wrap = document.getElementById('sti-ancho-wrap');
+  if(wrap) wrap.style.display = (cat === 'Telas') ? '' : 'none';
+  // Sugerir unidad por categoría
+  const unidad = document.getElementById('sti-unidad');
+  if(unidad){
+    if(cat === 'Telas') unidad.value = 'm2';
+    else if(['Ejes','Zócalos','Cadenas'].includes(cat)) unidad.value = 'm';
+    else unidad.value = 'unidad';
+  }
+}
+
+async function saveStockItem(){
+  const codigo = document.getElementById('sti-codigo').value.trim();
+  const nombre = document.getElementById('sti-nombre').value.trim();
+  if(!codigo){ toast('⚠ Ingresá un código','err'); return; }
+  if(!nombre){ toast('⚠ Ingresá el nombre','err'); return; }
+
+  const item = {
+    id: _editStockItemId || uid(),
+    codigo,
+    nombre,
+    categoria: document.getElementById('sti-cat').value,
+    subcategoria: document.getElementById('sti-subcat').value.trim() || null,
+    color: document.getElementById('sti-color').value.trim() || null,
+    variante: document.getElementById('sti-variante').value.trim() || null,
+    unidad: document.getElementById('sti-unidad').value,
+    ancho_rollo: parseFloat(document.getElementById('sti-ancho').value)||null,
+    stock_minimo: parseFloat(document.getElementById('sti-min').value)||0,
+    punto_pedido: parseFloat(document.getElementById('sti-pp').value)||0,
+    ubicacion: document.getElementById('sti-ubic').value.trim() || null,
+    proveedor_id: document.getElementById('sti-prov')?.value || null,
+    notas: document.getElementById('sti-notas').value.trim() || null,
+    activo: true,
+  };
+
+  try {
+    const { error } = await _sb.from('stock_items').upsert(item);
+    if(error) throw error;
+    const i = _stockItemsCache.findIndex(x=>x.id===item.id);
+    if(i>=0) _stockItemsCache[i] = item; else _stockItemsCache.push(item);
+    localStorage.setItem('rm_stock_items', JSON.stringify(_stockItemsCache));
+    closeOverlay();
+    renderStock();
+    toast('✅ Insumo guardado','ok');
+  } catch(e){
+    console.error('saveStockItem:', e);
+    toast('⚠ Error guardando: '+(e.message||''),'err');
+  }
+}
+
+async function eliminarStockItem(id){
+  if(!confirm('¿Eliminar este insumo? También se eliminarán sus partidas y movimientos.')) return;
+  try {
+    await _sb.from('stock_items').delete().eq('id', id);
+    _stockItemsCache = _stockItemsCache.filter(x=>x.id!==id);
+    _stockPartidasCache = _stockPartidasCache.filter(p=>p.item_id!==id);
+    _stockMovsCache = _stockMovsCache.filter(m=>m.item_id!==id);
+    renderStock();
+    toast('🗑 Insumo eliminado','ok');
+  } catch(e){ toast('⚠ Error: '+e.message,'err'); }
+}
+
+// ── INGRESO DE MERCADERÍA (crea PARTIDA + movimiento) ──
+function abrirIngresoMercaderia(itemId){
+  document.getElementById('overlay-title').textContent = 'Ingresar mercadería';
+  const items = _stockItemsCache.filter(i=>i.activo!==false);
+
+  document.getElementById('doc-content').innerHTML = `
+    <div style="padding:24px 28px;max-width:680px;margin:0 auto;background:#fff;font-family:'DM Sans',sans-serif">
+      <div class="card">
+        <div class="card-h">📥 Nueva partida / Ingreso</div>
+        <div class="card-b">
+          <div class="fg c2">
+            <div class="f s2"><label>Insumo *</label>
+              <select id="ing-item">
+                <option value="">— Seleccionar insumo —</option>
+                ${items.sort((a,b)=>(a.categoria+a.nombre).localeCompare(b.categoria+b.nombre)).map(i=>`<option value="${i.id}" ${i.id===itemId?'selected':''}>[${i.categoria}] ${i.nombre}${i.color?' · '+i.color:''}${i.variante?' · '+i.variante:''}</option>`).join('')}
+              </select>
+            </div>
+            <div class="f"><label>Cantidad *</label><input type="number" id="ing-cant" placeholder="0" step="0.01" min="0" autofocus></div>
+            <div class="f"><label>Fecha de ingreso</label><input type="date" id="ing-fecha" value="${today()}"></div>
+            <div class="f"><label>Proveedor *</label><input type="text" id="ing-prov" placeholder="Nombre del proveedor"></div>
+            <div class="f"><label>Número de partida / lote</label><input type="text" id="ing-partida" placeholder="Ej: P-2026-04 o lote del proveedor"></div>
+            <div class="f s2"><label>Notas</label><textarea id="ing-notas" placeholder="Observaciones de la partida..."></textarea></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-outline" onclick="closeOverlay()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveIngresoMercaderia()">📥 Confirmar ingreso</button>
+      </div>
+    </div>`;
+  document.getElementById('overlay').classList.add('on');
+}
+
+async function saveIngresoMercaderia(){
+  const itemId = document.getElementById('ing-item').value;
+  const cant = parseFloat(document.getElementById('ing-cant').value)||0;
+  const prov = document.getElementById('ing-prov').value.trim();
+  if(!itemId){ toast('⚠ Seleccioná un insumo','err'); return; }
+  if(cant<=0){ toast('⚠ Cantidad inválida','err'); return; }
+  if(!prov){ toast('⚠ Ingresá el proveedor','err'); return; }
+
+  const partida = {
+    id: uid(),
+    item_id: itemId,
+    numero_partida: document.getElementById('ing-partida').value.trim() || null,
+    proveedor: prov,
+    fecha_ingreso: document.getElementById('ing-fecha').value || today(),
+    cantidad_inicial: cant,
+    cantidad_actual: cant,
+    notas: document.getElementById('ing-notas').value.trim() || null,
+    activa: true,
+  };
+
+  const item = _stockItemsCache.find(i=>i.id===itemId);
+  const saldo = getStockActual(itemId) + cant;
+
+  const mov = {
+    id: uid(),
+    item_id: itemId,
+    partida_id: partida.id,
+    tipo: 'ingreso',
+    cantidad: cant,
+    saldo_resultante: saldo,
+    usuario: ME?.name || '',
+    notas: `Partida ${partida.numero_partida||'(sin nº)'} · ${prov}`,
+  };
+
+  try {
+    const r1 = await _sb.from('stock_partidas').insert(partida);
+    if(r1.error) throw r1.error;
+    const r2 = await _sb.from('stock_movimientos').insert(mov);
+    if(r2.error) throw r2.error;
+
+    _stockPartidasCache.unshift(partida);
+    _stockMovsCache.unshift(mov);
+    localStorage.setItem('rm_stock_partidas', JSON.stringify(_stockPartidasCache));
+    localStorage.setItem('rm_stock_movs', JSON.stringify(_stockMovsCache));
+
+    closeOverlay();
+    renderStock(); renderMovStock();
+    toast(`✅ Ingreso registrado: ${cant} ${item?.unidad==='m2'?'m²':item?.unidad||''} de ${item?.nombre}`,'ok');
+  } catch(e){
+    console.error('saveIngresoMercaderia:', e);
+    toast('⚠ Error: '+(e.message||''),'err');
+  }
+}
+
+// ── AJUSTE MANUAL ──
+function abrirAjusteStock(itemId){
+  const item = _stockItemsCache.find(i=>i.id===itemId);
+  if(!item){ toast('Insumo no encontrado','err'); return; }
+  const actual = getStockActual(itemId);
+  const partidas = _stockPartidasCache.filter(p=>p.item_id===itemId && p.activa && parseFloat(p.cantidad_actual)>0);
+
+  document.getElementById('overlay-title').textContent = `Ajuste — ${item.nombre}`;
+  document.getElementById('doc-content').innerHTML = `
+    <div style="padding:24px 28px;max-width:580px;margin:0 auto;background:#fff;font-family:'DM Sans',sans-serif">
+      <div style="background:#f5f4f0;padding:14px 16px;border-radius:8px;margin-bottom:14px">
+        <div style="font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.08em">Stock actual</div>
+        <div style="font-size:22px;font-weight:700;margin-top:2px">${formatStockQty(actual,item.unidad)}</div>
+      </div>
+      <div class="card">
+        <div class="card-h">⚖️ Tipo de ajuste</div>
+        <div class="card-b">
+          <div class="fg c2">
+            <div class="f"><label>Tipo de ajuste</label>
+              <select id="aj-tipo">
+                <option value="ajuste_pos">➕ Ajuste positivo (sumar)</option>
+                <option value="ajuste_neg">➖ Ajuste negativo (restar)</option>
+                <option value="merma">🗑 Merma / Pérdida</option>
+              </select>
+            </div>
+            <div class="f"><label>Cantidad</label><input type="number" id="aj-cant" placeholder="0" step="0.01" min="0" autofocus></div>
+            ${partidas.length?`<div class="f s2"><label>Aplicar sobre partida <span style="color:var(--muted);font-weight:400">(para egresos/mermas)</span></label>
+              <select id="aj-partida">
+                <option value="">— Cualquiera (FIFO automático) —</option>
+                ${partidas.map(p=>`<option value="${p.id}">${p.numero_partida||'(sin nº)'} · ${p.proveedor||''} · ${formatStockQty(p.cantidad_actual,item.unidad)} disp.</option>`).join('')}
+              </select>
+            </div>`:''}
+            <div class="f s2"><label>Motivo / Notas *</label><input type="text" id="aj-notas" placeholder="Ej: rotura, conteo físico, etc." autofocus></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-outline" onclick="closeOverlay()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveAjusteStock('${itemId}')">💾 Confirmar</button>
+      </div>
+    </div>`;
+  document.getElementById('overlay').classList.add('on');
+}
+
+async function saveAjusteStock(itemId){
+  const tipo = document.getElementById('aj-tipo').value;
+  const cant = parseFloat(document.getElementById('aj-cant').value)||0;
+  const notas = document.getElementById('aj-notas').value.trim();
+  const partidaSel = document.getElementById('aj-partida')?.value || '';
+  if(cant<=0){ toast('⚠ Cantidad inválida','err'); return; }
+  if(!notas){ toast('⚠ Ingresá el motivo del ajuste','err'); return; }
+
+  const item = _stockItemsCache.find(i=>i.id===itemId);
+  const esPositivo = tipo === 'ajuste_pos';
+  const delta = esPositivo ? cant : -cant;
+
+  // Si suma → crea una partida nueva tipo "Ajuste manual"
+  // Si resta → descuenta de la partida elegida o FIFO
+  let partidaIdAfectada = partidaSel || null;
+
+  try {
+    if(esPositivo){
+      const partidaNueva = {
+        id: uid(),
+        item_id: itemId,
+        numero_partida: 'AJUSTE-'+Date.now().toString(36),
+        proveedor: 'Ajuste manual',
+        fecha_ingreso: today(),
+        cantidad_inicial: cant,
+        cantidad_actual: cant,
+        notas: 'Ajuste positivo: '+notas,
+        activa: true,
+      };
+      const r1 = await _sb.from('stock_partidas').insert(partidaNueva);
+      if(r1.error) throw r1.error;
+      _stockPartidasCache.unshift(partidaNueva);
+      partidaIdAfectada = partidaNueva.id;
+    } else {
+      // Restar — FIFO si no se eligió partida específica
+      let restante = cant;
+      const partidas = _stockPartidasCache
+        .filter(p => p.item_id === itemId && p.activa && parseFloat(p.cantidad_actual) > 0)
+        .filter(p => !partidaSel || p.id === partidaSel)
+        .sort((a,b) => new Date(a.fecha_ingreso) - new Date(b.fecha_ingreso));
+      for(const p of partidas){
+        if(restante <= 0) break;
+        const disp = parseFloat(p.cantidad_actual)||0;
+        const tomar = Math.min(disp, restante);
+        const nuevoSaldo = disp - tomar;
+        const r = await _sb.from('stock_partidas').update({ cantidad_actual: nuevoSaldo }).eq('id', p.id);
+        if(r.error) throw r.error;
+        p.cantidad_actual = nuevoSaldo;
+        restante -= tomar;
+      }
+      if(restante > 0){
+        toast(`⚠ Solo había ${cant-restante} ${item.unidad}, faltaron ${restante}`,'err');
+      }
+    }
+
+    const saldo = getStockActual(itemId);
+    const mov = {
+      id: uid(),
+      item_id: itemId,
+      partida_id: partidaIdAfectada,
+      tipo,
+      cantidad: cant,
+      saldo_resultante: saldo,
+      usuario: ME?.name || '',
+      notas,
+    };
+    const r2 = await _sb.from('stock_movimientos').insert(mov);
+    if(r2.error) throw r2.error;
+    _stockMovsCache.unshift(mov);
+
+    localStorage.setItem('rm_stock_partidas', JSON.stringify(_stockPartidasCache));
+    localStorage.setItem('rm_stock_movs', JSON.stringify(_stockMovsCache));
+    closeOverlay();
+    renderStock(); renderMovStock();
+    toast(`✅ Ajuste aplicado (${esPositivo?'+':'−'}${cant} ${item.unidad==='m2'?'m²':item.unidad})`,'ok');
+  } catch(e){
+    console.error('saveAjusteStock:', e);
+    toast('⚠ Error: '+(e.message||''),'err');
+  }
+}
+
+// ── VER PARTIDAS DE UN ITEM ──
+function verPartidas(itemId){
+  const item = _stockItemsCache.find(i=>i.id===itemId);
+  if(!item) return;
+  const partidas = _stockPartidasCache
+    .filter(p => p.item_id === itemId)
+    .sort((a,b) => new Date(b.fecha_ingreso) - new Date(a.fecha_ingreso));
+
+  document.getElementById('overlay-title').textContent = `Partidas — ${item.nombre}`;
+  document.getElementById('doc-content').innerHTML = `
+    <div style="padding:22px 28px;background:#fff;font-family:'DM Sans',sans-serif">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-size:18px;font-weight:700;color:var(--brand)">${item.nombre}</div>
+          <div style="font-size:11.5px;color:var(--muted)">${item.codigo} · ${item.categoria}${item.color?' · '+item.color:''}</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;font-weight:700">Stock total</div>
+          <div style="font-size:22px;font-weight:700;color:var(--brand);font-family:'Manrope',sans-serif">${formatStockQty(getStockActual(itemId),item.unidad)}</div>
+        </div>
+      </div>
+      <table class="dtbl" style="width:100%;font-size:12px">
+        <thead><tr><th>Fecha ingreso</th><th>Partida / Lote</th><th>Proveedor</th><th>Inicial</th><th>Disponible</th><th>Notas</th></tr></thead>
+        <tbody>
+        ${partidas.length ? partidas.map(p=>`<tr style="${parseFloat(p.cantidad_actual)<=0?'opacity:.4':''}">
+          <td style="white-space:nowrap">${fmtD(p.fecha_ingreso)}</td>
+          <td style="font-weight:700;font-family:'Manrope',sans-serif;font-size:11px">${p.numero_partida||'—'}</td>
+          <td>${p.proveedor||'—'}</td>
+          <td style="white-space:nowrap;font-size:11.5px;color:var(--muted)">${formatStockQty(p.cantidad_inicial,item.unidad)}</td>
+          <td style="white-space:nowrap;font-weight:700;color:${parseFloat(p.cantidad_actual)>0?'#15803d':'#888'}">${formatStockQty(p.cantidad_actual,item.unidad)}</td>
+          <td style="font-size:11.5px;color:var(--muted)">${p.notas||'—'}</td>
+        </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--muted)">Sin partidas registradas. Ingresá mercadería para crear la primera.</td></tr>'}
+        </tbody>
+      </table>
+    </div>`;
+  document.getElementById('overlay').classList.add('on');
+}
+
+// ── INICIALIZAR DESDE CATÁLOGO ──
+async function seedStockFromCatalog(){
+  if(!confirm('Esto creará automáticamente todos los insumos del catálogo del cotizador como items de stock con cantidad 0. Los items que ya existen no se duplican. ¿Continuar?')) return;
+
+  if(typeof getInsumos !== 'function'){ toast('No se encontró el catálogo de insumos','err'); return; }
+  const catalogo = getInsumos();
+  const existentes = new Set(_stockItemsCache.map(i => (i.insumo_ref||'').toLowerCase()));
+  const nuevos = [];
+
+  catalogo.forEach(insumo => {
+    if(existentes.has((insumo.id||'').toLowerCase())) return;
+    // Mapear cat del cotizador → cat de stock
+    const catMap = {
+      'Telas': 'Telas',
+      'Rieles': 'Ejes',
+      'Bandas Verticales': 'Mecanismos',
+      'Motores': 'Motores',
+      'Mecanismos': 'Mecanismos',
+      'Adicionales': 'Accesorios',
+    };
+    const cat = catMap[insumo.cat] || insumo.cat || 'Otros';
+    const unidad = insumo.unidad === 'ml' ? 'm' : (insumo.unidad === 'm2' ? 'm2' : 'unidad');
+    nuevos.push({
+      id: uid(),
+      codigo: (insumo.id||'').toUpperCase(),
+      categoria: cat,
+      subcategoria: insumo.subcat || null,
+      nombre: insumo.nombre || insumo.id,
+      unidad,
+      ancho_rollo: null,
+      color: null,
+      variante: null,
+      stock_minimo: 0,
+      punto_pedido: 0,
+      activo: true,
+      insumo_ref: insumo.id,
+    });
+  });
+
+  if(!nuevos.length){ toast('Todos los insumos del catálogo ya estaban cargados','ok'); return; }
+
+  try {
+    const { error } = await _sb.from('stock_items').insert(nuevos);
+    if(error) throw error;
+    _stockItemsCache.push(...nuevos);
+    localStorage.setItem('rm_stock_items', JSON.stringify(_stockItemsCache));
+    renderStock();
+    toast(`✅ ${nuevos.length} insumo${nuevos.length!==1?'s':''} creado${nuevos.length!==1?'s':''} desde el catálogo`,'ok');
+  } catch(e){
+    console.error('seedStockFromCatalog:', e);
+    toast('⚠ Error: '+(e.message||''),'err');
+  }
+}
+
+/* ════════════════════════════════════════
+   STOCK FASE 4 — INTELIGENCIA AVANZADA
+   - Predicción de consumo (histórico + cotizaciones + pedidos)
+   - Sugerencia de compra automática
+   - Proveedores y lead times
+   - Widget "Hoy" con alertas
+════════════════════════════════════════ */
+
+let _proveedoresCache = [];
+function getProveedores(){ return _proveedoresCache; }
+
+async function loadProveedores(){
+  try {
+    const { data, error } = await _sb.from('proveedores').select('*').order('nombre');
+    if(error) throw error;
+    _proveedoresCache = data || [];
+    localStorage.setItem('rm_proveedores', JSON.stringify(_proveedoresCache));
+  } catch(e){
+    console.warn('Cargando proveedores desde local:', e.message);
+    _proveedoresCache = JSON.parse(localStorage.getItem('rm_proveedores')||'[]');
+  }
+}
+
+// ── PROBABILIDAD DE CONVERSIÓN POR ESTADO DE COTIZACIÓN ──
+const PROB_CONVERSION = {
+  'Cotización':       0.10,  // recién creada
+  'Borrador':         0.10,
+  'Enviada':          0.35,
+  'En negociación':   0.60,
+  'Aprobada':         1.00,
+  'Necesita Revisión':0.20,
+  'Rechazada':        0.00,
+  'Vencida':          0.00,
+};
+
+// ── PREDICCIÓN DE CONSUMO ──
+// Calcula consumo diario promedio de un insumo combinando 3 fuentes
+function calcConsumoDiarioPredict(itemId){
+  // FUENTE 1: Histórico real — egresos de fabricación últimos 90 días (peso 60%)
+  const hace90Dias = new Date();
+  hace90Dias.setDate(hace90Dias.getDate() - 90);
+  const movs = _stockMovsCache.filter(m =>
+    m.item_id === itemId &&
+    m.tipo === 'egreso_fab' &&
+    new Date(m.fecha) >= hace90Dias
+  );
+  const consumoTotal90 = movs.reduce((s,m)=>s+Math.abs(parseFloat(m.cantidad)||0), 0);
+  const consumoDiarioHistorico = consumoTotal90 / 90;
+
+  // FUENTE 2: Pedidos APROBADOS pendientes (no en fab) — peso 15%
+  const pedidosPendientes = getDocs().filter(d =>
+    d.type==='order' && d.estado === 'Aprobado'
+  );
+  let consumoPedidos = 0;
+  pedidosPendientes.forEach(p => {
+    (p.items||[]).forEach(it => {
+      const reqs = calcInsumosParaItem(it);
+      reqs.forEach(r => {
+        const stk = buscarStockItem(r);
+        if(stk?.id === itemId) consumoPedidos += r.cantidad;
+      });
+    });
+  });
+  // Distribuir en 14 días (asumimos que se fabrican rápido)
+  const consumoDiarioPedidos = consumoPedidos / 14;
+
+  // FUENTE 3: Cotizaciones abiertas con probabilidad — peso 25%
+  const cotsAbiertas = getDocs().filter(d => d.type==='quote' &&
+    !['Rechazada','Vencida','Aprobada'].includes(d.estado)
+  );
+  let consumoCots = 0;
+  cotsAbiertas.forEach(c => {
+    const prob = PROB_CONVERSION[c.estado] || 0.10;
+    (c.items||[]).forEach(it => {
+      const reqs = calcInsumosParaItem(it);
+      reqs.forEach(r => {
+        const stk = buscarStockItem(r);
+        if(stk?.id === itemId) consumoCots += r.cantidad * prob;
+      });
+    });
+  });
+  // Distribuir en 30 días (las cotizaciones tardan más)
+  const consumoDiarioCots = consumoCots / 30;
+
+  // COMBINACIÓN PONDERADA
+  const total = consumoDiarioHistorico * 0.60
+              + consumoDiarioPedidos   * 0.15
+              + consumoDiarioCots      * 0.25;
+  return {
+    diario: total,
+    historico: consumoDiarioHistorico,
+    pedidos: consumoDiarioPedidos,
+    cotizaciones: consumoDiarioCots,
+    movsHistoricos: movs.length,
+  };
+}
+
+// Días de cobertura: cuánto dura el stock al ritmo actual
+function calcDiasCobertura(itemId){
+  const stockActual = getStockActual(itemId);
+  const consumo = calcConsumoDiarioPredict(itemId);
+  if(consumo.diario <= 0) return Infinity;
+  return stockActual / consumo.diario;
+}
+
+// ── SUGERENCIA DE COMPRA ──
+// Devuelve la cantidad recomendada para comprar de un insumo
+function calcSugerenciaCompra(item){
+  const consumo = calcConsumoDiarioPredict(item.id);
+  const stockActual = getStockActual(item.id);
+  const min = parseFloat(item.stock_minimo)||0;
+
+  // Si tiene proveedor con lead time → usar ese, sino default 7 días
+  const prov = _proveedoresCache.find(p => p.id === item.proveedor_id);
+  const leadTime = prov?.lead_time || 7;
+
+  // Buffer de 30 días según preferencia del usuario
+  const bufferDias = 30;
+
+  // Cantidad para cubrir lead time + buffer
+  const necesarioPeriodo = consumo.diario * (leadTime + bufferDias);
+
+  // Cantidad sugerida = max(min*2, necesario) - stock actual
+  let sugerido = Math.max(min * 2, necesarioPeriodo) - stockActual;
+  if(sugerido < 0) sugerido = 0;
+
+  // Redondear para arriba según unidad
+  if(item.unidad === 'unidad') sugerido = Math.ceil(sugerido);
+  else sugerido = Math.ceil(sugerido * 10) / 10; // 1 decimal
+
+  return {
+    cantidad: sugerido,
+    consumoDiario: consumo.diario,
+    diasCobertura: consumo.diario > 0 ? stockActual / consumo.diario : Infinity,
+    leadTime,
+    proveedor: prov,
+    razon: stockActual < min ? 'critico' : (stockActual < (parseFloat(item.punto_pedido)||0) ? 'reponer' : 'preventivo'),
+  };
+}
+
+// ── RENDER LISTA DE COMPRAS SUGERIDAS ──
+function renderListaCompras(){
+  const cont = document.getElementById('compras-por-prov');
+  const empty = document.getElementById('compras-empty');
+  if(!cont) return;
+
+  // Filtrar items que necesitan compra: críticos, por reponer, o que no van a llegar a cubrir 30 días
+  const sugerencias = _stockItemsCache
+    .filter(i => i.activo !== false)
+    .map(item => {
+      const sug = calcSugerenciaCompra(item);
+      return { item, ...sug };
+    })
+    .filter(s => s.cantidad > 0 && (s.razon === 'critico' || s.razon === 'reponer' || s.diasCobertura < 14));
+
+  let criticos = 0, reponer = 0, totalARS = 0;
+  const porProv = {};
+  sugerencias.forEach(s => {
+    if(s.razon === 'critico') criticos++;
+    else if(s.razon === 'reponer') reponer++;
+    const provKey = s.proveedor?.id || 'sin_prov';
+    const provName = s.proveedor?.nombre || '— Sin proveedor asignado —';
+    if(!porProv[provKey]) porProv[provKey] = { nombre:provName, prov:s.proveedor, items:[], total:0 };
+    // Estimar costo: usar costo_unitario del insumo (de la última partida) si existe
+    const ultPartida = _stockPartidasCache
+      .filter(p=>p.item_id===s.item.id && p.costo_unitario)
+      .sort((a,b)=>new Date(b.fecha_ingreso)-new Date(a.fecha_ingreso))[0];
+    const costoUnit = ultPartida ? parseFloat(ultPartida.costo_unitario)||0 : 0;
+    const subtotal = costoUnit * s.cantidad;
+    totalARS += subtotal;
+    porProv[provKey].total += subtotal;
+    porProv[provKey].items.push({ ...s, costoUnit, subtotal });
+  });
+
+  document.getElementById('comprar-criticos').textContent = criticos;
+  document.getElementById('comprar-reponer').textContent = reponer;
+  document.getElementById('comprar-total').textContent = totalARS > 0 ? fmtM(totalARS) : 'Sin costos cargados';
+  document.getElementById('comprar-prov-count').textContent = Object.keys(porProv).length;
+
+  if(!sugerencias.length){
+    cont.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  cont.innerHTML = Object.values(porProv).map(grupo => `
+    <div style="margin-bottom:18px;border:1px solid var(--border);border-radius:10px;overflow:hidden">
+      <div style="background:#1e2a38;color:#fff;padding:11px 16px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-weight:700;font-size:13px">${grupo.nombre}</div>
+          ${grupo.prov?.contacto ? `<div style="font-size:10.5px;color:rgba(255,255,255,.7);margin-top:2px">${grupo.prov.contacto}${grupo.prov.tel?` · ${grupo.prov.tel}`:''}${grupo.prov.lead_time?` · Entrega ${grupo.prov.lead_time}d`:''}</div>` : ''}
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">
+          ${grupo.total > 0 ? `<span style="font-weight:700;font-size:13px">${fmtM(grupo.total)}</span>` : ''}
+          ${grupo.prov?.tel ? `<button class="btn-t" onclick="openWhatsApp('${grupo.prov.tel}')" title="WhatsApp" style="background:#25d366;color:#fff;border-color:#25d366">💬</button>` : ''}
+          <button class="btn-t" onclick="copiarListaCompras('${grupo.prov?.id||'sin_prov'}')" title="Copiar lista">📋</button>
+        </div>
+      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead style="background:#f8f8f7"><tr>
+          <th style="padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Razón</th>
+          <th style="padding:7px 10px;text-align:left;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Insumo</th>
+          <th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Stock</th>
+          <th style="padding:7px 10px;text-align:center;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Cobertura</th>
+          <th style="padding:7px 10px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Comprar</th>
+          <th style="padding:7px 10px;text-align:right;font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700">Subtotal</th>
+        </tr></thead>
+        <tbody>
+          ${grupo.items.sort((a,b)=>{
+            const order = {critico:0, reponer:1, preventivo:2};
+            return (order[a.razon]||9) - (order[b.razon]||9);
+          }).map(s => {
+            const razonLbl = s.razon==='critico' ? '<span style="background:#fee2e2;color:#c0392b;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">⚠️ Crítico</span>'
+                          : s.razon==='reponer' ? '<span style="background:#fff3cd;color:#a05c00;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">🟠 Reponer</span>'
+                          : '<span style="background:#dbeafe;color:#1e40af;padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">📅 Preventivo</span>';
+            const cob = s.diasCobertura === Infinity ? '∞' : `${Math.floor(s.diasCobertura)}d`;
+            const cobColor = s.diasCobertura < 7 ? '#c0392b' : s.diasCobertura < 14 ? '#a05c00' : '#15803d';
+            return `<tr style="border-bottom:1px solid #f0f0ee">
+              <td style="padding:8px 10px">${razonLbl}</td>
+              <td style="padding:8px 10px">
+                <strong>${s.item.nombre}</strong>
+                ${s.item.color?`<div style="font-size:10.5px;color:var(--muted)">${s.item.color}</div>`:''}
+              </td>
+              <td style="padding:8px 10px;text-align:center;font-size:11.5px">${formatStockQty(getStockActual(s.item.id), s.item.unidad)}</td>
+              <td style="padding:8px 10px;text-align:center;font-size:11.5px;color:${cobColor};font-weight:700">${cob}</td>
+              <td style="padding:8px 10px;text-align:right;font-weight:700">${formatStockQty(s.cantidad, s.item.unidad)}</td>
+              <td style="padding:8px 10px;text-align:right;font-weight:700">${s.costoUnit > 0 ? fmtM(s.subtotal) : '<span style="color:var(--muted)">—</span>'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `).join('');
+}
+
+function copiarListaCompras(provId){
+  // Generar texto plano de la lista para el proveedor
+  const sugerencias = _stockItemsCache
+    .filter(i => i.activo !== false)
+    .map(item => {
+      const sug = calcSugerenciaCompra(item);
+      return { item, ...sug };
+    })
+    .filter(s => s.cantidad > 0 && (s.razon === 'critico' || s.razon === 'reponer' || s.diasCobertura < 14))
+    .filter(s => (s.proveedor?.id||'sin_prov') === provId);
+
+  if(!sugerencias.length){ toast('Sin items para este proveedor','err'); return; }
+  const provName = sugerencias[0].proveedor?.nombre || '— Sin proveedor —';
+  const txt = `Hola, te paso pedido de compra:
+
+${sugerencias.map((s,i) => `${i+1}. ${s.item.nombre}${s.item.color?` (${s.item.color})`:''} — ${formatStockQty(s.cantidad, s.item.unidad)}`).join('\n')}
+
+Saludos!`;
+  navigator.clipboard.writeText(txt).then(()=>{
+    toast(`📋 Lista copiada (${sugerencias.length} items)`,'ok');
+  }).catch(()=>toast('Error copiando','err'));
+}
+
+// ── WIDGET "HOY" — Pop-up de alertas al entrar a Stock ──
+function refreshStockHoyWidget(){
+  const widget = document.getElementById('stk-hoy-widget');
+  const text = document.getElementById('stk-hoy-text');
+  if(!widget || !text) return;
+
+  // Contar críticos, faltantes recientes en pedidos, y compras urgentes
+  const criticos = _stockItemsCache.filter(i => i.activo!==false && getStockEstado(i)==='bajo').length;
+  const sin = _stockItemsCache.filter(i => i.activo!==false && getStockEstado(i)==='sin').length;
+
+  // Faltantes en últimos 7 días: movimientos con notas que empiecen con [FALTÓ]
+  const hace7Dias = new Date(); hace7Dias.setDate(hace7Dias.getDate()-7);
+  const faltantesRecientes = _stockMovsCache.filter(m =>
+    m.tipo==='egreso_fab' &&
+    (m.notas||'').startsWith('[FALTÓ]') &&
+    new Date(m.fecha) >= hace7Dias
+  );
+  const pedidosConFaltantes = new Set(faltantesRecientes.map(m=>m.pedido_numero).filter(Boolean));
+
+  // Compras sugeridas urgentes (críticos + reponer)
+  const sugerenciasUrgentes = _stockItemsCache
+    .filter(i => i.activo!==false)
+    .map(item => calcSugerenciaCompra(item))
+    .filter(s => s.cantidad>0 && (s.razon==='critico' || s.razon==='reponer'))
+    .length;
+
+  if(criticos === 0 && sin === 0 && pedidosConFaltantes.size === 0 && sugerenciasUrgentes === 0){
+    widget.style.display = 'none';
+    return;
+  }
+
+  const partes = [];
+  if(sin > 0) partes.push(`<strong style="color:#c0392b">⚫ ${sin} insumo${sin!==1?'s':''} sin stock</strong>`);
+  if(criticos > 0) partes.push(`<strong style="color:#c0392b">🔴 ${criticos} en estado crítico</strong>`);
+  if(pedidosConFaltantes.size > 0) partes.push(`<strong style="color:#c0392b">⚠️ ${pedidosConFaltantes.size} pedido${pedidosConFaltantes.size!==1?'s':''} se fabricaron con faltantes</strong> (últimos 7 días)`);
+  if(sugerenciasUrgentes > 0) partes.push(`🛒 <strong>${sugerenciasUrgentes} insumo${sugerenciasUrgentes!==1?'s':''}</strong> sugerido${sugerenciasUrgentes!==1?'s':''} para comprar`);
+
+  text.innerHTML = partes.join(' · ');
+  widget.style.display = 'block';
+}
+
+// ── PROVEEDORES ──
+function renderProveedores(){
+  const tb = document.getElementById('prov-tbody');
+  const em = document.getElementById('prov-empty');
+  if(!tb) return;
+  const data = _proveedoresCache.slice().sort((a,b)=>(a.nombre||'').localeCompare(b.nombre||''));
+  if(!data.length){ tb.innerHTML=''; em.style.display='block'; return; }
   em.style.display='none';
-  const tipoLabel = { entrada:'📥 Entrada', salida:'📤 Salida', ajuste:'🔧 Ajuste', devolucion:'↩️ Devolución', merma:'⚠️ Merma' };
-  tb.innerHTML = movs.map(m=>`<tr>
-    <td style="font-size:12px">${fmtD(m.fecha)}</td>
-    <td style="font-weight:600;font-size:13px">${m.nombre}</td>
-    <td><span style="font-size:11px">${tipoLabel[m.tipo]||m.tipo}</span></td>
-    <td style="font-weight:700;color:${m.delta>0?'var(--green)':'var(--red)'}">${m.delta>0?'+':''}${m.delta}</td>
-    <td style="font-size:12px">${m.usuario}</td>
-    <td style="font-size:11px;color:var(--muted)">${m.ref||m.notas||'—'}</td>
-  </tr>`).join('');
+  tb.innerHTML = data.map(p => {
+    const nInsumos = _stockItemsCache.filter(i => i.proveedor_id === p.id).length;
+    return `<tr>
+      <td><strong>${p.nombre}</strong>${p.razon_social?`<div style="font-size:10.5px;color:var(--muted)">${p.razon_social}</div>`:''}</td>
+      <td style="font-size:12px">${p.contacto||'—'}</td>
+      <td style="font-size:12px;white-space:nowrap">${p.tel?`<a href="#" onclick="event.preventDefault();openWhatsApp('${p.tel}')" style="color:#25d366;text-decoration:none">💬 ${p.tel}</a>`:'—'}</td>
+      <td style="font-size:12px">${p.email||'—'}</td>
+      <td style="font-size:12px;text-align:center;white-space:nowrap"><strong>${p.lead_time||7}</strong> días</td>
+      <td style="text-align:center;font-size:13px"><strong>${nInsumos}</strong></td>
+      <td><div style="display:flex;gap:5px">
+        <button class="btn-t" onclick="abrirNuevoProveedor('${p.id}')" title="Editar">✏️</button>
+        <button class="btn-t del" onclick="eliminarProveedor('${p.id}')" title="Eliminar">🗑</button>
+      </div></td>
+    </tr>`;
+  }).join('');
 }
 
-function exportStockExcel(){
-  const stock = getStock();
-  if(!stock.length){ toast('No hay insumos en el inventario','err'); return; }
-  const rows = stock.map(it=>({
-    'Código': it.codigo||'',
-    'Nombre': it.nombre,
-    'Categoría': it.categoria,
-    'Unidad': it.unidad,
-    'Stock actual': it.actual||0,
-    'Stock mínimo': it.minimo||0,
-    'Precio costo': it.costo||0,
-    'Valor total': (it.actual||0)*(it.costo||0),
-    'Ubicación': it.ubicacion||'',
-    'Proveedor': it.proveedor||'',
+let _editProvId = null;
+function abrirNuevoProveedor(id){
+  _editProvId = id || null;
+  const p = id ? _proveedoresCache.find(x=>x.id===id) : null;
+  document.getElementById('overlay-title').textContent = p ? `Editar — ${p.nombre}` : 'Nuevo Proveedor';
+  document.getElementById('doc-content').innerHTML = `
+    <div style="padding:24px 28px;max-width:580px;margin:0 auto;background:#fff;font-family:'DM Sans',sans-serif">
+      <div class="card">
+        <div class="card-h">🏢 Datos del proveedor</div>
+        <div class="card-b">
+          <div class="fg c2">
+            <div class="f s2"><label>Nombre / Empresa *</label><input type="text" id="p-nombre" value="${p?.nombre||''}" placeholder="Ej: Vertilux SA"></div>
+            <div class="f s2"><label>Razón social <span style="color:var(--muted);font-weight:400">(opcional)</span></label><input type="text" id="p-razon" value="${p?.razon_social||''}"></div>
+            <div class="f"><label>CUIT</label><input type="text" id="p-cuit" value="${p?.cuit||''}"></div>
+            <div class="f"><label>Persona de contacto</label><input type="text" id="p-contacto" value="${p?.contacto||''}" placeholder="Ej: Juan Pérez"></div>
+            <div class="f"><label>Teléfono / WhatsApp</label><input type="text" id="p-tel" value="${p?.tel||''}" placeholder="Ej: 11 5555 5555"></div>
+            <div class="f"><label>Email</label><input type="email" id="p-email" value="${p?.email||''}"></div>
+            <div class="f"><label>Lead time (días) *</label><input type="number" id="p-lead" value="${p?.lead_time||7}" min="1" max="60" placeholder="7"></div>
+            <div class="f"><label>Categoría principal</label>
+              <select id="p-cat">
+                <option value="">—</option>
+                <option ${p?.categoria==='Telas'?'selected':''}>Telas</option>
+                <option ${p?.categoria==='Ejes'?'selected':''}>Ejes / Tubos</option>
+                <option ${p?.categoria==='Mecanismos'?'selected':''}>Mecanismos</option>
+                <option ${p?.categoria==='Motores'?'selected':''}>Motores</option>
+                <option ${p?.categoria==='Accesorios'?'selected':''}>Accesorios</option>
+                <option ${p?.categoria==='Mixto'?'selected':''}>Mixto</option>
+              </select>
+            </div>
+            <div class="f s2"><label>Notas</label><textarea id="p-notas" placeholder="Condiciones de pago, descuentos, etc.">${p?.notas||''}</textarea></div>
+          </div>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">
+        <button class="btn btn-outline" onclick="closeOverlay()">Cancelar</button>
+        <button class="btn btn-primary" onclick="saveProveedor()">💾 Guardar</button>
+      </div>
+    </div>`;
+  document.getElementById('overlay').classList.add('on');
+}
+
+async function saveProveedor(){
+  const nombre = document.getElementById('p-nombre').value.trim();
+  if(!nombre){ toast('⚠ Ingresá el nombre','err'); return; }
+  const prov = {
+    id: _editProvId || uid(),
+    nombre,
+    razon_social: document.getElementById('p-razon').value.trim() || null,
+    cuit: document.getElementById('p-cuit').value.trim() || null,
+    contacto: document.getElementById('p-contacto').value.trim() || null,
+    tel: document.getElementById('p-tel').value.trim() || null,
+    email: document.getElementById('p-email').value.trim() || null,
+    lead_time: parseInt(document.getElementById('p-lead').value)||7,
+    categoria: document.getElementById('p-cat').value || null,
+    notas: document.getElementById('p-notas').value.trim() || null,
+  };
+  try {
+    const { error } = await _sb.from('proveedores').upsert(prov);
+    if(error) throw error;
+    const i = _proveedoresCache.findIndex(x=>x.id===prov.id);
+    if(i>=0) _proveedoresCache[i] = prov; else _proveedoresCache.unshift(prov);
+    localStorage.setItem('rm_proveedores', JSON.stringify(_proveedoresCache));
+    closeOverlay();
+    renderProveedores();
+    toast('✅ Proveedor guardado','ok');
+  } catch(e){
+    console.error(e);
+    toast('⚠ Error guardando: '+(e.message||''),'err');
+  }
+}
+
+async function eliminarProveedor(id){
+  if(!confirm('¿Eliminar este proveedor? Los insumos asociados quedarán sin proveedor pero no se borran.')) return;
+  try {
+    const { error } = await _sb.from('proveedores').delete().eq('id', id);
+    if(error) throw error;
+    _proveedoresCache = _proveedoresCache.filter(x=>x.id!==id);
+    localStorage.setItem('rm_proveedores', JSON.stringify(_proveedoresCache));
+    renderProveedores();
+    toast('🗑 Proveedor eliminado','ok');
+  } catch(e){
+    toast('⚠ Error eliminando','err');
+  }
+}
+
+/* ════════════════════════════════════════
+   STOCK FASE 2 — Descuento automático
+   Se dispara cuando un pedido pasa a "En Fabricación"
+   Y se revierte cuando se cancela después.
+════════════════════════════════════════ */
+
+// Calcula los insumos necesarios para un item de cortina.
+// Devuelve array: [{ insumo_ref, cantidad, unidad, descripcion }, ...]
+function calcInsumosParaItem(item){
+  const reqs = [];
+  const tela = (item.tela||'').toLowerCase();
+  const ancho = parseFloat(item.ancho)||0;  // mm
+  const alto  = parseFloat(item.alto)||0;   // mm
+  const cant  = parseInt(item.cant)||1;
+
+  // ── 1) TELA — solo para tipos que llevan tela
+  const telasConDescuento = ['blackout','sunscreen5','sunscreen3','sunscreen1','cambiotela','doble','duozebra'];
+  if(telasConDescuento.includes(tela) && ancho && alto){
+    // m² con +10% desperdicio
+    const m2 = (ancho * alto * 1.10) / 1_000_000;
+    const colorRef = item.color||'';
+    reqs.push({
+      insumo_ref:  `tela_${tela}_${colorRef.toLowerCase().replace(/\s+/g,'_')}`,
+      buscar_por:  { categoria:'Telas', subcategoria_match:tela, color_match:colorRef },
+      cantidad:    +(m2*cant).toFixed(3),
+      unidad:      'm2',
+      descripcion: `Tela ${tela} ${colorRef} (${m2.toFixed(2)}m² × ${cant})`,
+    });
+  }
+
+  // ── 2) EJE — para roller (ancho-35 mm)
+  const tiposConEje = ['blackout','sunscreen5','sunscreen3','sunscreen1','cambiotela','doble','duozebra'];
+  if(tiposConEje.includes(tela) && ancho){
+    const longEje = (ancho - 35) / 1000; // m
+    let diam = '32mm';
+    if(ancho > 1600) diam = '38mm';
+    if(ancho > 2500) diam = '50mm';
+    if(ancho > 3000) diam = '50R';
+    reqs.push({
+      insumo_ref:  `eje_${diam.toLowerCase()}`,
+      buscar_por:  { categoria:'Ejes', subcategoria_match:diam },
+      cantidad:    +(longEje*cant).toFixed(3),
+      unidad:      'm',
+      descripcion: `Eje ${diam} (${longEje.toFixed(2)}m × ${cant})`,
+    });
+  }
+
+  // ── 3) ZÓCALO — para roller (mismo ancho que la cortina)
+  if(tiposConEje.includes(tela) && ancho){
+    const longZoc = ancho / 1000; // m
+    const colorZoc = item.zoc || 'Visto Blanco';
+    reqs.push({
+      insumo_ref:  `zocalo_${colorZoc.toLowerCase().replace(/\s+/g,'_')}`,
+      buscar_por:  { categoria:'Zócalos', color_match:colorZoc },
+      cantidad:    +(longZoc*cant).toFixed(3),
+      unidad:      'm',
+      descripcion: `Zócalo ${colorZoc} (${longZoc.toFixed(2)}m × ${cant})`,
+    });
+  }
+
+  // ── 4) MECANISMO — 1 unidad por roller
+  if(tiposConEje.includes(tela)){
+    const colorMec = item.color_mecanismo || item.colorMecanismo || 'Blanco';
+    const ladoMec  = item.lado_mecanismo || item.ladoMecanismo || 'Derecha';
+    reqs.push({
+      insumo_ref:  `mecanismo_${colorMec.toLowerCase()}_${ladoMec.toLowerCase()}`,
+      buscar_por:  { categoria:'Mecanismos', color_match:colorMec, variante_match:ladoMec },
+      cantidad:    cant,
+      unidad:      'unidad',
+      descripcion: `Mecanismo ${colorMec} (${ladoMec})`,
+    });
+  }
+
+  // ── 5) CADENA — largo según selección
+  if(tiposConEje.includes(tela)){
+    const cadenaTipo = item.cad || 'Larga';
+    // Aproximación de largos en m
+    const largosCadena = {'Corta':1.5, 'Larga':2, 'Super Larga':3, 'Sin Cadena':0};
+    const largoM = largosCadena[cadenaTipo] != null ? largosCadena[cadenaTipo] : 2;
+    if(largoM > 0){
+      const colorCad = item.color_cadena || item.colorCadena || 'Blanco';
+      reqs.push({
+        insumo_ref:  `cadena_${colorCad.toLowerCase()}`,
+        buscar_por:  { categoria:'Cadenas', color_match:colorCad },
+        cantidad:    +(largoM*cant).toFixed(2),
+        unidad:      'm',
+        descripcion: `Cadena ${colorCad} (${largoM}m × ${cant})`,
+      });
+    }
+  }
+
+  // ── 6) SOPORTES — 2 por cortina
+  if(tiposConEje.includes(tela)){
+    const sopTipo = item.sop || 'Pared';
+    reqs.push({
+      insumo_ref:  `soporte_${sopTipo.toLowerCase().replace(/\s+/g,'_')}`,
+      buscar_por:  { categoria:'Soportes', variante_match:sopTipo },
+      cantidad:    2*cant,
+      unidad:      'unidad',
+      descripcion: `Soporte ${sopTipo} (par × ${cant})`,
+    });
+  }
+
+  return reqs;
+}
+
+// Busca el stock_item que matchea con un requirement (por insumo_ref o por nombre)
+function buscarStockItem(req){
+  // 1) Primero por insumo_ref exacto
+  let item = _stockItemsCache.find(i => (i.insumo_ref||'').toLowerCase() === req.insumo_ref.toLowerCase());
+  if(item) return item;
+  // 2) Buscar por categoría + subcategoría/color/variante
+  const bp = req.buscar_por;
+  item = _stockItemsCache.find(i => {
+    if((i.categoria||'').toLowerCase() !== (bp.categoria||'').toLowerCase()) return false;
+    if(bp.subcategoria_match && (i.subcategoria||'').toLowerCase() !== bp.subcategoria_match.toLowerCase()) return false;
+    if(bp.color_match && (i.color||'').toLowerCase() !== bp.color_match.toLowerCase()) return false;
+    if(bp.variante_match && (i.variante||'').toLowerCase() !== bp.variante_match.toLowerCase()) return false;
+    return true;
+  });
+  return item || null;
+}
+
+// Descuenta stock para todo un pedido (FIFO sobre partidas activas)
+async function descontarStockPedido(pedido){
+  if(!pedido?.items?.length) return { ok:true, descontados:[], faltantes:[] };
+  const usuario = ME?.name || 'sistema';
+  const descontados = [], faltantes = [];
+
+  for(const item of (pedido.items||[])){
+    const reqs = calcInsumosParaItem(item);
+    for(const req of reqs){
+      const stockItem = buscarStockItem(req);
+      if(!stockItem){
+        faltantes.push({ ...req, motivo:'Insumo no existe en stock' });
+        continue;
+      }
+      // FIFO sobre partidas activas con cantidad > 0
+      let restante = req.cantidad;
+      const partidas = _stockPartidasCache
+        .filter(p => p.item_id === stockItem.id && p.activa && parseFloat(p.cantidad_actual)>0)
+        .sort((a,b) => new Date(a.fecha_ingreso) - new Date(b.fecha_ingreso));
+
+      for(const partida of partidas){
+        if(restante <= 0) break;
+        const disponible = parseFloat(partida.cantidad_actual)||0;
+        const tomar = Math.min(disponible, restante);
+        const nuevoSaldoPartida = +(disponible - tomar).toFixed(3);
+        // Update partida
+        const partidaUpdate = { cantidad_actual: nuevoSaldoPartida };
+        try {
+          await _sb.from('stock_partidas').update(partidaUpdate).eq('id', partida.id);
+          partida.cantidad_actual = nuevoSaldoPartida;
+          // Crear movimiento
+          const mov = {
+            id: uid(),
+            fecha: new Date().toISOString(),
+            item_id: stockItem.id,
+            partida_id: partida.id,
+            tipo: 'egreso_fab',
+            cantidad: -tomar,
+            saldo_resultante: getStockActualPostUpdate(stockItem.id),
+            pedido_id: pedido.id,
+            pedido_numero: pedido.numero,
+            usuario,
+            notas: req.descripcion,
+          };
+          await _sb.from('stock_movimientos').insert(mov);
+          _stockMovsCache.unshift(mov);
+          restante -= tomar;
+          descontados.push({ insumo:stockItem.nombre, cantidad:tomar, partida:partida.numero_partida });
+        } catch(e){
+          console.error('Error descontando:', e);
+        }
+      }
+      if(restante > 0){
+        faltantes.push({ ...req, motivo:`Faltó ${restante.toFixed(2)} ${req.unidad}` });
+        // Aún así registramos el movimiento como egreso descubierto (negativo)
+        try {
+          const mov = {
+            id: uid(),
+            fecha: new Date().toISOString(),
+            item_id: stockItem.id,
+            partida_id: null,
+            tipo: 'egreso_fab',
+            cantidad: -restante,
+            saldo_resultante: -restante,
+            pedido_id: pedido.id,
+            pedido_numero: pedido.numero,
+            usuario,
+            notas: `[FALTÓ] ${req.descripcion}`,
+          };
+          await _sb.from('stock_movimientos').insert(mov);
+          _stockMovsCache.unshift(mov);
+        } catch(e){}
+      }
+    }
+  }
+
+  // Refrescar local cache desde Supabase
+  await loadStock();
+  if(typeof renderStock==='function') renderStock();
+  if(typeof updateStockStats==='function') updateStockStats();
+  return { ok:true, descontados, faltantes };
+}
+
+function getStockActualPostUpdate(itemId){
+  return _stockPartidasCache.filter(p=>p.item_id===itemId && p.activa)
+    .reduce((s,p)=>s+(parseFloat(p.cantidad_actual)||0), 0);
+}
+
+// Reversa el descuento cuando un pedido se cancela
+async function reversarStockPedido(pedido){
+  if(!pedido?.id) return;
+  const usuario = ME?.name || 'sistema';
+  // Buscar todos los movimientos de tipo 'egreso_fab' para este pedido
+  const movsPedido = _stockMovsCache.filter(m => m.pedido_id === pedido.id && m.tipo === 'egreso_fab');
+  if(!movsPedido.length){
+    console.log('No hay movimientos previos para reversar en pedido', pedido.numero);
+    return;
+  }
+
+  for(const mov of movsPedido){
+    const cantidadADevolver = Math.abs(parseFloat(mov.cantidad)||0);
+    if(cantidadADevolver <= 0) continue;
+    try {
+      // Si el movimiento estaba ligado a una partida → devolver a esa partida
+      if(mov.partida_id){
+        const partida = _stockPartidasCache.find(p => p.id === mov.partida_id);
+        if(partida){
+          const nuevoSaldo = +((parseFloat(partida.cantidad_actual)||0) + cantidadADevolver).toFixed(3);
+          await _sb.from('stock_partidas').update({ cantidad_actual: nuevoSaldo }).eq('id', partida.id);
+          partida.cantidad_actual = nuevoSaldo;
+        }
+      }
+      // Crear movimiento de reverso
+      const reverso = {
+        id: uid(),
+        fecha: new Date().toISOString(),
+        item_id: mov.item_id,
+        partida_id: mov.partida_id || null,
+        tipo: 'reverso',
+        cantidad: cantidadADevolver,
+        saldo_resultante: getStockActualPostUpdate(mov.item_id),
+        pedido_id: pedido.id,
+        pedido_numero: pedido.numero,
+        usuario,
+        notas: `Reverso por cancelación de pedido. Original: ${mov.notas||''}`,
+      };
+      await _sb.from('stock_movimientos').insert(reverso);
+      _stockMovsCache.unshift(reverso);
+    } catch(e){
+      console.error('Error reversando:', e);
+    }
+  }
+  await loadStock();
+  if(typeof renderStock==='function') renderStock();
+  if(typeof updateStockStats==='function') updateStockStats();
+  toast(`↩️ Stock devuelto por cancelación de ${pedido.numero}`, 'ok');
+}
+
+// ── AUTO-CALCULAR PUNTO DE PEDIDO ──
+async function autoCalculatePuntoPedido(){
+  if(!confirm('Esto recalculará el punto de pedido = mínimo × 1.5 para todos los insumos. ¿Continuar?')) return;
+  const updates = _stockItemsCache.filter(i => parseFloat(i.stock_minimo)>0).map(i => ({
+    ...i,
+    punto_pedido: Math.round(parseFloat(i.stock_minimo) * 1.5 * 100) / 100,
   }));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows), 'Stock');
-  XLSX.writeFile(wb, `RollerMotion_Stock_${today()}.xlsx`);
-  toast('📊 Stock exportado','ok');
+  if(!updates.length){ toast('Ningún insumo tiene mínimo definido','err'); return; }
+  try {
+    for(const u of updates){
+      await _sb.from('stock_items').update({punto_pedido: u.punto_pedido}).eq('id', u.id);
+      const idx = _stockItemsCache.findIndex(i=>i.id===u.id);
+      if(idx>=0) _stockItemsCache[idx].punto_pedido = u.punto_pedido;
+    }
+    localStorage.setItem('rm_stock_items', JSON.stringify(_stockItemsCache));
+    renderStock();
+    toast(`✅ ${updates.length} punto${updates.length!==1?'s':''} de pedido actualizado${updates.length!==1?'s':''}`,'ok');
+  } catch(e){ toast('⚠ Error: '+e.message,'err'); }
 }
 
-/* ═══════════════════════════════════════════
-   MÓDULO DASHBOARD
-═══════════════════════════════════════════ */
 function renderDashboard(){
   const dias = parseInt(document.getElementById('dash-periodo')?.value||30);
   const now = new Date();
