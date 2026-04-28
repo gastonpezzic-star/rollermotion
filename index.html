@@ -1245,7 +1245,10 @@ body{
     <div class="wrap">
       <div class="sh">
         <h2>👥 Clientes</h2>
-        <button class="btn btn-primary" onclick="abrirNuevoCliente()">＋ Nuevo Cliente</button>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="importClientesDesdePedidos()" title="Generar clientes a partir de pedidos existentes">🔄 Importar desde pedidos</button>
+          <button class="btn btn-primary" onclick="abrirNuevoCliente()">＋ Nuevo Cliente</button>
+        </div>
       </div>
       <div class="srow">
         <input type="text" id="cli-q" placeholder="Buscar nombre, CUIT, teléfono…" oninput="renderClientes()" style="flex:1">
@@ -4077,43 +4080,45 @@ function calcInstalacion(){
     return;
   }
 
-  let unitsNormal = 0, unitsMotor = 0;
+  let units = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     try {
       const item = JSON.parse(tr.dataset.item||'{}');
-      if(!esItemConInstalacion(item)) return; // excluye tubos/ángulos/guías/cenefas
+      if(!esItemConInstalacion(item)) return;
       const cantInput = tr.querySelector('input[type=number]');
-      const cant = parseInt(cantInput?.value)||parseInt(item.cant)||1;
-      if(item.tela === 'motores') unitsMotor += cant;
-      else unitsNormal += cant; // todo lo demás (rollers, doble, duozebra, bandas, venecianas, gasa lino, blackout tex, rieles, libre, etc.)
+      units += parseInt(cantInput?.value)||parseInt(item.cant)||1;
     } catch(e){}
   });
 
-  const puNormal = getInstalPrecioUnit(false);
-  const puMotor  = getInstalPrecioUnit(true);
-  const total    = puNormal * unitsNormal + puMotor * unitsMotor;
+  const pu = getInstalPrecioUnit(false);
+  const total = pu * units;
 
-  let detStr = '';
-  if(unitsNormal) detStr += `${unitsNormal} cort. × ${fmtM(puNormal)}`;
-  if(unitsMotor)  detStr += `${detStr?' + ':''}${unitsMotor} motor. × ${fmtM(puMotor)}`;
-  if(!detStr) detStr = 'Agregá cortinas para calcular';
-
-  if(mont) mont.textContent = detStr;
+  if(mont) mont.textContent = units ? `${units} cort. × ${fmtM(pu)}` : 'Agregá cortinas para calcular';
   if(disp) disp.textContent = total ? fmtM(total) : '';
   recalcTotalConInstal();
 }
 
 
-// Helper: true si el item suma instalación (cortina, riel, banda vertical, motor, libre)
-// false si es accesorio (tubos, ángulos, guías, cenefas)
+// ── INSTALACIÓN ──
+// Whitelist explícita: solo estos tipos cuentan como instalación.
+// Todo lo demás (motores, accesorios, cortina libre, etc.) NO suma.
+const TIPOS_CON_INSTALACION = [
+  'blackout',
+  'sunscreen5','sunscreen3','sunscreen1',
+  'cambiotela',
+  'doble',
+  'duozebra',
+  'conf_liviana',
+  'conf_blackout',
+  'bandas_verticales',
+  'veneciana',
+  'riel_manual',
+  'riel_motorizado',
+];
+
 function esItemConInstalacion(item){
   const tela = (item.tela||'').toLowerCase();
-  const accesorios = ['tubos','angulos','guias','cenefas'];
-  if(accesorios.includes(tela)) return false;
-  const insumo = (item.insumoId||'').toLowerCase();
-  if(insumo.startsWith('tubo_') || insumo.startsWith('ang_') ||
-     insumo.startsWith('guia_') || insumo.startsWith('cenefa_')) return false;
-  return true;
+  return TIPOS_CON_INSTALACION.includes(tela);
 }
 
 function getInstalUnits(){
@@ -4141,20 +4146,16 @@ function getAdicionalesTotal(){
 
 function getInstalTotal(){
   if(!_instalacionActiva) return 0;
-  let unitsNormal = 0, unitsMotor = 0;
+  let units = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     try {
       const item = JSON.parse(tr.dataset.item||'{}');
       if(!esItemConInstalacion(item)) return;
       const cantInput = tr.querySelector('input[type=number]');
-      const cant = parseInt(cantInput?.value)||parseInt(item.cant)||1;
-      if(item.tela === 'motores') unitsMotor += cant;
-      else if(['blackout','sunscreen5','sunscreen3','sunscreen1','cambiotela','doble','duozebra',
-               'bandas_verticales','veneciana','conf_liviana','conf_blackout','libre'].includes(item.tela)) unitsNormal += cant;
-      else unitsNormal += cant; // cualquier otro tipo
+      units += parseInt(cantInput?.value)||parseInt(item.cant)||1;
     } catch(e){}
   });
-  return getInstalPrecioUnit(false)*unitsNormal + getInstalPrecioUnit(true)*unitsMotor;
+  return getInstalPrecioUnit(false) * units;
 }
 
 function recalcTotalConInstal(){
@@ -4535,6 +4536,15 @@ async function saveRecibo(thenView){
     console.error('Error guardando recibo:', e);
     toast('⚠ Recibo guardado local — pendiente sincronizar','err');
   }
+
+  // Auto-crear/actualizar cliente desde el recibo
+  try {
+    autoCreateClienteFromDoc({
+      cliente: recibo.cliente,
+      cuit: recibo.cuit,
+      numero: recibo.numero,
+    });
+  } catch(e){ console.error('autoCreateClienteFromDoc recibo:', e); }
 
   if(thenView) viewRecibo(recibo.id);
   else closeOverlay();
@@ -6462,13 +6472,12 @@ async function printDoc(){
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
-html,body{width:100%;max-width:194mm;margin:0 auto}
-body{font-family:'DM Sans',sans-serif;background:#fff;color:#141414;font-size:11px}
-@page{size:A4 portrait;margin:8mm}
+html,body{width:100%;margin:0}
+body{font-family:'DM Sans',sans-serif;background:#fff;color:#141414;font-size:12px}
+@page{size:A4 portrait;margin:10mm}
 ${styles}
-.doc{position:static!important;padding:0!important;width:100%!important;max-width:194mm!important;overflow:hidden!important}
-.doc table{table-layout:fixed!important;width:100%!important;word-break:break-word!important}
-.doc table td,.doc table th{overflow:hidden!important;text-overflow:ellipsis!important}
+.doc{position:static!important;padding:0!important;width:100%!important;max-width:none!important;overflow:visible!important}
+.doc table{width:100%!important}
 body *{visibility:visible!important}
 .overlay,.ptbar{display:none!important}
 </style>
@@ -7700,6 +7709,27 @@ function calcClienteSaldo(c, docs, recibos){
   const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
   const pagado = cliRecibos.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
   return total - pagado;
+}
+
+function importClientesDesdePedidos(){
+  const docs = getDocs();
+  // Usamos pedidos Y cotizaciones para no perder ningún cliente histórico
+  const todos = docs.filter(d => d.cliente);
+  if(!todos.length){ toast('No hay documentos para importar','err'); return; }
+
+  const before = getClientes().length;
+  let creados = 0, actualizados = 0;
+  todos.forEach(d => {
+    const all = getClientes();
+    const norm = (d.cliente||'').trim().toLowerCase();
+    const existente = all.find(c => (c.nombre||'').trim().toLowerCase() === norm);
+    if(!existente) creados++;
+    else actualizados++;
+    autoCreateClienteFromDoc(d);
+  });
+
+  renderClientes();
+  toast(`✅ ${creados} cliente${creados!==1?'s':''} nuevo${creados!==1?'s':''} · ${actualizados} actualizado${actualizados!==1?'s':''}`, 'ok');
 }
 
 function openWhatsApp(tel){
