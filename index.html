@@ -645,6 +645,26 @@ body{
   .overlay{ padding:0 }
   .overlay.on{ align-items:flex-end }
   .pbox{ border-radius:14px 14px 0 0; max-height:95vh; overflow-y:auto }
+
+  /* ── DOCUMENTO (cotización/recibo) en mobile ── */
+  .doc{ padding:14px 10px !important; font-size:11px !important; overflow-x:hidden }
+  .doc table{ display:block; overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:100% }
+  .doc-hdr{ flex-direction:column; gap:12px; align-items:flex-start !important }
+  .doc-meta{ text-align:left !important; align-self:flex-start }
+  .doc-num{ font-size:22px !important }
+  .doc-brand{ font-size:20px !important }
+  /* Tabla de items: scroll horizontal con hint visual */
+  .dtbl-wrap{ overflow-x:auto; -webkit-overflow-scrolling:touch; margin:0 -10px; padding:0 10px }
+  .dtbl{ font-size:10px !important; min-width:560px }
+  .dtbl th, .dtbl td{ padding:5px 6px !important; white-space:nowrap }
+  /* Cliente/datos: forzar a una columna */
+  .doc .igrid, .doc [style*="grid-template-columns"]{ grid-template-columns:1fr !important; gap:8px !important }
+  /* Cards de financiación */
+  .doc [style*="grid-template-columns: 1fr 1fr"][style*="gap"]{ grid-template-columns:1fr !important }
+  /* Botones del overlay */
+  .ptbar{ flex-wrap:wrap; gap:8px }
+  .ptbar-btns{ width:100%; justify-content:flex-end }
+  .bpa{ padding:6px 12px; font-size:11px }
 }
 
 /* ══════════════════════════════════════
@@ -1832,25 +1852,32 @@ const TELAS = {
 
   // ── MOTORES TUBULARES ──
   'motores': { label:'Motores Tubulares', grupo:'Motores Tubulares', tipo:'unitario', colorLabel:'Modelo',
-    colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto'],
+    colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto','Motor Vertilux 50/12 RF'],
     fichas:{
       'Motor Vertilux BATERIA 2N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
       'Motor Vertilux BATERIA 6N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
       'Motor Vertilux RF 6N Control remoto':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/067/original/TS_6800MM35U06.pdf',
       'Motor Vertilux WD Accionamiento tecla':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/066/original/TS_6800MM35S06.pdf',
       'Motor Vertilux RF 12N Control remoto':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/063/original/TS_6800MM45U20.pdf',
+      'Motor Vertilux 50/12 RF':'',
     },
     precios:{
-      'Motor Vertilux BATERIA 2N':497401,'Motor Vertilux BATERIA 6N':651358,
-      'Motor Vertilux RF 6N Control remoto':440555,'Motor Vertilux WD Accionamiento tecla':343443,
-      'Motor Vertilux RF 12N Control remoto':781630,
+      // PRECIOS LISTA — se aplica IVA × coef cuotas dinámicamente con getFV()
+      'Motor Vertilux BATERIA 2N':304510,
+      'Motor Vertilux BATERIA 6N':398803,
+      'Motor Vertilux RF 6N Control remoto':269757,
+      'Motor Vertilux WD Accionamiento tecla':210306,
+      'Motor Vertilux RF 12N Control remoto':478500,
+      'Motor Vertilux 50/12 RF':511000,
     },
+    aplicarFV: true,
     recomendaciones:{
       'Motor Vertilux BATERIA 2N':    { ideal:'Ideal para cortinas hasta 2200 × 2200 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#2c6e49' },
       'Motor Vertilux BATERIA 6N':    { ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
       'Motor Vertilux RF 6N Control remoto':  { ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
       'Motor Vertilux WD Accionamiento tecla':{ ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
       'Motor Vertilux RF 12N Control remoto': { ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
+      'Motor Vertilux 50/12 RF':              { ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
     }},
 
   // ── RIELES ──
@@ -1867,19 +1894,21 @@ const TELAS = {
   'motor_somfy_wt': {
     label:'Motor Somfy WT', grupo:'Rieles', tipo:'unitario', colorLabel:'Modelo',
     colors:['Motor Somfy WT'],
-    precios:{ 'Motor Somfy WT': 623000 },
+    precios:{ 'Motor Somfy WT': 461481 },
+    aplicarSoloCoef: true,
   },
   'motor_somfy_mv35': {
     label:'Motor Somfy Movelite 35 RTS', grupo:'Rieles', tipo:'unitario', colorLabel:'Modelo',
     colors:['Motor Somfy Movelite 35 RTS'],
-    precios:{ 'Motor Somfy Movelite 35 RTS': 730000 },
+    precios:{ 'Motor Somfy Movelite 35 RTS': 540741 },
+    aplicarSoloCoef: true,
   },
 
   // ── ACCESORIOS ──
   'accesorios': { label:'Accesorios', grupo:'Accesorios', tipo:'accesorio', colorLabel:'Ítem',
     items:[
-      { insumoId:'guia_blanca',    nombre:'Guía lateral',            unidad:'mm', variantes:['Blanco','Negro','Anodizado natural'], insumoIds:{'Blanco':'guia_blanca','Negro':'guia_negra','Anodizado natural':'guia_blanca'} },
-      { insumoId:'cenefa_grande',  nombre:'Cenefa curva grande 50mm', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_grande','Negro':'cenefa_grande'} },
+      { insumoId:'guia_blanca',    nombre:'Guía lateral (par)',            unidad:'mm', variantes:['Blanco','Negro','Anodizado natural'], insumoIds:{'Blanco':'guia_blanca','Negro':'guia_negra','Anodizado natural':'guia_blanca'} },
+      { insumoId:'cenefa_grande',  nombre:'Cenefa Maxi', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_grande','Negro':'cenefa_grande'} },
       { insumoId:'cenefa_chica',   nombre:'Cenefa curva chica 32/38mm', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_chica','Negro':'cenefa_chica'} },
       { insumoId:'cadena_blanca',  nombre:'Cadena',                  unidad:'mm', variantes:['Blanca','Negra','Metálica'], insumoIds:{'Blanca':'cadena_blanca','Negra':'cadena_negra','Metálica':'cadena_blanca'} },
       { insumoId:'contrapeso',     nombre:'Contrapeso cadena',        unidad:'u' },
@@ -1998,9 +2027,9 @@ const INSUMOS_DEFAULT = [
   { id:'ctrl_6ch',         cat:'Acc. Motores',subcat:'',          nombre:'Control 6 canales Vertilux',  precio:45866,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   { id:'cargador_usbc',    cat:'Acc. Motores',subcat:'',          nombre:'Cargador USB-C Vertilux',     precio:25560,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   // GUÍAS Y CENEFAS
-  { id:'guia_blanca',      cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral blanca',         precio:2970,   unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
-  { id:'guia_negra',       cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral negra',          precio:29700,  unidad:'ml',  en_cotizador:false, cat_cotizador:'',           unidad_venta:'mm' },
-  { id:'cenefa_grande',    cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa curva grande 50mm',    precio:40736,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
+  { id:'guia_blanca',      cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral blanca (par)',         precio:2970,   unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
+  { id:'guia_negra',       cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral negra (par)',          precio:29700,  unidad:'ml',  en_cotizador:false, cat_cotizador:'',           unidad_venta:'mm' },
+  { id:'cenefa_grande',    cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa Maxi',    precio:40736,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
   { id:'cenefa_chica',     cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa curva chica 32/38mm',  precio:31800,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
   // SOPORTES
   { id:'sop_largo',        cat:'Soportes',    subcat:'',          nombre:'Soporte largo (par)',          precio:7100,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
@@ -3314,8 +3343,16 @@ function qaCalcPrecio(){
   // Productos unitarios: precio fijo
   if(telaInfo?.tipo === 'unitario'){
     const modeloSel = document.getElementById('qa-color')?.value || '';
-    const pu = (telaInfo.precios && telaInfo.precios[modeloSel]) ||
+    let pu = (telaInfo.precios && telaInfo.precios[modeloSel]) ||
                getAdicionalesLocal().find(a=>a.nombre===modeloSel)?.precio || 0;
+    // PRECIO LISTA → aplicar IVA × coef cuotas dinámicamente
+    if(pu > 0 && telaInfo.aplicarFV){
+      pu = Math.round(pu * getFV());
+    }
+    // PRECIO con IVA pero sin coef cuotas → aplicar solo coef
+    else if(pu > 0 && telaInfo.aplicarSoloCoef){
+      pu = Math.round(pu * getCoefCuotas());
+    }
     if(pu > 0){
       disp.textContent = fmtM(pu);
       disp.style.color = 'var(--brand)';
@@ -3795,6 +3832,12 @@ function qaAgregar(){
   if(esUnitario){
     precio = (telaObjA.precios && telaObjA.precios[color]) ||
              getAdicionalesLocal().find(a=>a.nombre===color)?.precio || 0;
+    if(precio > 0 && telaObjA.aplicarFV){
+      precio = Math.round(precio * getFV());
+    }
+    else if(precio > 0 && telaObjA.aplicarSoloCoef){
+      precio = Math.round(precio * getCoefCuotas());
+    }
   } else if(esAccesorio){
     const item = (telaObjA.items||[]).find(it=>it.insumoId===color);
     const varianteSel2 = document.getElementById('qa-variante');
@@ -4454,10 +4497,39 @@ async function loadRecibos(){
   }
 }
 
-function autoNumRecibo(){
+function autoNumRecibo(linkedDocId){
+  // Si está vinculado a un pedido/cotización → usar mismo número con sufijo a/b/c si hay más
+  if(linkedDocId){
+    const linkedDoc = getDocs().find(d => d.id === linkedDocId);
+    if(linkedDoc?.numero){
+      // Extraer la parte numérica de COT-NNNN o PED-NNNN
+      const numBase = (linkedDoc.numero||'').replace(/^(COT|PED)-?/,'');
+      // Buscar recibos previos vinculados al MISMO doc
+      const previos = _recibosCache.filter(r => r.doc_id === linkedDocId);
+      if(previos.length === 0){
+        return `REC-${numBase}`;
+      } else {
+        // Asignar siguiente letra: a, b, c, d...
+        // Si el primero existente no tenía sufijo, el siguiente será 'a'? No, mejor:
+        // El PRIMERO se queda sin sufijo. El SEGUNDO es 'a', tercero 'b', etc.
+        // Pero como queremos que TODOS tengan letra cuando hay múltiples, recalculamos:
+        // 1er recibo → REC-XXXX (sin letra)
+        // 2do recibo → REC-XXXXa
+        // 3er recibo → REC-XXXXb
+        const sufijos = ['a','b','c','d','e','f','g','h','i','j'];
+        return `REC-${numBase}${sufijos[previos.length - 1] || ('-'+(previos.length+1))}`;
+      }
+    }
+  }
+  // Sin vincular → numeración propia REC-NNNN
   const max = _recibosCache.reduce((m,r)=>{
-    const n = parseInt((r.numero||'').replace(/^REC-?/,''))||0;
-    return Math.max(m,n);
+    // Solo contar los que NO tienen letra ni guion (los de numeración independiente)
+    const num = (r.numero||'').replace(/^REC-?/,'');
+    if(/^\d+$/.test(num)){
+      const n = parseInt(num)||0;
+      return Math.max(m,n);
+    }
+    return m;
   },0);
   return `REC-${String(max+1).padStart(4,'0')}`;
 }
@@ -4468,7 +4540,7 @@ let _reciboLinkedDocId = null;
 function openReciboForm(linkedDocId){
   _reciboEditId = null;
   _reciboLinkedDocId = linkedDocId;
-  const numero = autoNumRecibo();
+  const numero = autoNumRecibo(linkedDocId);
   const linkedDoc = linkedDocId ? getDocs().find(d=>d.id===linkedDocId) : null;
 
   const overlay = document.getElementById('overlay');
@@ -4581,6 +4653,13 @@ function selectDocForRecibo(docId){
   if(!d) return;
   _reciboLinkedDocId = docId;
 
+  // Regenerar número si no estamos editando un recibo existente
+  if(!_reciboEditId){
+    const nuevoNum = autoNumRecibo(docId);
+    const numEl = document.getElementById('r-numero');
+    if(numEl) numEl.value = nuevoNum;
+  }
+
   document.getElementById('r-search').value = `${d.numero} — ${d.cliente}`;
   document.getElementById('r-search-results').innerHTML = '';
   document.getElementById('r-cliente').value = d.cliente||'';
@@ -4628,6 +4707,11 @@ function unlinkRecibo(){
   _reciboLinkedDocId = null;
   document.getElementById('r-search').value = '';
   document.getElementById('r-linked-info').style.display = 'none';
+  // Regenerar número independiente si no es edición
+  if(!_reciboEditId){
+    const numEl = document.getElementById('r-numero');
+    if(numEl) numEl.value = autoNumRecibo(null);
+  }
 }
 
 function recUpdateSaldo(){
@@ -4927,6 +5011,8 @@ async function saveDoc(andPreview){
     // Marcar como sincronizado
     doc._pendingSync = false;
     saveDocLocal(doc);
+    // ⚡ CRÍTICO: setear editId para que el siguiente "Guardar" actualice en lugar de duplicar
+    editId = doc.id;
     toast('✅ Guardado y sincronizado','ok');
   } catch(e) {
     console.error('Error Supabase, guardando local:', e);
@@ -4936,6 +5022,8 @@ async function saveDoc(andPreview){
     const all = _docsCache;
     if(editId){ const i=all.findIndex(x=>x.id===editId); if(i>=0)all[i]=doc; else all.push(doc); }
     else all.unshift(doc);
+    // ⚡ También setear editId en el fallback para evitar duplicados
+    editId = doc.id;
     toast('⚠️ Guardado local — sin conexión con servidor','err');
   }
 
@@ -6629,19 +6717,70 @@ async function printDoc(){
     _overlayDoc.estado = 'Enviada';
     toast('📬 Estado actualizado a Enviada','ok');
   }
-  // Abrir ventana nueva con el contenido del overlay y estilos forzados
-  const content = document.getElementById('doc-content').innerHTML;
-  const styles = Array.from(document.styleSheets).map(ss=>{
-    try{ return Array.from(ss.cssRules).map(r=>r.cssText).join('\n'); }
-    catch(e){ return ''; }
-  }).join('\n');
+
+  // ── Detección de mobile / tablet ──
+  const isMobile = /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+                   window.innerWidth < 900;
 
   // Nombre del archivo: "Cliente Numero Roller Motion" (sin guiones bajos)
   const cliPdf = (_overlayDoc?.cliente||'Cliente').replace(/[\\/:*?"<>|]/g,'').trim();
   const numPdf = (_overlayDoc?.numero||'').toString().trim();
   const tituloPdf = `${cliPdf} ${numPdf} Roller Motion`.replace(/\s+/g,' ').trim();
 
+  if(isMobile){
+    // En mobile: imprimir directamente desde la ventana actual usando @media print
+    const oldTitle = document.title;
+    document.title = tituloPdf;
+
+    // Aseguramos que solo el doc-content sea visible al imprimir
+    let printStyle = document.getElementById('rm-mobile-print-style');
+    if(!printStyle){
+      printStyle = document.createElement('style');
+      printStyle.id = 'rm-mobile-print-style';
+      printStyle.innerHTML = `
+        @media print {
+          @page { size: A4 portrait; margin: 10mm; }
+          body * { visibility: hidden !important; }
+          #doc-content, #doc-content * { visibility: visible !important; }
+          #doc-content {
+            position: absolute !important;
+            left: 0 !important; top: 0 !important;
+            width: 100% !important; max-width: none !important;
+            padding: 0 !important; margin: 0 !important;
+            background: #fff !important;
+          }
+          #doc-content .doc { padding: 0 !important; max-width: none !important; }
+          #doc-content table { width: 100% !important; }
+          .overlay, .ptbar, .topbar, .nav, #stk-hoy-widget { display: none !important; }
+          .overlay { background: #fff !important; }
+        }
+      `;
+      document.head.appendChild(printStyle);
+    }
+
+    // Disparar impresión nativa
+    setTimeout(()=>{
+      window.print();
+      // Restaurar título después de imprimir
+      setTimeout(()=>{ document.title = oldTitle; }, 1000);
+    }, 100);
+    return;
+  }
+
+  // ── DESKTOP: ventana nueva (igual que antes) ──
+  const content = document.getElementById('doc-content').innerHTML;
+  const styles = Array.from(document.styleSheets).map(ss=>{
+    try{ return Array.from(ss.cssRules).map(r=>r.cssText).join('\n'); }
+    catch(e){ return ''; }
+  }).join('\n');
+
   const win = window.open('','_blank','width=900,height=700');
+  if(!win){
+    // Si el navegador bloqueó la ventana → fallback a impresión directa
+    toast('⚠ Tu navegador bloqueó la ventana. Imprimimos desde acá.','err');
+    window.print();
+    return;
+  }
   win.document.write(`<!DOCTYPE html>
 <html>
 <head>
@@ -7186,6 +7325,13 @@ async function confirmarRevision(){
   const TIMEOUT = 80; // ms entre teclas — scanner es más rápido que humano
 
   document.addEventListener('keypress', e=>{
+    // No procesar si el usuario está escribiendo en un campo
+    const tag = (e.target.tagName||'').toLowerCase();
+    if(tag === 'input' || tag === 'textarea' || tag === 'select') return;
+    // No procesar si hay un overlay/modal abierto (excepto el scan-confirm)
+    const anyOverlayOpen = document.querySelector('.overlay.on:not(#overlay-scan)');
+    if(anyOverlayOpen) return;
+
     const now = Date.now();
     // Si hay pausa larga, resetear buffer
     if(now - lastKey > 500) buffer = '';
@@ -7195,7 +7341,11 @@ async function confirmarRevision(){
       // Fin de scan
       const scanned = buffer.trim();
       buffer = '';
-      if(scanned.length > 3) processScan(scanned);
+      // Solo procesar si el buffer se llenó RÁPIDO (scanner real, no humano)
+      // Verificamos que tenga al menos 4 caracteres y formato válido
+      if(scanned.length >= 4 && /^[A-Z]{2,4}-?\d+$/i.test(scanned)){
+        processScan(scanned);
+      }
     } else {
       buffer += e.key;
     }
