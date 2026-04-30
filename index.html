@@ -7413,9 +7413,11 @@ async function confirmarRevision(){
       // Fin de scan
       const scanned = buffer.trim();
       buffer = '';
-      // Solo procesar si el buffer se llenó RÁPIDO (scanner real, no humano)
-      // Verificamos que tenga al menos 4 caracteres y formato válido
-      if(scanned.length >= 4 && /^[A-Z]{2,4}-?\d+$/i.test(scanned)){
+      // Solo procesar si tiene mínimo 4 caracteres y contiene letras + dígitos (formato pedido)
+      // Acepta: PED-0030, PED'0030, PED0030, PED 0030, etc.
+      const tieneLetras = /[A-Za-z]/.test(scanned);
+      const tieneDigitos = /\d/.test(scanned);
+      if(scanned.length >= 4 && tieneLetras && tieneDigitos){
         processScan(scanned);
       }
     } else {
@@ -7425,10 +7427,33 @@ async function confirmarRevision(){
 })();
 
 async function processScan(code){
-  // Buscar pedido por número escaneado
-  const doc = getDocs().find(d => d.type==='order' && (d.numero===code || d.numero===code.toUpperCase()));
+  // Normalizar: quitar apóstrofes, guiones, espacios — algunos scanners transforman caracteres
+  // PED'0067 → PED0067, PED-0067 → PED0067
+  const normalize = s => (s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
+  const codeNorm = normalize(code);
+
+  console.log('[Scan] Original:', code, '→ Normalizado:', codeNorm);
+
+  // Buscar pedido normalizando ambos lados
+  const doc = getDocs().find(d => {
+    if(d.type !== 'order') return false;
+    return normalize(d.numero) === codeNorm;
+  });
+
   if(!doc){
+    // Búsqueda alternativa: por número solo (último dígitos)
+    const soloNum = codeNorm.replace(/^[A-Z]+/,'');
+    if(soloNum && soloNum.length >= 3){
+      const docByNum = getDocs().find(d => d.type==='order' && normalize(d.numero).endsWith(soloNum));
+      if(docByNum){
+        console.log('[Scan] Match alternativo por número:', docByNum.numero);
+        abrirScanConfirm(docByNum, code);
+        return;
+      }
+    }
     toast(`⚠ Código no encontrado: ${code}`, 'err');
+    beepScan(false);
+    console.warn('[Scan] No se encontró pedido para:', code, 'normalizado:', codeNorm);
     return;
   }
   // Mostrar overlay de confirmación de scan
@@ -7480,6 +7505,34 @@ function abrirScanConfirm(doc, code){
   el.classList.add('on');
 }
 
+// ── BEEP de confirmación ──
+function beepScan(success){
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    if(success){
+      // Beep doble agudo (éxito)
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(880, ctx.currentTime);
+      osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.08);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.26);
+    } else {
+      // Beep grave (error)
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      gain.gain.setValueAtTime(0.2, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + 0.32);
+    }
+  } catch(e){ /* AudioContext no disponible, ignorar */ }
+}
+
 async function confirmarScanAvance(){
   if(!_scanDoc || !_scanNextEstado) return;
   await changeStatus(_scanDoc.id, _scanNextEstado);
@@ -7487,6 +7540,7 @@ async function confirmarScanAvance(){
   const estadoFinal = _scanNextEstado;
   _scanDoc = null; _scanNextEstado = null;
   const iconMap = {'En Fabricación':'⚙️','Finalizado':'✅'};
+  beepScan(true);
   toast(`${iconMap[estadoFinal]||''} Pedido → ${estadoFinal}`,'ok');
 }
 
@@ -7495,6 +7549,7 @@ async function confirmarScanFinalizado(){
   await changeStatus(_scanDoc.id, 'Finalizado');
   document.getElementById('overlay-scan').classList.remove('on');
   _scanDoc = null; _scanNextEstado = null;
+  beepScan(true);
   toast('✅ Pedido marcado como Finalizado','ok');
 }
 
@@ -7503,6 +7558,7 @@ async function confirmarScanFabricacion(){
   await changeStatus(_scanDoc.id, 'En Fabricación');
   document.getElementById('overlay-scan').classList.remove('on');
   _scanDoc = null; _scanNextEstado = null;
+  beepScan(true);
   toast('⚙️ Pedido marcado como En Fabricación','ok');
 }
 
