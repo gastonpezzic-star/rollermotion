@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>RollerMotion — Sistema de Gestión v77</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1224,6 +1224,7 @@ body{
     <div class="wrap">
       <div class="sh"><h2>Panel de Administración</h2>
         <div style="display:flex;gap:8px">
+          <button class="btn btn-outline btn-sm" onclick="abrirEditorEtiqueta()">🏷 Editar diseño etiqueta</button>
           <button class="btn btn-outline btn-sm" onclick="exportExcel()">📊 Exportar Excel</button>
         </div>
       </div>
@@ -6627,7 +6628,7 @@ function printPlanilla(){
 <head>
 <meta charset="UTF-8">
 <title>Planilla de Fabricación</title>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"><\/script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
@@ -6858,7 +6859,7 @@ async function printDoc(){
 <head>
 <meta charset="UTF-8">
 <title>${tituloPdf}</title>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;color-adjust:exact!important}
 html,body{width:100%;margin:0}
@@ -7388,9 +7389,199 @@ async function confirmarRevision(){
 }
 
 
-/* ════════════════════════════
-   SCANNER BLUETOOTH
-════════════════════════════ */
+/* ════════════════════════════════════════
+   EDITOR VISUAL DE ETIQUETAS
+   - Configuración de tamaños, colores, fuentes
+   - Vista previa en vivo
+   - Guarda en localStorage para que se aplique a todas las impresiones
+════════════════════════════════════════ */
+function getEtiquetaConfigGlobal(){
+  const def = {
+    fontPedido: 11, fontNum: 16, fontCliente: 11, fontRef: 9.5, fontHeaderInfo: 9,
+    fontMedidas: 27, fontDetalles: 10.5, padX: 8,
+    headerBg: '#ffffff', headerBgAcc: '#ffffff', headerFg: '#000000', bodyFg: '#000000',
+    sepWidth: 1, fontFamily: "'Inter',sans-serif", fontWeight: 700,
+    showFecha: true, showRef: true, showTela: true, showLogo: false,
+  };
+  try { const saved = JSON.parse(localStorage.getItem('rm_etiqueta_config')||'{}');
+        return { ...def, ...saved }; }
+  catch(e){ return def; }
+}
+
+function abrirEditorEtiqueta(){
+  document.getElementById('overlay-title').textContent = '🏷 Editor de etiquetas';
+  document.getElementById('doc-content').innerHTML = `
+    <div style="display:grid;grid-template-columns:340px 1fr;gap:20px;padding:24px;font-family:'DM Sans',sans-serif;background:#f8f8f6">
+      <!-- Panel de controles -->
+      <div style="background:#fff;border-radius:10px;padding:18px;box-shadow:0 1px 4px rgba(0,0,0,.06)">
+        <h3 style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#1e2a38;margin-bottom:14px">Personalización</h3>
+
+        <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:700;margin-bottom:8px;letter-spacing:.05em">Tamaños de fuente (pt)</div>
+        ${slider('fontPedido', 'Número de pedido', 6, 14, 0.5)}
+        ${slider('fontNum', 'Número etiqueta', 8, 18, 0.5)}
+        ${slider('fontCliente', 'Nombre cliente', 7, 16, 0.5)}
+        ${slider('fontRef', 'Referencia', 6, 14, 0.5)}
+        ${slider('fontMedidas', 'Medidas grandes', 14, 32, 0.5)}
+        ${slider('fontDetalles', 'Tela / detalles', 5, 12, 0.5)}
+
+        <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:700;margin:16px 0 8px;letter-spacing:.05em">Colores</div>
+        ${colorPicker('headerBg', 'Fondo header (cortina)')}
+        ${colorPicker('headerBgAcc', 'Fondo header (accesorio)')}
+        ${colorPicker('headerFg', 'Texto del header')}
+        ${colorPicker('bodyFg', 'Texto del cuerpo')}
+
+        <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:700;margin:16px 0 8px;letter-spacing:.05em">Estilo</div>
+        ${slider('sepWidth', 'Grosor separador', 0.5, 3, 0.25)}
+        <label style="display:block;font-size:12px;margin:8px 0 4px;font-weight:600">Peso de fuente</label>
+        <select id="etq-fontWeight" onchange="updateEtqPreview()" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-family:inherit">
+          <option value="700">Bold (700)</option>
+          <option value="800">Extra Bold (800)</option>
+          <option value="900" selected>Black (900) — más oscuro</option>
+        </select>
+        <label style="display:block;font-size:12px;margin:10px 0 4px;font-weight:600">Familia tipográfica</label>
+        <select id="etq-fontFamily" onchange="updateEtqPreview()" style="width:100%;padding:8px 10px;border:1.5px solid #e0e0e0;border-radius:6px;font-family:inherit">
+          <option value="Oswald, sans-serif">Oswald (estrecha, fábrica)</option>
+          <option value="Arial Black, sans-serif">Arial Black</option>
+          <option value="Impact, sans-serif">Impact</option>
+          <option value="DM Sans, sans-serif">DM Sans</option>
+        </select>
+
+        <div style="display:flex;gap:8px;margin-top:18px;padding-top:14px;border-top:1px solid #eee">
+          <button class="btn btn-outline btn-sm" onclick="resetEtqConfig()" style="flex:1">↺ Restaurar</button>
+          <button class="btn btn-primary btn-sm" onclick="saveEtqConfig()" style="flex:1">💾 Guardar</button>
+        </div>
+      </div>
+
+      <!-- Vista previa -->
+      <div>
+        <div style="font-size:11px;color:#888;text-transform:uppercase;font-weight:700;margin-bottom:10px;letter-spacing:.05em">Vista previa (90 × 29 mm)</div>
+        <div style="background:#e8e6e0;padding:24px;border-radius:10px;display:flex;flex-direction:column;gap:14px;align-items:center">
+          <div id="etq-preview-cortina" style="width:340px;height:110px;background:#fff;position:relative;box-shadow:0 2px 8px rgba(0,0,0,.12);border-radius:3px"></div>
+          <div style="font-size:10px;color:#666">↑ Etiqueta de cortina</div>
+          <div id="etq-preview-acc" style="width:340px;height:110px;background:#fff;position:relative;box-shadow:0 2px 8px rgba(0,0,0,.12);border-radius:3px"></div>
+          <div style="font-size:10px;color:#666">↑ Etiqueta de accesorio</div>
+        </div>
+        <div style="background:#fff5e6;border-left:3px solid #f09620;padding:10px 14px;border-radius:6px;font-size:12px;margin-top:12px">
+          💡 <strong>Tip:</strong> usá <strong>Black (900)</strong> y todas las letras en <strong>negro 100%</strong> (#000000) para que la impresora térmica imprima con máximo contraste y nada salga borroso.
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('overlay').classList.add('on');
+
+  // Cargar valores actuales en los controles
+  const C = getEtiquetaConfigGlobal();
+  Object.keys(C).forEach(k => {
+    const el = document.getElementById('etq-'+k);
+    if(el) el.value = C[k];
+    const lbl = document.getElementById('etq-'+k+'-val');
+    if(lbl) lbl.textContent = C[k];
+  });
+  updateEtqPreview();
+}
+
+function slider(key, label, min, max, step){
+  return `<div style="margin-bottom:10px">
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;margin-bottom:3px">
+      <label style="color:#444;font-weight:600">${label}</label>
+      <span id="etq-${key}-val" style="font-family:'Courier New',monospace;font-weight:700;color:#1e2a38;font-size:11px;background:#f0f0ee;padding:2px 8px;border-radius:4px">—</span>
+    </div>
+    <input type="range" id="etq-${key}" min="${min}" max="${max}" step="${step}" oninput="document.getElementById('etq-${key}-val').textContent=this.value;updateEtqPreview()" style="width:100%">
+  </div>`;
+}
+
+function colorPicker(key, label){
+  return `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:12px">
+    <label style="color:#444;font-weight:600">${label}</label>
+    <input type="color" id="etq-${key}" onchange="updateEtqPreview()" style="width:50px;height:32px;border:1.5px solid #e0e0e0;border-radius:5px;cursor:pointer">
+  </div>`;
+}
+
+function readEtqConfigFromForm(){
+  return {
+    fontPedido:   parseFloat(document.getElementById('etq-fontPedido').value),
+    fontNum:      parseFloat(document.getElementById('etq-fontNum').value),
+    fontCliente:  parseFloat(document.getElementById('etq-fontCliente').value),
+    fontRef:      parseFloat(document.getElementById('etq-fontRef').value),
+    fontMedidas:  parseFloat(document.getElementById('etq-fontMedidas').value),
+    fontDetalles: parseFloat(document.getElementById('etq-fontDetalles').value),
+    headerBg:     document.getElementById('etq-headerBg').value,
+    headerBgAcc:  document.getElementById('etq-headerBgAcc').value,
+    headerFg:     document.getElementById('etq-headerFg').value,
+    bodyFg:       document.getElementById('etq-bodyFg').value,
+    sepWidth:     parseFloat(document.getElementById('etq-sepWidth').value),
+    fontFamily:   document.getElementById('etq-fontFamily').value,
+    fontWeight:   parseInt(document.getElementById('etq-fontWeight').value),
+  };
+}
+
+function updateEtqPreview(){
+  const C = readEtqConfigFromForm();
+  // Etiqueta cortina ejemplo
+  const ent = '12/05/2026';
+  const previewCortina = `
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;font-family:${C.fontFamily};background:#fff;overflow:hidden;color:#000">
+      <div style="background:${C.headerBg};color:${C.headerFg};padding:3px 7px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">
+        <div>
+          <div style="font-size:${C.fontPedido}pt;font-weight:${C.fontWeight};letter-spacing:.04em;line-height:1">PED-0067</div>
+          <div style="font-size:6pt;font-weight:700;font-family:'Courier New',monospace;margin-top:2px;opacity:.9">${ent}</div>
+        </div>
+        <div style="font-size:${C.fontNum}pt;font-weight:${C.fontWeight};line-height:1">3<span style="font-size:7pt;font-weight:700;opacity:.85">/12</span></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:baseline;padding:3px 7px;border-bottom:${C.sepWidth}pt solid #000">
+        <span style="font-size:${C.fontCliente}pt;font-weight:${C.fontWeight};color:${C.bodyFg}">García Pérez</span>
+        <span style="font-size:${C.fontRef}pt;font-weight:${C.fontWeight};color:${C.bodyFg}">Living</span>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 7px">
+        <span style="font-size:${C.fontMedidas}pt;font-weight:${C.fontWeight};line-height:1;color:${C.bodyFg}">1690</span>
+        <span style="font-size:11pt;color:#000;font-weight:700">×</span>
+        <span style="font-size:${C.fontMedidas}pt;font-weight:${C.fontWeight};line-height:1;color:${C.bodyFg}">2300</span>
+        <span style="font-size:7pt;font-weight:700;color:#000;align-self:flex-end;margin-bottom:2px">mm</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:${C.sepWidth}pt solid #000;padding:3px 7px 4px">
+        <span style="font-size:${C.fontDetalles}pt;color:${C.bodyFg};font-weight:700;font-family:'Courier New',monospace">Blackout · Blanco</span>
+        <span style="font-size:${C.fontDetalles}pt;font-weight:${C.fontWeight};color:${C.bodyFg};font-family:'Courier New',monospace">Delante · Der</span>
+      </div>
+    </div>`;
+  document.getElementById('etq-preview-cortina').innerHTML = previewCortina;
+
+  // Etiqueta accesorio ejemplo
+  const previewAcc = `
+    <div style="position:absolute;inset:0;display:flex;flex-direction:column;font-family:${C.fontFamily};background:#fff;overflow:hidden;color:#000">
+      <div style="background:${C.headerBgAcc};color:${C.headerFg};padding:3px 7px;display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div style="font-size:${C.fontPedido}pt;font-weight:${C.fontWeight};line-height:1">PED-0067</div>
+          <div style="font-size:6pt;font-weight:700;font-family:'Courier New',monospace;margin-top:2px;opacity:.9">García Pérez</div>
+        </div>
+        <div style="font-size:${C.fontNum}pt;font-weight:${C.fontWeight};line-height:1">7<span style="font-size:7pt;font-weight:700;opacity:.85">/12</span></div>
+      </div>
+      <div style="padding:3px 7px;border-bottom:${C.sepWidth}pt solid #000;display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:${C.fontCliente}pt;font-weight:${C.fontWeight};color:${C.bodyFg}">Cenefa Maxi</span>
+        <span style="font-size:${C.fontRef}pt;font-weight:900;color:#fff;background:#000;padding:2px 6px">Blanco</span>
+      </div>
+      <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;padding:0 7px">
+        <span style="font-size:${C.fontMedidas+4}pt;font-weight:${C.fontWeight};line-height:1;color:${C.bodyFg}">2500</span>
+        <span style="font-size:7pt;font-weight:700;color:#000;align-self:flex-end;margin-bottom:3px">mm</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;border-top:${C.sepWidth}pt solid #000;padding:3px 7px 4px">
+        <span style="font-size:${C.fontDetalles}pt;font-weight:${C.fontWeight};color:#000;font-family:'Courier New',monospace">Living</span>
+      </div>
+    </div>`;
+  document.getElementById('etq-preview-acc').innerHTML = previewAcc;
+}
+
+function saveEtqConfig(){
+  const C = readEtqConfigFromForm();
+  localStorage.setItem('rm_etiqueta_config', JSON.stringify(C));
+  toast('💾 Diseño guardado — se aplicará a las próximas impresiones','ok');
+}
+
+function resetEtqConfig(){
+  if(!confirm('¿Restaurar el diseño por defecto?')) return;
+  localStorage.removeItem('rm_etiqueta_config');
+  abrirEditorEtiqueta();
+  toast('↺ Diseño restaurado','ok');
+}
+
 (function initScanner(){
   let buffer = '';
   let lastKey = 0;
@@ -7658,82 +7849,127 @@ function openEtiquetas(d){
 
   const total = etiquetas.length;
 
-  // ── ETIQUETA CORTINA (formato original) ──
+  // ── CONFIG DE ETIQUETAS (editable desde Administración) ──
+  function getEtiquetaConfig(){
+    const def = {
+      // Tamaños
+      fontPedido: 11,       // pt — N° pedido + cliente en header
+      fontNum: 16,          // pt — número etiqueta (X/Total)
+      fontCliente: 11,      // pt — (legacy, no usado en layout nuevo)
+      fontRef: 9.5,         // pt — referencia
+      fontHeaderInfo: 9,    // pt — fecha + ubicación (segunda línea del header)
+      fontMedidas: 27,      // pt — medidas grandes
+      fontDetalles: 10.5,   // pt — tela, sentido, mecanismo (línea inferior)
+      padX: 8,              // px — padding lateral
+      // Colores
+      headerBg: '#ffffff',  // fondo header (cortina)
+      headerBgAcc: '#ffffff', // fondo header (accesorio)
+      headerFg: '#000000',  // texto header
+      bodyFg: '#000000',    // texto cuerpo
+      // Bordes y separadores
+      sepWidth: 1,          // pt — grosor línea separadora
+      // Fuente
+      fontFamily: "'Inter',sans-serif",
+      fontWeight: 700,
+      // Toggles
+      showFecha: true, showRef: true, showTela: true, showLogo: false,
+    };
+    try {
+      const saved = JSON.parse(localStorage.getItem('rm_etiqueta_config')||'{}');
+      return { ...def, ...saved };
+    } catch(e){ return def; }
+  }
+  const C = getEtiquetaConfig();
+
+  // ── ETIQUETA CORTINA — layout nuevo: PED+CLI en header, FECHA+UBI debajo ──
   function buildEtiqCortina(e){
     return [
-      '<div style="position:absolute;inset:0;display:flex;flex-direction:column;font-family:Oswald,sans-serif;background:#fff;overflow:hidden">',
+      '<div style="position:absolute;inset:0;display:flex;flex-direction:column;font-family:'+C.fontFamily+';font-weight:'+C.fontWeight+';background:#fff;overflow:hidden;color:'+C.bodyFg+'">',
 
-      // HEADER negro
-      '<div style="background:#111;color:#fff;padding:3px 7px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">',
-        '<div>',
-          '<div style="font-size:8pt;font-weight:700;letter-spacing:.04em;line-height:1">',e.ped,'</div>',
-          '<div style="font-size:5.5pt;color:rgba(255,255,255,.45);font-family:\'Courier New\',monospace;margin-top:1px">',ent,'</div>',
+      // HEADER: PED · CLIENTE | NÚMERO X/Y
+      '<div style="background:'+C.headerBg+';color:'+C.headerFg+';padding:3px '+C.padX+'px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:6px">',
+        '<div style="flex:1;min-width:0;overflow:hidden">',
+          '<div style="display:flex;gap:6px;align-items:baseline;line-height:1">',
+            '<span style="font-size:'+C.fontPedido+'pt;letter-spacing:.04em;flex-shrink:0">',e.ped,'</span>',
+            '<span style="font-size:'+C.fontPedido+'pt;opacity:.6">·</span>',
+            '<span style="font-size:'+C.fontPedido+'pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">',e.cli,'</span>',
+          '</div>',
+          (C.showFecha || (C.showRef && e.ref)) ? (
+            '<div style="display:flex;gap:6px;align-items:baseline;font-size:'+C.fontHeaderInfo+'pt;font-weight:700;font-family:\'Courier New\',monospace;margin-top:2px;opacity:.95;line-height:1">'+
+              (C.showFecha ? '<span>'+ent+'</span>' : '')+
+              (C.showFecha && C.showRef && e.ref ? '<span style="opacity:.6">·</span>' : '')+
+              (C.showRef && e.ref ? '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+e.ref+'</span>' : '')+
+            '</div>'
+          ) : '',
         '</div>',
-        '<div style="font-size:11pt;font-weight:700;line-height:1;letter-spacing:-.2px">',
-          e.num,'<span style="font-size:6pt;font-weight:400;color:rgba(255,255,255,.4)">/'+total+'</span>',
+        '<div style="font-size:'+C.fontNum+'pt;line-height:1;letter-spacing:-.5px;flex-shrink:0">',
+          e.num,'<span style="font-size:'+C.fontNum+'pt">/'+total+'</span>',
         '</div>',
       '</div>',
 
-      // CLIENTE + REF
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;padding:2px 7px 2px;border-bottom:.4pt solid #e0e0e0;flex-shrink:0">',
-        '<span style="font-size:10pt;font-weight:700;color:#000;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:54%;line-height:1.2">',e.cli,'</span>',
-        '<span style="font-size:8pt;font-weight:700;color:#222;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:44%;line-height:1.2">',e.ref,e.subNum?' ('+e.subNum+')':'','</span>',
-      '</div>',
+      // separador
+      '<div style="border-bottom:'+C.sepWidth+'pt solid #000"></div>',
 
       // MEDIDAS
-      '<div style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 7px">',
-        '<span style="font-size:18pt;font-weight:700;line-height:1;letter-spacing:-.5px">',e.ancho,'</span>',
-        '<span style="font-size:9pt;color:#bbb">&times;</span>',
-        '<span style="font-size:18pt;font-weight:700;line-height:1;letter-spacing:-.5px">',e.alto,'</span>',
-        '<span style="font-size:6pt;color:#aaa;align-self:flex-end;margin-bottom:2px;margin-left:1px">mm</span>',
+      '<div style="flex:1;display:flex;align-items:center;justify-content:center;gap:5px;padding:0 '+C.padX+'px">',
+        '<span style="font-size:'+C.fontMedidas+'pt;line-height:1;letter-spacing:-1px;color:'+C.bodyFg+'">',e.ancho,'</span>',
+        '<span style="font-size:14pt;color:#000;font-weight:700">×</span>',
+        '<span style="font-size:'+C.fontMedidas+'pt;line-height:1;letter-spacing:-1px;color:'+C.bodyFg+'">',e.alto,'</span>',
+        '<span style="font-size:8pt;font-weight:700;color:#000;align-self:flex-end;margin-bottom:3px">mm</span>',
       '</div>',
 
       // TELA + SENTIDO
-      '<div style="display:flex;justify-content:space-between;align-items:center;border-top:.4pt solid #e0e0e0;padding:2px 7px 3px;flex-shrink:0">',
-        '<span style="font-size:6.5pt;color:#555;font-family:\'Courier New\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">',e.tela,'</span>',
-        '<span style="font-size:6.5pt;font-weight:700;color:#000;font-family:\'Courier New\',monospace;flex-shrink:0;margin-left:6px;white-space:nowrap">',e.sent,' &middot; ',e.mec,'</span>',
-      '</div>',
+      C.showTela ? (
+        '<div style="display:flex;justify-content:space-between;align-items:center;border-top:'+C.sepWidth+'pt solid #000;padding:3px '+C.padX+'px;flex-shrink:0">'+
+          '<span style="font-size:'+C.fontDetalles+'pt;color:'+C.bodyFg+';font-weight:700;font-family:\'Courier New\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">'+e.tela+'</span>'+
+          '<span style="font-size:'+C.fontDetalles+'pt;color:'+C.bodyFg+';font-family:\'Courier New\',monospace;flex-shrink:0;margin-left:6px;white-space:nowrap">'+e.sent+' &middot; '+e.mec+'</span>'+
+        '</div>'
+      ) : '',
 
       '</div>'
     ].join('');
   }
 
-  // ── ETIQUETA ACCESORIO (formato simplificado) ──
+  // ── ETIQUETA ACCESORIO — alto contraste ──
   function buildEtiqAccesorio(e){
     const colorLine = e.colorItem ? e.colorItem : '';
     const adicLine  = e.adic ? e.adic : '';
     return [
-      '<div style="position:absolute;inset:0;display:flex;flex-direction:column;font-family:Oswald,sans-serif;background:#fff;overflow:hidden">',
+      '<div style="position:absolute;inset:0;display:flex;flex-direction:column;font-family:'+C.fontFamily+';font-weight:'+C.fontWeight+';background:#fff;overflow:hidden;color:'+C.bodyFg+'">',
 
-      // HEADER azul acero
-      '<div style="background:#1e2a38;color:#fff;padding:3px 7px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">',
-        '<div>',
-          '<div style="font-size:8pt;font-weight:700;letter-spacing:.04em;line-height:1">',e.ped,'</div>',
-          '<div style="font-size:5.5pt;color:rgba(255,255,255,.45);font-family:\'Courier New\',monospace;margin-top:1px">',e.cli,'</div>',
+      // HEADER: PED · CLIENTE | NÚMERO X/Y
+      '<div style="background:'+C.headerBgAcc+';color:'+C.headerFg+';padding:3px '+C.padX+'px;display:flex;justify-content:space-between;align-items:center;flex-shrink:0;gap:6px">',
+        '<div style="flex:1;min-width:0;overflow:hidden">',
+          '<div style="display:flex;gap:6px;align-items:baseline;line-height:1">',
+            '<span style="font-size:'+C.fontPedido+'pt;letter-spacing:.04em;flex-shrink:0">',e.ped,'</span>',
+            '<span style="font-size:'+C.fontPedido+'pt;opacity:.6">·</span>',
+            '<span style="font-size:'+C.fontPedido+'pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">',e.cli,'</span>',
+          '</div>',
         '</div>',
-        '<div style="font-size:11pt;font-weight:700;line-height:1;letter-spacing:-.2px">',
-          e.num,'<span style="font-size:6pt;font-weight:400;color:rgba(255,255,255,.4)">/'+total+'</span>',
+        '<div style="font-size:'+C.fontNum+'pt;line-height:1;letter-spacing:-.5px;flex-shrink:0">',
+          e.num,'<span style="font-size:'+C.fontNum+'pt">/'+total+'</span>',
         '</div>',
       '</div>',
 
       // TIPO DE ÍTEM
-      '<div style="padding:1px 7px 1px;border-bottom:.4pt solid #e0e0e0;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">',
-        '<span style="font-size:9pt;font-weight:700;color:#1e2a38;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%">',e.nombreTipo,'</span>',
-        colorLine ? '<span style="font-size:7pt;font-weight:700;color:#555;background:#f0f0f0;padding:1px 5px;border-radius:3px;white-space:nowrap">'+colorLine+'</span>' : '',
+      '<div style="padding:3px '+C.padX+'px;border-bottom:'+C.sepWidth+'pt solid #000;display:flex;justify-content:space-between;align-items:center;flex-shrink:0">',
+        '<span style="font-size:'+C.fontCliente+'pt;color:'+C.bodyFg+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%">',e.nombreTipo,'</span>',
+        colorLine ? '<span style="font-size:'+C.fontRef+'pt;font-weight:900;color:#fff;background:#000;padding:2px 7px;white-space:nowrap">'+colorLine+'</span>' : '',
       '</div>',
 
       // MEDIDA CENTRAL GRANDE
-      '<div style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;padding:0 7px">',
-        '<span style="font-size:22pt;font-weight:700;line-height:1;letter-spacing:-.5px;color:#111">',e.corteMm,'</span>',
-        '<span style="font-size:7pt;color:#aaa;align-self:flex-end;margin-bottom:3px">mm</span>',
-        e.subNum ? '<span style="font-size:7pt;color:#888;align-self:flex-end;margin-bottom:3px;margin-left:4px">('+e.subNum+')</span>' : '',
+      '<div style="flex:1;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 '+C.padX+'px">',
+        '<span style="font-size:'+(C.fontMedidas+4)+'pt;line-height:1;letter-spacing:-1px;color:'+C.bodyFg+'">',e.corteMm,'</span>',
+        '<span style="font-size:8pt;font-weight:700;color:#000;align-self:flex-end;margin-bottom:3px">mm</span>',
       '</div>',
 
       // REF + ADICIONALES
-      '<div style="display:flex;justify-content:space-between;align-items:center;border-top:.4pt solid #e0e0e0;padding:2px 7px 3px;flex-shrink:0">',
-        '<span style="font-size:7pt;font-weight:700;color:#000;font-family:\'Courier New\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%">',e.ref,'</span>',
-        adicLine ? '<span style="font-size:6pt;color:#666;font-family:\'Courier New\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:43%">'+adicLine+'</span>' : '',
-      '</div>',
+      (e.ref || adicLine) ? (
+        '<div style="display:flex;justify-content:space-between;align-items:center;border-top:'+C.sepWidth+'pt solid #000;padding:3px '+C.padX+'px;flex-shrink:0">'+
+          '<span style="font-size:'+C.fontDetalles+'pt;color:#000;font-family:\'Courier New\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:55%">'+(e.ref||'')+'</span>'+
+          (adicLine ? '<span style="font-size:'+C.fontDetalles+'pt;color:#000;font-family:\'Courier New\',monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:43%">'+adicLine+'</span>' : '')+
+        '</div>'
+      ) : '',
 
       '</div>'
     ].join('');
