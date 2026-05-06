@@ -330,6 +330,7 @@ body{
 .overlay{display:none;position:fixed;inset:0;background:rgba(10,18,28,.65);z-index:200;overflow-y:auto;padding:28px 16px;backdrop-filter:blur(3px)}
 .overlay.on{display:flex;align-items:flex-start;justify-content:center}
 .pbox{background:#fff;width:780px;max-width:100%;border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)}
+#doc-content{overflow-x:auto}
 .ptbar{background:var(--brand);padding:13px 22px;display:flex;align-items:center;justify-content:space-between}
 .ptbar span{color:#fff;font-weight:700;font-size:14px}
 .ptbar-btns{display:flex;gap:8px}
@@ -1926,8 +1927,8 @@ const TELAS = {
   'accesorios': { label:'Accesorios', grupo:'Accesorios', tipo:'accesorio', colorLabel:'Ítem',
     items:[
       { insumoId:'guia_blanca',    nombre:'Guía lateral (par)',            unidad:'mm', variantes:['Blanco','Negro','Anodizado natural'], insumoIds:{'Blanco':'guia_blanca','Negro':'guia_negra','Anodizado natural':'guia_blanca'} },
-      { insumoId:'cenefa_grande',  nombre:'Cenefa Maxi', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_grande','Negro':'cenefa_grande'} },
-      { insumoId:'cenefa_chica',   nombre:'Cenefa curva chica 32/38mm', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_chica','Negro':'cenefa_chica'} },
+      { insumoId:'cenefa_grande',  nombre:'Cenefa curva MAXI', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_grande','Negro':'cenefa_grande'} },
+      { insumoId:'cenefa_chica',   nombre:'Cenefa curva SLIM', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_chica','Negro':'cenefa_chica'} },
       { insumoId:'cadena_blanca',  nombre:'Cadena',                  unidad:'mm', variantes:['Blanca','Negra','Metálica'], insumoIds:{'Blanca':'cadena_blanca','Negra':'cadena_negra','Metálica':'cadena_blanca'} },
       { insumoId:'contrapeso',     nombre:'Contrapeso cadena',        unidad:'u' },
       { insumoId:'union_cadena',   nombre:'Unión de cadena',          unidad:'u' },
@@ -2047,8 +2048,8 @@ const INSUMOS_DEFAULT = [
   // GUÍAS Y CENEFAS
   { id:'guia_blanca',      cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral blanca (par)',         precio:2970,   unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
   { id:'guia_negra',       cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral negra (par)',          precio:29700,  unidad:'ml',  en_cotizador:false, cat_cotizador:'',           unidad_venta:'mm' },
-  { id:'cenefa_grande',    cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa Maxi',    precio:40736,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
-  { id:'cenefa_chica',     cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa curva chica 32/38mm',  precio:31800,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
+  { id:'cenefa_grande',    cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa curva MAXI',    precio:40736,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
+  { id:'cenefa_chica',     cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa curva SLIM',  precio:31800,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
   // SOPORTES
   { id:'sop_largo',        cat:'Soportes',    subcat:'',          nombre:'Soporte largo (par)',          precio:7100,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   { id:'sop_intermedio',   cat:'Soportes',    subcat:'',          nombre:'Soporte intermedio',          precio:7100,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
@@ -4076,6 +4077,10 @@ function addRow(item){
   tr.dataset.id = id;
   tr.style.borderBottom = '1px solid var(--border)';
   const esLibreItem = item.tela === 'libre';
+  const _cLower = (item.color||'').toLowerCase();
+  const cenefaHint = _cLower.includes('cenefa curva slim') ? 'Para cortinas de 800 a 2200 de ancho'
+                  : _cLower.includes('cenefa curva maxi') ? 'Para cortinas de 2200 a 3700 de ancho'
+                  : '';
   tr.innerHTML = `
     <td style="padding:10px 10px;color:var(--muted);font-weight:700;font-size:12px">${String(n).padStart(2,'0')}</td>
     <td style="padding:10px 10px" ${esLibreItem ? 'colspan="3"' : ''}>
@@ -4084,6 +4089,7 @@ function addRow(item){
         : `<span style="font-weight:600">${getTelaLabel(item.tela)}</span>
            <span style="color:var(--muted);font-size:12px"> · ${item.color}</span>`
       }
+      ${cenefaHint?`<div style="font-size:10.5px;color:var(--muted);font-style:italic;margin-top:3px">💡 ${cenefaHint}</div>`:''}
     </td>
     ${esLibreItem ? '' : `
     <td style="padding:10px 10px;text-align:center;font-weight:600">${item.ancho||'—'}</td>
@@ -6481,7 +6487,7 @@ function openDoc(d, fromForm){
   <div style="height:5px;background:linear-gradient(90deg,#f09620,#d2001e)"></div>
 
   <!-- HEADER -->
-  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:20px 32px 16px;border-bottom:1px solid #e0e0de">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;padding:20px 22px 16px;border-bottom:1px solid #e0e0de">
     <div>
       <img src="${logoImg}" alt="RollerMotion" style="height:40px;display:block;margin-bottom:6px;">
       <div style="font-size:10px;color:#888;line-height:1.6">
@@ -6500,7 +6506,7 @@ function openDoc(d, fromForm){
   </div>
 
   <!-- DATOS CLIENTE -->
-  <div style="background:#f8f8f7;padding:12px 32px;display:flex;gap:32px;border-bottom:1px solid #e0e0de">
+  <div style="background:#f8f8f7;padding:12px 22px;display:flex;gap:32px;border-bottom:1px solid #e0e0de">
     <div style="flex:2">
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:3px">Cliente</div>
       <div style="font-size:14px;font-weight:400;color:#141414;font-family:'Raleway',sans-serif">${d.cliente}</div>
@@ -6523,7 +6529,7 @@ function openDoc(d, fromForm){
   </div>
 
   <!-- TABLA ARTÍCULOS -->
-  <div style="padding:0 32px">
+  <div style="padding:0 22px">
     <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#f09620;border-left:3px solid #f09620;padding-left:8px;margin:16px 0 10px">Artículos</div>
     <table style="width:100%;border-collapse:collapse;font-size:11.5px;font-family:'Raleway',sans-serif">
       <thead>
@@ -6579,19 +6585,19 @@ function openDoc(d, fromForm){
       </tfoot>
     </table>
   </div>
-  <div style="display:flex;justify-content:flex-end;align-items:center;gap:20px;padding:12px 32px;border-top:2px solid #141414">
+  <div style="display:flex;justify-content:flex-end;align-items:center;gap:20px;padding:12px 22px;border-top:2px solid #141414">
     <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888">Total</div>
     <div style="font-family:'Manrope',sans-serif;font-size:18px;color:#141414;font-weight:600">${fmtM(d.total)}</div>
   </div>
 
   ${promoHtml}
 
-  ${d.obs?`<div style="margin:0 32px 16px;border:1px solid #e0e0de;border-left:3px solid #f09620;border-radius:0 6px 6px 0;padding:10px 14px;font-size:11px;background:#fef6e8">
+  ${d.obs?`<div style="margin:0 22px 16px;border:1px solid #e0e0de;border-left:3px solid #f09620;border-radius:0 6px 6px 0;padding:10px 14px;font-size:11px;background:#fef6e8">
     <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#d4820e;margin-bottom:4px">Observaciones</div>${d.obs}
   </div>`:''}
 
   <!-- FOOTER: dirección + WhatsApp CTA -->
-  <div style="margin:16px 32px 0;padding:16px;background:#141414;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
+  <div style="margin:16px 22px 0;padding:16px;background:#141414;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
     <div style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.7">
       <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:2px">RollerMotion</div>
       Luis María Drago 196 · San Isidro · Villa Adelina, Bs. As.<br>
@@ -7591,7 +7597,7 @@ function updateEtqPreview(){
         <div style="font-size:${C.fontNum}pt;font-weight:${C.fontWeight};line-height:1">7<span style="font-size:7pt;font-weight:700;opacity:.85">/12</span></div>
       </div>
       <div style="padding:3px 7px;border-bottom:${C.sepWidth}pt solid #000;display:flex;justify-content:space-between;align-items:center">
-        <span style="font-size:${C.fontCliente}pt;font-weight:${C.fontWeight};color:${C.bodyFg}">Cenefa Maxi</span>
+        <span style="font-size:${C.fontCliente}pt;font-weight:${C.fontWeight};color:${C.bodyFg}">Cenefa curva MAXI</span>
         <span style="font-size:${C.fontRef}pt;font-weight:900;color:#fff;background:#000;padding:2px 6px">Blanco</span>
       </div>
       <div style="flex:1;display:flex;align-items:center;justify-content:center;gap:3px;padding:0 7px">
