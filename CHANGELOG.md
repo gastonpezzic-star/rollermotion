@@ -1,5 +1,38 @@
 # Changelog
 
+## V250 — 2026-05-07
+
+### Fixes
+
+**Rieles que no se agregaban a la cotización**
+
+- La validación al agregar items requería `ancho` Y `alto`. Los rieles (Riel Manual Aluminio y Riel Motorizado Somfy) solo necesitan ancho — quedaban bloqueados por la validación antes de ejecutar el cálculo.
+- Ahora la validación reconoce el `tipo:'riel'` como caso especial y solo exige `ancho`.
+
+### Mejoras
+
+**Servicio de instalación: manual + motorizada**
+
+Reescritura del cálculo y la UI de la card de Instalación.
+
+- **Lógica nueva** — cada motor "convierte" 1 instalación manual en motorizada:
+  - Ejemplo: 4 cortinas + 1 motor → 3 manual + 1 motorizada (4 totales).
+  - Ejemplo: 4 cortinas + 5 motores → 0 manual + 4 motorizada (los 5 motores caben en 4 cortinas, el extra no se cuenta).
+  - Riel Motorizado Somfy cuenta como motorizada directamente (no necesita motor extra).
+- **Precio** instalación motorizada actualizado: $45.000 → **$53.000** (lista de precios `instal_motor`).
+- **UI editable**: la card ahora muestra dos filas independientes (Manual / Motorizada) con contador `[− N +]` editable. Si tocás los valores se "fija" tu edición. Botón **↻ Auto** para volver al cálculo automático.
+- **Display compacto**: la fila Motorizada solo aparece cuando hay items motorizados o el usuario la activa manualmente.
+- **PDF / preview**: ahora se muestran como 2 líneas separadas si la cotización tiene ambos tipos:
+  - 🔧 Servicio de instalación (manual)
+  - ⚡ Servicio de instalación motorizada
+- **Backward compat**: cotizaciones viejas sin breakdown se siguen mostrando como una sola línea, como antes.
+
+### Notas técnicas
+
+- Nueva tela `'motores'` agregada a `TIPOS_CON_INSTALACION` (antes los motores no contaban como instalación).
+- Nuevas funciones: `getInstalAutoCounts()`, `getInstalManualQty()`, `getInstalMotorQty()`, `adjustInstal()`, `onInstalQtyInput()`, `resetInstalAuto()`, `esItemMotorizado()`.
+- Nuevos campos guardados en docs: `instal_manual_qty`, `instal_motor_qty`. Los campos `instalacion` y `instalacion_units` siguen guardándose para compatibilidad.
+
 ## V249 — 2026-05-06
 
 ### Fixes

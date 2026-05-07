@@ -292,6 +292,17 @@ body{
 .btn-t:hover{background:var(--bg);border-color:var(--muted)}
 .btn-t.del:hover{background:var(--red-bg);border-color:var(--red);color:var(--red)}
 .btn-t.ok{border-color:var(--green);color:var(--green)}
+/* INSTALACIÓN — breakdown editable */
+.instal-row{display:flex;align-items:center;gap:10px;padding:6px 0;font-size:13px}
+.instal-row + .instal-row{border-top:1px dashed var(--border)}
+.instal-lbl{flex:0 0 90px;font-weight:600;color:var(--ink)}
+.instal-counter{display:inline-flex;align-items:center;gap:0;border:1px solid var(--border);border-radius:6px;overflow:hidden;background:#fff}
+.instal-btn{width:24px;height:26px;background:none;border:none;font-size:14px;font-weight:700;color:var(--muted);cursor:pointer;font-family:inherit;line-height:1;transition:background .14s,color .14s}
+.instal-btn:hover{background:var(--bg);color:var(--ink)}
+.instal-counter input{width:38px;height:26px;border:none;border-left:1px solid var(--border);border-right:1px solid var(--border);text-align:center;font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;color:var(--ink);outline:none;-moz-appearance:textfield}
+.instal-counter input::-webkit-outer-spin-button,.instal-counter input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.instal-px{flex:1;color:var(--muted);font-size:12px;font-family:'Manrope',sans-serif}
+.instal-sub{font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;color:var(--ink);min-width:80px;text-align:right}
 /* DROPDOWN MENÚ DE ACCIONES (⋮) */
 .btn-menu-wrap{position:relative;display:inline-block}
 .menu-dropdown{position:absolute;top:calc(100% + 4px);right:0;min-width:140px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.10);padding:4px 0;z-index:1000;font-family:'DM Sans',sans-serif}
@@ -1127,6 +1138,38 @@ body{
               </div>
             </div>
             <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:700;color:var(--accent)" id="instal-total-display"></div>
+          </div>
+
+          <!-- Breakdown editable -->
+          <div id="instal-body" style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+            <!-- Fila MANUAL -->
+            <div id="instal-row-manual" class="instal-row">
+              <span class="instal-lbl">Manual</span>
+              <div class="instal-counter">
+                <button type="button" class="instal-btn" onclick="adjustInstal('manual',-1)">−</button>
+                <input type="number" id="instal-manual-qty" min="0" value="0" oninput="onInstalQtyInput('manual')">
+                <button type="button" class="instal-btn" onclick="adjustInstal('manual',1)">+</button>
+              </div>
+              <span class="instal-px">× <span id="instal-manual-precio">—</span></span>
+              <span class="instal-sub" id="instal-manual-sub">—</span>
+            </div>
+            <!-- Fila MOTORIZADA -->
+            <div id="instal-row-motor" class="instal-row" style="display:none">
+              <span class="instal-lbl">Motorizada</span>
+              <div class="instal-counter">
+                <button type="button" class="instal-btn" onclick="adjustInstal('motor',-1)">−</button>
+                <input type="number" id="instal-motor-qty" min="0" value="0" oninput="onInstalQtyInput('motor')">
+                <button type="button" class="instal-btn" onclick="adjustInstal('motor',1)">+</button>
+              </div>
+              <span class="instal-px">× <span id="instal-motor-precio">—</span></span>
+              <span class="instal-sub" id="instal-motor-sub">—</span>
+            </div>
+            <!-- Botón Auto -->
+            <div style="display:flex;justify-content:flex-end;margin-top:6px">
+              <button type="button" id="instal-reset-btn" onclick="resetInstalAuto()"
+                style="display:none;background:none;border:1px solid var(--border);color:var(--muted);font-size:11px;padding:3px 9px;border-radius:14px;cursor:pointer;font-family:inherit"
+                title="Volver al cálculo automático">↻ Auto</button>
+            </div>
           </div>
         </div>
       </div>
@@ -2035,7 +2078,7 @@ const INSUMOS_DEFAULT = [
   // CONSUMIBLES
   { id:'bifa_3m',          cat:'Consumibles', subcat:'',          nombre:'Bifa 3M GPT (rollo 50ml)',    precio:113600, unidad:'rollo',en_cotizador:false, cat_cotizador:'',           unidad_venta:'rollo' },
   { id:'instal_normal',    cat:'Servicios',   subcat:'',          nombre:'Instalación cortina estándar', precio:30000,  unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
-  { id:'instal_motor',     cat:'Servicios',   subcat:'',          nombre:'Instalación cortina motorizada',precio:45000,  unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
+  { id:'instal_motor',     cat:'Servicios',   subcat:'',          nombre:'Instalación cortina motorizada',precio:53000,  unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
   // MOTORES
   { id:'motor_2n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 2N',           precio:298200, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
   { id:'motor_6n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 6N',           precio:390500, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
@@ -2530,6 +2573,8 @@ function normalizeDoc(d){
     total:            d.total||0,
     instalacion:      d.instalacion||0,
     instalacion_units: d.instalacion_units||0,
+    instal_manual_qty: d.instal_manual_qty,
+    instal_motor_qty:  d.instal_motor_qty,
     corporativo:      d.corporativo||false,
     descuento:        d.descuento||{activo:false,pct:0,concepto:'',monto:0},
     cotizacionOrigen: d.cotizacion_origen||'',
@@ -3824,8 +3869,10 @@ function qaAgregar(){
   const esAccesorio  = telaObjA.tipo === 'accesorio';
   const esCambioTela = telaObjA.tipo === 'cambiotela';
   const esLibre      = telaObjA.tipo === 'libre';
+  const esRielTipo   = telaObjA.tipo === 'riel';
 
-  if(!esUnitario && !esAccesorio && !esCambioTela && !esLibre && (!ancho || !alto)) return;
+  if(esRielTipo && !ancho) return;
+  if(!esUnitario && !esAccesorio && !esCambioTela && !esLibre && !esRielTipo && (!ancho || !alto)) return;
 
   const isOrder  = currentType === 'order';
   const zoc      = isOrder ? (document.getElementById('qa-zoc')?.value      || ZOCALOS[0]) : ZOCALOS[0];
@@ -4284,6 +4331,9 @@ function getInstalPrecioUnit(esMotorizada){
 
 
 let _instalacionActiva = true;
+let _instalManualQty = null;     // null = auto, número = override manual
+let _instalMotorQty  = null;
+let _instalOverridden = false;   // true cuando el usuario edita los inputs
 
 function toggleInstalacion(){
   _instalacionActiva = !_instalacionActiva;
@@ -4291,42 +4341,112 @@ function toggleInstalacion(){
   const dot = document.getElementById('instal-dot');
   if(tog) tog.style.background = _instalacionActiva ? 'var(--accent)' : '#d1d5db';
   if(dot) dot.style.left = _instalacionActiva ? '23px' : '3px';
+  const body = document.getElementById('instal-body');
+  if(body) body.style.display = _instalacionActiva ? 'block' : 'none';
+  calcInstalacion();
+}
+
+function adjustInstal(tipo, delta){
+  // Pasa al modo "override" si recién toca un botón
+  _instalOverridden = true;
+  const inp = document.getElementById(tipo === 'manual' ? 'instal-manual-qty' : 'instal-motor-qty');
+  if(!inp) return;
+  let v = (parseInt(inp.value)||0) + delta;
+  if(v < 0) v = 0;
+  inp.value = v;
+  if(tipo === 'manual') _instalManualQty = v; else _instalMotorQty = v;
+  calcInstalacion();
+}
+
+function onInstalQtyInput(tipo){
+  _instalOverridden = true;
+  const inp = document.getElementById(tipo === 'manual' ? 'instal-manual-qty' : 'instal-motor-qty');
+  if(!inp) return;
+  let v = parseInt(inp.value);
+  if(isNaN(v) || v < 0){ v = 0; inp.value = '0'; }
+  if(tipo === 'manual') _instalManualQty = v; else _instalMotorQty = v;
+  calcInstalacion();
+}
+
+function resetInstalAuto(){
+  _instalOverridden = false;
+  _instalManualQty = null;
+  _instalMotorQty  = null;
   calcInstalacion();
 }
 
 function calcInstalacion(){
-  const mont = document.getElementById('instal-monto');
-  const disp = document.getElementById('instal-total-display');
+  const body  = document.getElementById('instal-body');
+  const mont  = document.getElementById('instal-monto');
+  const disp  = document.getElementById('instal-total-display');
 
   if(!_instalacionActiva){
     if(mont) mont.textContent = 'Sin instalación incluida';
     if(disp) disp.textContent = '';
+    if(body) body.style.display = 'none';
     recalcTotalConInstal();
     return;
   }
+  if(body) body.style.display = 'block';
 
-  let units = 0;
-  document.querySelectorAll('#items-list tr').forEach(tr=>{
-    try {
-      const item = JSON.parse(tr.dataset.item||'{}');
-      if(!esItemConInstalacion(item)) return;
-      const cantInput = tr.querySelector('input[type=number]');
-      units += parseInt(cantInput?.value)||parseInt(item.cant)||1;
-    } catch(e){}
-  });
+  // Calcular cantidades (auto u override)
+  const auto = getInstalAutoCounts();
+  const manualQty = _instalOverridden && _instalManualQty !== null ? _instalManualQty : auto.manualUnits;
+  const motorQty  = _instalOverridden && _instalMotorQty  !== null ? _instalMotorQty  : auto.motorUnits;
+  if(!_instalOverridden){
+    _instalManualQty = manualQty;
+    _instalMotorQty  = motorQty;
+  }
 
-  const pu = getInstalPrecioUnit(false);
-  const total = pu * units;
+  const puManual = getInstalPrecioUnit(false);
+  const puMotor  = getInstalPrecioUnit(true);
+  const subManual = puManual * manualQty;
+  const subMotor  = puMotor  * motorQty;
+  const total = subManual + subMotor;
 
-  if(mont) mont.textContent = units ? `${units} cort. × ${fmtM(pu)}` : 'Agregá cortinas para calcular';
+  // Sincronizar inputs (sin disparar onInstalQtyInput)
+  const inpM = document.getElementById('instal-manual-qty');
+  const inpT = document.getElementById('instal-motor-qty');
+  if(inpM && document.activeElement !== inpM) inpM.value = manualQty;
+  if(inpT && document.activeElement !== inpT) inpT.value = motorQty;
+
+  // Mostrar/ocultar fila de motorizada (mantener manual siempre visible)
+  const rowMotor = document.getElementById('instal-row-motor');
+  if(rowMotor) rowMotor.style.display = (motorQty > 0 || _instalOverridden) ? 'flex' : 'none';
+
+  // Subtotales y precios unit
+  const sM = document.getElementById('instal-manual-sub');
+  const sT = document.getElementById('instal-motor-sub');
+  const pM = document.getElementById('instal-manual-precio');
+  const pT = document.getElementById('instal-motor-precio');
+  if(sM) sM.textContent = subManual ? fmtM(subManual) : '—';
+  if(sT) sT.textContent = subMotor  ? fmtM(subMotor)  : '—';
+  if(pM) pM.textContent = fmtM(puManual);
+  if(pT) pT.textContent = fmtM(puMotor);
+
+  // Botón "↻ Auto"
+  const resetBtn = document.getElementById('instal-reset-btn');
+  if(resetBtn) resetBtn.style.display = _instalOverridden ? 'inline-flex' : 'none';
+
+  // Resumen y total
+  if(mont){
+    if(total === 0) mont.textContent = 'Agregá cortinas o motores para calcular';
+    else {
+      const parts = [];
+      if(manualQty) parts.push(`${manualQty} manual${manualQty>1?'es':''}`);
+      if(motorQty)  parts.push(`${motorQty} motor${motorQty>1?'izadas':'izada'}`);
+      mont.textContent = parts.join(' + ');
+    }
+  }
   if(disp) disp.textContent = total ? fmtM(total) : '';
+
   recalcTotalConInstal();
 }
 
 
 // ── INSTALACIÓN ──
 // Whitelist explícita: solo estos tipos cuentan como instalación.
-// Todo lo demás (motores, accesorios, cortina libre, etc.) NO suma.
+// Todo lo demás (accesorios, cortina libre, etc.) NO suma.
 const TIPOS_CON_INSTALACION = [
   'blackout',
   'sunscreen5','sunscreen3','sunscreen1',
@@ -4339,25 +4459,61 @@ const TIPOS_CON_INSTALACION = [
   'veneciana',
   'riel_manual',
   'riel_motorizado',
+  'motores',
 ];
+
+// Tipos que se consideran "motorizados" (cuentan como instalación motorizada)
+const TIPOS_MOTORIZADOS = ['motores','riel_motorizado'];
 
 function esItemConInstalacion(item){
   const tela = (item.tela||'').toLowerCase();
   return TIPOS_CON_INSTALACION.includes(tela);
 }
 
-function getInstalUnits(){
-  if(!_instalacionActiva) return 0;
-  let units = 0;
+function esItemMotorizado(item){
+  const tela = (item.tela||'').toLowerCase();
+  return TIPOS_MOTORIZADOS.includes(tela);
+}
+
+// Calcula automáticamente cuántas instalaciones manuales y motorizadas corresponden
+// según los items en la cotización.
+// Regla: cada motor "consume" una instalación manual y la convierte en motorizada.
+// Riel Motorizado (Somfy) cuenta como motorizada directamente.
+function getInstalAutoCounts(){
+  let cortinaManualUnits = 0; // cortinas que no son riel motorizado ni motor
+  let rielMotorizadoUnits = 0;
+  let motorUnits = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
-    try {
+    try{
       const item = JSON.parse(tr.dataset.item||'{}');
       if(!esItemConInstalacion(item)) return;
       const cantInput = tr.querySelector('input[type=number]');
-      units += parseInt(cantInput?.value)||parseInt(item.cant)||1;
+      const cant = parseInt(cantInput?.value)||parseInt(item.cant)||1;
+      const tela = (item.tela||'').toLowerCase();
+      if(tela === 'motores')           motorUnits += cant;
+      else if(tela === 'riel_motorizado') rielMotorizadoUnits += cant;
+      else                              cortinaManualUnits += cant;
     } catch(e){}
   });
-  return units;
+  // Cada motor convierte una cortina manual en motorizada (cap en cortinaManualUnits)
+  const conversiones = Math.min(motorUnits, cortinaManualUnits);
+  return {
+    manualUnits: cortinaManualUnits - conversiones,
+    motorUnits:  rielMotorizadoUnits + conversiones,
+  };
+}
+
+function getInstalUnits(){
+  if(!_instalacionActiva) return 0;
+  return (_instalManualQty||0) + (_instalMotorQty||0);
+}
+
+function getInstalManualQty(){
+  return _instalacionActiva ? (_instalManualQty||0) : 0;
+}
+
+function getInstalMotorQty(){
+  return _instalacionActiva ? (_instalMotorQty||0) : 0;
 }
 
 function getAdicionalesTotal(){
@@ -4371,16 +4527,9 @@ function getAdicionalesTotal(){
 
 function getInstalTotal(){
   if(!_instalacionActiva) return 0;
-  let units = 0;
-  document.querySelectorAll('#items-list tr').forEach(tr=>{
-    try {
-      const item = JSON.parse(tr.dataset.item||'{}');
-      if(!esItemConInstalacion(item)) return;
-      const cantInput = tr.querySelector('input[type=number]');
-      units += parseInt(cantInput?.value)||parseInt(item.cant)||1;
-    } catch(e){}
-  });
-  return getInstalPrecioUnit(false) * units;
+  const manualQty = _instalManualQty||0;
+  const motorQty  = _instalMotorQty||0;
+  return getInstalPrecioUnit(false)*manualQty + getInstalPrecioUnit(true)*motorQty;
 }
 
 function recalcTotalConInstal(){
@@ -4456,6 +4605,9 @@ function resetForm(){
   const wEl2 = document.getElementById('qa-warnings'); if(wEl2) wEl2.innerHTML = '';
   // Instalación: activar por defecto y calcular
   _instalacionActiva = true;
+  _instalManualQty = null;
+  _instalMotorQty  = null;
+  _instalOverridden = false;
   const tog = document.getElementById('instal-toggle');
   const dot = document.getElementById('instal-dot');
   if(tog) tog.style.background = 'var(--accent)';
@@ -5022,6 +5174,8 @@ async function saveDoc(andPreview){
     items, total: total + getAdicionalesTotal(),
     instalacion:       getInstalTotal(),
     instalacion_units: getInstalUnits(),
+    instal_manual_qty: getInstalManualQty(),
+    instal_motor_qty:  getInstalMotorQty(),
   };
 
   try {
@@ -5091,6 +5245,8 @@ function buildDocFromForm(){
     items, total: total + getAdicionalesTotal(),
     instalacion:       getInstalTotal(),
     instalacion_units: getInstalUnits(),
+    instal_manual_qty: getInstalManualQty(),
+    instal_motor_qty:  getInstalMotorQty(),
     _unsaved: true,
   };
 }
@@ -5130,6 +5286,19 @@ function editDoc(id){
   document.getElementById('f-obs').value   = doc.obs||'';
   document.getElementById('f-pago').value  = doc.pago||'';
   document.getElementById('f-tiempo').value= doc.tiempo||'';
+  // Restaurar cantidades de instalación guardadas (override sobre auto-calc)
+  if(doc.instal_manual_qty !== undefined && doc.instal_manual_qty !== null){
+    _instalManualQty  = parseInt(doc.instal_manual_qty)||0;
+    _instalMotorQty   = parseInt(doc.instal_motor_qty)||0;
+    _instalOverridden = true;
+  } else {
+    _instalManualQty  = null;
+    _instalMotorQty   = null;
+    _instalOverridden = false;
+  }
+  _instalacionActiva = (doc.instalacion||0) > 0 || (doc.instalacion_units||0) > 0
+                    || (doc.instal_manual_qty||0) > 0 || (doc.instal_motor_qty||0) > 0
+                    || !doc.instalacion;
   // Reset items
   document.getElementById('items-list').innerHTML='';
   _itemSeq = 0;
@@ -5137,6 +5306,7 @@ function editDoc(id){
   if(ic) ic.style.display = (doc.items||[]).length ? 'block' : 'none';
   (doc.items||[]).forEach(addRow);
   recalcTotal();
+  calcInstalacion();
   qaInit();
   window.scrollTo(0,0);
 }
@@ -6480,6 +6650,55 @@ function openDoc(d, fromForm){
       </div>
     </div>`) : '';
 
+  // ── FILAS DE INSTALACIÓN (manual + motorizada) ──
+  const _instalManQty   = parseInt(d.instal_manual_qty);
+  const _instalMotQty   = parseInt(d.instal_motor_qty);
+  const _hasBreakdown   = !isNaN(_instalManQty) || !isNaN(_instalMotQty);
+  const _puManual       = Math.round(getPrecio('instal_normal') * getFV());
+  const _puMotor        = Math.round(getPrecio('instal_motor')  * getFV());
+  let _instalRows = '';
+  if(_hasBreakdown){
+    const mq = _instalManQty||0, tq = _instalMotQty||0;
+    if(mq > 0){
+      const sub = _puManual * mq;
+      _instalRows += `<tr style="border-bottom:1px solid #e0e0de">
+        <td style="padding:7px 10px;color:#888;text-align:center">🔧</td>
+        <td colspan="5" style="padding:7px 10px;white-space:nowrap">
+          <span style="font-weight:700;font-size:11.5px;color:#141414">Servicio de instalación</span>
+          <span style="font-size:9.5px;color:#aaa;margin-left:8px">+ Visita técnica previa</span>
+        </td>
+        <td style="padding:7px 10px;text-align:center;font-weight:600;color:#444">${mq}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap">${fmtM(_puManual)}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:'Manrope',sans-serif;white-space:nowrap">${fmtM(sub)}</td>
+      </tr>`;
+    }
+    if(tq > 0){
+      const sub = _puMotor * tq;
+      _instalRows += `<tr style="border-bottom:1px solid #e0e0de">
+        <td style="padding:7px 10px;color:#888;text-align:center">⚡</td>
+        <td colspan="5" style="padding:7px 10px;white-space:nowrap">
+          <span style="font-weight:700;font-size:11.5px;color:#141414">Servicio de instalación motorizada</span>
+          <span style="font-size:9.5px;color:#aaa;margin-left:8px">+ Configuración de motor</span>
+        </td>
+        <td style="padding:7px 10px;text-align:center;font-weight:600;color:#444">${tq}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap">${fmtM(_puMotor)}</td>
+        <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:'Manrope',sans-serif;white-space:nowrap">${fmtM(sub)}</td>
+      </tr>`;
+    }
+  } else if(d.instalacion){
+    // Backward compat: docs viejos sin breakdown — una sola fila como antes
+    _instalRows = `<tr style="border-bottom:1px solid #e0e0de">
+      <td style="padding:7px 10px;color:#888;text-align:center">🔧</td>
+      <td colspan="5" style="padding:7px 10px;white-space:nowrap">
+        <span style="font-weight:700;font-size:11.5px;color:#141414">Servicio de instalación</span>
+        <span style="font-size:9.5px;color:#aaa;margin-left:8px">+ Visita técnica previa</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-weight:600;color:#444">${d.instalacion_units||''}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap">${fmtM(Math.round(d.instalacion/(d.instalacion_units||1)))}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:'Manrope',sans-serif;white-space:nowrap">${fmtM(d.instalacion)}</td>
+    </tr>`;
+  }
+
   document.getElementById('overlay-title').textContent = isOrder ? `Pedido #${d.numero||'—'}` : `Cotización #${d.numero||'—'}`;
   document.getElementById('doc-content').innerHTML = `<div class="doc" style="font-family:'DM Sans',sans-serif">
 
@@ -6547,16 +6766,7 @@ function openDoc(d, fromForm){
       </thead>
       <tbody>
         ${notaRows}
-        ${d.instalacion ? `<tr style="border-bottom:1px solid #e0e0de">
-          <td style="padding:7px 10px;color:#888;text-align:center">🔧</td>
-          <td colspan="5" style="padding:7px 10px;white-space:nowrap">
-            <span style="font-weight:700;font-size:11.5px;color:#141414">Servicio de instalación</span>
-            <span style="font-size:9.5px;color:#aaa;margin-left:8px">+ Visita técnica previa</span>
-          </td>
-          <td style="padding:7px 10px;text-align:center;font-weight:600;color:#444">${d.instalacion_units||''}</td>
-          <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap">${fmtM(Math.round(d.instalacion/(d.instalacion_units||1)))}</td>
-          <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:'Manrope',sans-serif;white-space:nowrap">${fmtM(d.instalacion)}</td>
-        </tr>` : ''}
+        ${_instalRows}
       ${d.descuento?.activo && d.descuento?.monto ? `<tr style="border-bottom:1px solid #fadadd;background:#fff5f5">
           <td style="padding:7px 10px;font-weight:700;color:#c0392b;text-align:center">🏷</td>
           <td colspan="5" style="padding:7px 10px">
