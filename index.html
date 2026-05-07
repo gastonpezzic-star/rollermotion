@@ -1057,8 +1057,8 @@ body{
           <div id="qa-recomendacion" style="margin-top:8px;display:none"></div>
           <div id="qa-warnings" style="margin-top:10px"></div>
 
-          <!-- opcionales: solo visibles en pedido -->
-          <div class="pedido-only">
+          <!-- DEPRECADO V251: este bloque ya no se usa — los detalles técnicos se piden en el overlay de confirmación -->
+          <div data-deprecated-tech-block style="display:none">
             <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:10px">Detalles técnicos de fabricación</div>
             <div class="fg c6">
               <div class="f"><label>Zócalo</label><select id="qa-zoc"></select></div>
@@ -2940,7 +2940,6 @@ function renderItemsHeader(){
   if(!thead) return;
   thead.innerHTML = `<tr style="background:var(--surface2)">
     ${th('#')}${th('Sistema / Color')}${thc('Ancho')}${thc('Alto')}${thc('Cant.')}${th('Ref.')}
-    ${isOrder ? th('Zócalo')+th('Sentido')+th('Soporte')+th('Cadena')+th('Color cad.')+th('Mecanismo')+th('Adicionales') : ''}
     ${thr('P. Unit.')}${thr('Subtotal')}<th style="border-bottom:1px solid var(--border)"></th>
   </tr>`;
   const title = document.getElementById('items-card-title');
@@ -4099,26 +4098,9 @@ function addRow(item){
 
   const esBanda    = item.tela === 'bandas_verticales';
   const esConfTrad = item.tela === 'conf_liviana' || item.tela === 'conf_blackout';
-  const techCols = isOrder ? (esBanda ? `
-    <td style="padding:6px 8px">${mkSel(['Blanco','Negro'], item.colorRiel||'Blanco', 'it-color-riel')}</td>
-    <td style="padding:6px 8px">${mkSel(['Izquierda','Derecha'], item.accionamiento||'Derecha', 'it-accionamiento')}</td>
-    <td style="padding:6px 8px">${mkSel(['Izquierda','Derecha','Abre al medio'], item.recogimiento||'Derecha', 'it-recogimiento')}</td>
-    <td style="padding:6px 8px">${mkSel(['Techo','Pared'], item.soporte||'Techo', 'it-soporte')}</td>
-    <td style="padding:6px 8px"><input type="text" value="${item.adic||''}" placeholder="Notas…" class="it-adic" style="font-size:12px;padding:4px 7px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;width:120px;outline:none"></td>
-  ` : esConfTrad ? `
-    <td style="padding:6px 8px">${mkSel(['Apertura central','Recoge izquierda','Recoge derecha'], item.accionamiento||'Apertura central', 'it-accionamiento')}</td>
-    <td style="padding:6px 8px"><input type="number" value="${item.dobladillo??20}" min="0" max="50" class="it-dobladillo" style="font-size:12px;padding:4px 7px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;width:60px;outline:none" title="Dobladillo (cm)"> cm</td>
-    <td style="padding:6px 8px"><input type="number" value="${item.arrastre??0}" min="0" max="100" class="it-arrastre" style="font-size:12px;padding:4px 7px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;width:60px;outline:none" title="Arrastre (cm)"> cm</td>
-    <td style="padding:6px 8px"><input type="text" value="${item.adic||''}" placeholder="Notas…" class="it-adic" style="font-size:12px;padding:4px 7px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;width:110px;outline:none"></td>
-  ` : `
-    <td style="padding:6px 8px">${mkSel(ZOCALOS, item.zoc||ZOCALOS[0], 'it-zoc')}</td>
-    <td style="padding:6px 8px">${mkSel(SENTS,   item.sent||SENTS[0],  'it-sent')}</td>
-    <td style="padding:6px 8px">${mkSel(SOPS,    item.sop||SOPS[0],   'it-sop')}</td>
-    <td style="padding:6px 8px">${mkSel(CADS,    item.cad||CADS[0],   'it-cad')}</td>
-    <td style="padding:6px 8px">${mkSel(['Blanca','Negra','Metálica'], item.cadColor||'Blanca', 'it-cadcolor')}</td>
-    <td style="padding:6px 8px">${mkSel(['Blanco','Negro','Anodizado'], item.mecColor||'Blanco', 'it-meccolor')}</td>
-    <td style="padding:6px 8px"><input type="text" value="${item.adic||''}" placeholder="Motor, guías…" class="it-adic" style="font-size:12px;padding:4px 7px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;width:120px;outline:none"></td>
-  `) : '';
+  // V251: techCols inline ya no se muestran. Los detalles técnicos se piden en el overlay
+  // de confirmación de pedido (tanto desde cotización como desde pedido directo).
+  const techCols = '';
 
   const tr = document.createElement('tr');
   tr.dataset.id = id;
@@ -4464,6 +4446,10 @@ const TIPOS_CON_INSTALACION = [
 
 // Tipos que se consideran "motorizados" (cuentan como instalación motorizada)
 const TIPOS_MOTORIZADOS = ['motores','riel_motorizado'];
+
+// Tipos que son cortinas Roller (todos los porcentajes de Sunscreen + Blackout)
+const TIPOS_ROLLER = ['blackout','sunscreen5','sunscreen3','sunscreen1'];
+function isRollerTela(t){ return TIPOS_ROLLER.includes((t||'').toLowerCase()); }
 
 function esItemConInstalacion(item){
   const tela = (item.tela||'').toLowerCase();
@@ -5147,6 +5133,27 @@ async function saveDoc(andPreview){
   const cli = document.getElementById('f-cli').value.trim();
   if(!cli){ toast('⚠ Ingresá el nombre del cliente','err'); return null; }
   const items = getItems();
+  if(!items.length){ toast('⚠ Agregá al menos un item','err'); return null; }
+
+  // Pedido directo nuevo (no edición): pasar por el overlay de detalles técnicos
+  if(currentType === 'order' && !editId && !andPreview){
+    const draft = buildDocFromForm();
+    if(!draft) return null;
+    draft._isDraft = true;
+    draft.estado = 'Pendiente';
+    // Si no hay items que requieran configuración técnica, guardar directo
+    const itemsList = draft.items||[];
+    const tieneCortinaRoller = itemsList.some(it => isRollerTela(it.tela));
+    const tieneConf  = itemsList.some(it => it.tela==='conf_liviana'||it.tela==='conf_blackout');
+    const tieneRieles = itemsList.some(it => it.tela==='riel_manual'||it.tela==='riel_motorizado');
+    const tieneMotores = itemsList.some(it => it.tela==='motores');
+    if(tieneCortinaRoller || tieneConf || tieneRieles || tieneMotores){
+      convertToOrder(draft);
+      return draft;
+    }
+    // Sin nada para configurar técnicamente → guardar directo
+  }
+
   const total = items.reduce((s,it)=>s+(parseFloat(it.precio)||0)*(parseInt(it.cant)||1),0)
                + getInstalTotal() + getAdicionalesTotal() + getDescuentoMonto();
   const defaultStatus = currentType==='quote'?'Cotización':'Pendiente';
@@ -5471,12 +5478,21 @@ function filterDocs(type, qId, sId){
   });
 }
 
-let _pedidoSrcId = null; // id de cotización origen
+let _pedidoSrc = null; // doc origen: cotización guardada, o draft en memoria (pedido directo)
+let _pedidoIsDraft = false; // true cuando viene de "Nuevo Pedido" (no hay cotización en DB)
 
-function convertToOrder(id){
-  const src = getDocs().find(x=>x.id===id);
+function convertToOrder(idOrDoc){
+  // Acepta un id (cotización guardada) o un objeto doc (pedido directo).
+  let src;
+  if(typeof idOrDoc === 'string'){
+    src = getDocs().find(x=>x.id===idOrDoc);
+    _pedidoIsDraft = false;
+  } else if(idOrDoc && typeof idOrDoc === 'object'){
+    src = idOrDoc;
+    _pedidoIsDraft = !!src._isDraft;
+  }
   if(!src) return;
-  _pedidoSrcId = id;
+  _pedidoSrc = src;
 
   function getDefaults(item){
     const color = (item.color||'').toLowerCase();
@@ -5491,21 +5507,35 @@ function convertToOrder(id){
     };
   }
 
-  const cortinas  = (src.items||[]).filter(it => it.tela==='blackout'||it.tela==='sunscreen5');
+  const cortinas  = (src.items||[]).filter(it => isRollerTela(it.tela));
   const motores   = (src.items||[]).filter(it => it.tela==='motores');
   const confItems = (src.items||[]).filter(it => it.tela==='conf_liviana'||it.tela==='conf_blackout');
+  const rieles    = (src.items||[]).filter(it => it.tela==='riel_manual'||it.tela==='riel_motorizado');
 
-  document.getElementById('pedido-overlay-title').textContent = `Confirmar Pedido — Cotización #${src.numero||'—'} · ${src.cliente}`;
+  // Si no hay nada para configurar técnicamente → no mostrar overlay
+  if(!cortinas.length && !motores.length && !confItems.length && !rieles.length){
+    return { skipOverlay: true };
+  }
+
+  const titulo = _pedidoIsDraft
+    ? `Confirmar Pedido — ${src.numero||'—'} · ${src.cliente}`
+    : `Confirmar Pedido — Cotización #${src.numero||'—'} · ${src.cliente}`;
+  document.getElementById('pedido-overlay-title').textContent = titulo;
 
   const sel = () => `style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;background:#fff;font-family:'DM Sans',sans-serif"`;
   const lbl = txt => `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:5px">${txt}</div>`;
 
+  const rollerLabel = t =>
+       t==='blackout'    ? 'Blackout'
+     : t==='sunscreen5'  ? 'Sunscreen 5%'
+     : t==='sunscreen3'  ? 'Sunscreen 3%'
+     : t==='sunscreen1'  ? 'Sunscreen 1%'
+     : 'Roller';
   const cortinaOpts = [
     '<option value="">— Motor suelto —</option>',
     ...cortinas.map((it,i)=>{
-      const telaLabel = it.tela==='blackout'?'Blackout':'Sunscreen';
       const ref = it.ref ? ` · ${it.ref}` : '';
-      return `<option value="${i}">#${i+1} ${telaLabel} ${it.color}${ref} (${it.ancho||'?'}×${it.alto||'?'}mm)</option>`;
+      return `<option value="${i}">#${i+1} ${rollerLabel(it.tela)} ${it.color}${ref} (${it.ancho||'?'}×${it.alto||'?'}mm)</option>`;
     })
   ].join('');
 
@@ -5518,7 +5548,7 @@ function convertToOrder(id){
     html += cortinas.map((it,i)=>{
       const d = getDefaults(it);
       const cant = parseInt(it.cant)||1;
-      const telaLabel = it.tela==='blackout'?'Roller Blackout':'Roller Sunscreen 5%';
+      const telaLabel = `Roller ${rollerLabel(it.tela)}`;
       return `<div style="border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:10px;background:var(--surface2)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
           <div style="background:var(--steel);color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">#${i+1}</div>
@@ -5576,8 +5606,8 @@ function convertToOrder(id){
             ${lbl('Accionamiento')}
             <select class="ped-conf-acc" data-cidx="${ci}" ${sel()}>
               <option${accVal==='Apertura central'?' selected':''}>Apertura central</option>
-              <option${accVal==='Recoge izquierda'?' selected':''}>Recoge izquierda</option>
-              <option${accVal==='Recoge derecha'?' selected':''}>Recoge derecha</option>
+              <option${accVal==='Un paño · recoge izquierda'?' selected':''}>Un paño · recoge izquierda</option>
+              <option${accVal==='Un paño · recoge derecha'?' selected':''}>Un paño · recoge derecha</option>
             </select>
           </div>
           <div>
@@ -5597,9 +5627,48 @@ function convertToOrder(id){
     }).join('');
   }
 
+  // ── RIELES (Manual + Motorizado) ──
+  if(rieles.length){
+    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${(cortinas.length||confItems.length)?'20px':0} 0 10px">🪝 Rieles — Detalles técnicos</div>`;
+    html += rieles.map((it,ri)=>{
+      const cant = parseInt(it.cant)||1;
+      const esMotor = it.tela === 'riel_motorizado';
+      const titulo = esMotor ? 'Riel Motorizado Somfy' : 'Riel Manual Aluminio';
+      const apertura = it.apertura || 'Central';
+      const lado = it.lado || 'Derecha';
+      const labelLado = esMotor ? 'Lado del motor' : 'Abre hacia';
+      return `<div style="border:1.5px solid #c8d4e8;border-radius:8px;padding:14px 18px;margin-bottom:10px;background:${esMotor?'#fdf8f2':'#f4f7fb'};${esMotor?'border-color:#e8d8b8;':''}">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="background:${esMotor?'#d4820e':'#3a5a8a'};color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">${esMotor?'⚡':'🪝'} ${ri+1}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">${titulo}</div>
+          <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} mm · ${cant} und.</div>
+          ${it.color?`<div style="font-size:11px;color:#555;background:#fff;border-radius:4px;padding:2px 8px;border:1px solid var(--border)">${it.color}</div>`:''}
+          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            ${lbl('Apertura')}
+            <select class="ped-riel-apertura" data-ridx="${ri}" ${sel()}>
+              <option${apertura==='Central'?' selected':''}>Central</option>
+              <option${apertura==='Un paño'?' selected':''}>Un paño</option>
+            </select>
+          </div>
+          <div>
+            ${lbl(labelLado)}
+            <select class="ped-riel-lado" data-ridx="${ri}" ${sel()}>
+              <option${lado==='Derecha'?' selected':''}>Derecha</option>
+              <option${lado==='Izquierda'?' selected':''}>Izquierda</option>
+            </select>
+          </div>
+        </div>
+        ${cant>1?`<div style="margin-top:10px;font-size:11px;color:#3a5a8a;background:#e8eef8;border-radius:5px;padding:5px 10px">ℹ️ Este riel tiene ${cant} unidades — se aplicarán los mismos datos a todas.</div>`:''}
+      </div>`;
+    }).join('');
+  }
+
   // ── MOTORES ──
   if(motores.length){
-    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${(cortinas.length||confItems.length)?'20px':0} 0 10px">⚡ Motores — Asignación</div>`;
+    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${(cortinas.length||confItems.length||rieles.length)?'20px':0} 0 10px">⚡ Motores — Asignación</div>`;
     html += motores.map((it,mi)=>`
       <div style="border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:10px;background:#fdf8f2;border-color:#e8d8b8">
         <div style="display:flex;align-items:center;gap:12px">
@@ -5615,7 +5684,7 @@ function convertToOrder(id){
       </div>`).join('');
   }
 
-  if(!cortinas.length && !motores.length && !confItems.length){
+  if(!cortinas.length && !motores.length && !confItems.length && !rieles.length){
     html = '<div style="font-size:13px;color:var(--muted);padding:12px 0">No hay artículos para configurar.</div>';
   }
 
@@ -5625,14 +5694,16 @@ function convertToOrder(id){
 
 function cerrarOverlayPedido(){
   document.getElementById('overlay-pedido').classList.remove('on');
-  _pedidoSrcId = null;
+  _pedidoSrc = null;
+  _pedidoIsDraft = false;
 }
 
 async function confirmarPedido(){
-  const src = getDocs().find(x=>x.id===_pedidoSrcId);
+  const src = _pedidoSrc;
   if(!src) return;
 
-  const cortinas = (src.items||[]).filter(it=>it.tela==='blackout'||it.tela==='sunscreen5');
+  // Cortinas roller — incluye blackout y sunscreen 5%, 3%, 1%
+  const cortinas = (src.items||[]).filter(it => isRollerTela(it.tela));
   cortinas.forEach((it,i)=>{
     it.sent     = document.querySelector(`.ped-sent[data-idx="${i}"]`)?.value || 'Detrás';
     it.ladoMec  = document.querySelector(`.ped-lado[data-idx="${i}"]`)?.value || 'Derecha';
@@ -5641,12 +5712,19 @@ async function confirmarPedido(){
     it.zoc      = document.querySelector(`.ped-zoc[data-idx="${i}"]`)?.value  || 'Bolsillo';
   });
 
-  // Leer datos de confección tradicional
+  // Confección tradicional
   const confItems = (src.items||[]).filter(it=>it.tela==='conf_liviana'||it.tela==='conf_blackout');
   confItems.forEach((it,ci)=>{
     it.accionamiento = document.querySelector(`.ped-conf-acc[data-cidx="${ci}"]`)?.value || 'Apertura central';
     it.dobladillo    = parseFloat(document.querySelector(`.ped-conf-dob[data-cidx="${ci}"]`)?.value)||20;
     it.arrastre      = parseFloat(document.querySelector(`.ped-conf-arr[data-cidx="${ci}"]`)?.value)||0;
+  });
+
+  // Rieles (manual + motorizado)
+  const rieles = (src.items||[]).filter(it=>it.tela==='riel_manual'||it.tela==='riel_motorizado');
+  rieles.forEach((it,ri)=>{
+    it.apertura = document.querySelector(`.ped-riel-apertura[data-ridx="${ri}"]`)?.value || 'Central';
+    it.lado     = document.querySelector(`.ped-riel-lado[data-ridx="${ri}"]`)?.value     || 'Derecha';
   });
 
   const motores = (src.items||[]).filter(it=>it.tela==='motores');
@@ -5660,50 +5738,73 @@ async function confirmarPedido(){
     }
   });
 
-  // Mismo número base que la cotización — solo cambia el prefijo
-  const cotNumBase = (src.numero||'').replace(/^COT-?/,'');
-  const next = `PED-${cotNumBase}`;
-  const order = {
-    ...src,
-    id:     uid(),
-    type:   'order',
-    numero: next,
-    fecha:  today(),
-    estado: 'Pendiente',
-    cotizacionOrigen: src.numero||src.id,
-    items: src.items,
-  };
+  // Construir el pedido
+  let next, order;
+  if(_pedidoIsDraft){
+    // Pedido directo: no hay cotización origen
+    next = src.numero || autoNum('order');
+    order = {
+      ...src,
+      id:     uid(),
+      type:   'order',
+      numero: next,
+      fecha:  src.fecha || today(),
+      estado: 'Pendiente',
+      items:  src.items,
+    };
+    delete order._isDraft;
+    delete order.cotizacionOrigen;
+  } else {
+    // Convertir cotización en pedido — mismo número base, prefijo PED-
+    const cotNumBase = (src.numero||'').replace(/^COT-?/,'');
+    next = `PED-${cotNumBase}`;
+    order = {
+      ...src,
+      id:     uid(),
+      type:   'order',
+      numero: next,
+      fecha:  today(),
+      estado: 'Pendiente',
+      cotizacionOrigen: src.numero||src.id,
+      items: src.items,
+    };
+  }
+  const srcId = src.id;
 
   try {
     await saveDocToSupabase(order);
     order._pendingSync = false;
     _docsCache.unshift(order);
-    await updateStatusInSupabase(_pedidoSrcId, 'Aprobada');
-    const qi = _docsCache.findIndex(x=>x.id===_pedidoSrcId);
-    if(qi>=0) _docsCache[qi].estado='Aprobada';
+    if(!_pedidoIsDraft){
+      await updateStatusInSupabase(srcId, 'Aprobada');
+      const qi = _docsCache.findIndex(x=>x.id===srcId);
+      if(qi>=0) _docsCache[qi].estado='Aprobada';
+      saveDocLocal({..._docsCache[_docsCache.findIndex(x=>x.id===srcId)], estado:'Aprobada'});
+    }
     saveDocLocal(order);
-    saveDocLocal({..._docsCache[_docsCache.findIndex(x=>x.id===_pedidoSrcId)], estado:'Aprobada'});
-    // Auto-crear cliente en CRM cuando se aprueba un pedido
     autoCreateClienteFromDoc(order);
     renderCot(); renderPed();
     if(typeof renderClientes==='function') renderClientes();
     if(ME?.role==='admin') renderAdmin();
     updateNavBadges();
     updateSyncIndicator();
-    toast(`✅ ${next} creado desde ${src.numero||'cotización'} (sincronizado)`, 'ok');
+    const fromMsg = _pedidoIsDraft ? 'directo' : `desde ${src.numero||'cotización'}`;
+    toast(`✅ ${next} creado ${fromMsg} (sincronizado)`, 'ok');
+    const wasDraft = _pedidoIsDraft;
     cerrarOverlayPedido();
+    if(wasDraft) goBack();
   } catch(e) {
-    // Fallback: guardar localmente si Supabase no está disponible
     console.error('❌ Error sincronizando pedido:', JSON.stringify(e), e);
     order._pendingSync = true;
     saveDocLocal(order);
     _docsCache.unshift(order);
-    // Actualizar estado de la cotización origen en local
-    const qi = _docsCache.findIndex(x=>x.id===_pedidoSrcId);
-    if(qi>=0){
-      _docsCache[qi].estado='Aprobada';
-      _docsCache[qi]._pendingSync = true;
-      saveDocLocal(_docsCache[qi]);
+    if(!_pedidoIsDraft){
+      const qi = _docsCache.findIndex(x=>x.id===srcId);
+      if(qi>=0){
+        _docsCache[qi].estado='Aprobada';
+        _docsCache[qi]._pendingSync = true;
+        saveDocLocal(_docsCache[qi]);
+      }
     }
     autoCreateClienteFromDoc(order);
     renderCot(); renderPed();
@@ -5712,7 +5813,9 @@ async function confirmarPedido(){
     updateNavBadges();
     updateSyncIndicator();
     toast(`⚠️ ${next} guardado local — pendiente sincronizar`, 'err');
+    const wasDraft = _pedidoIsDraft;
     cerrarOverlayPedido();
+    if(wasDraft) goBack();
   }
 }
 

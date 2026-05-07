@@ -1,5 +1,49 @@
 # Changelog
 
+## V251 — 2026-05-07
+
+### Mejoras
+
+**Pedido directo unificado con cotización**
+
+Antes había dos formularios distintos para crear cotización y pedido directo, con campos técnicos diferentes y nombres de campos que no coincidían con los que la planilla de fabricación lee. Resultado: pedidos directos llegaban a fábrica con datos faltantes o mal nombrados.
+
+Ahora ambos flujos comparten un solo formulario. Los detalles técnicos se piden en un overlay al final, con campos consistentes y nombres correctos.
+
+- **Form de "Nuevo Pedido"** ahora idéntico al de "Nueva Cotización":
+  - Se quitó la sección "Detalles técnicos de fabricación" del formulario.
+  - Se quitaron las columnas técnicas inline (zócalo, sentido, soporte, cadena, etc.) en la tabla de items.
+  - Se mantienen visibles los campos de contacto (CUIT, teléfonos) en pedido.
+- **Click en "Guardar"** estando en pedido nuevo abre el overlay de detalles técnicos (el mismo que ya se usaba al convertir cotización → pedido). Tras confirmar, se crea el pedido.
+- **Edge case**: si el pedido solo tiene accesorios/insumos sin configuración técnica, se salta el overlay y se guarda directo.
+
+### Mejoras al overlay de detalles técnicos
+
+- **Cobertura ampliada**: ahora incluye también Sunscreen 3% y 1% (antes solo Blackout y Sunscreen 5%).
+- **Confección tradicional** — opciones de accionamiento más claras:
+  - Apertura central
+  - Un paño · recoge izquierda
+  - Un paño · recoge derecha
+- **Sección NUEVA: Rieles** (Manual + Motorizado Somfy):
+  - **Apertura**: Central / Un paño
+  - **Lado**:
+    - En Riel Manual: "Abre hacia" (Izquierda / Derecha)
+    - En Riel Motorizado: "Lado del motor" (Izquierda / Derecha)
+
+### Notas técnicas
+
+- Refactor: `_pedidoSrcId` (id) → `_pedidoSrc` (objeto doc completo), permite manejar tanto cotizaciones guardadas como drafts en memoria.
+- `convertToOrder(idOrDoc)` ahora acepta un id (cotización guardada) o un objeto doc (pedido directo).
+- `confirmarPedido()` distingue entre "viene de cotización" (actualiza estado origen a 'Aprobada') y "pedido directo" (no hay origen).
+- Nuevo helper `isRollerTela(t)` y constante `TIPOS_ROLLER` para unificar la detección de cortinas roller.
+- Nuevos campos guardados en items de rieles: `apertura` (Central/Un paño), `lado` (Izquierda/Derecha).
+- Bloque viejo de "Detalles técnicos de fabricación" en el form marcado como deprecado (`data-deprecated-tech-block`, oculto con `display:none`). Mantenemos el HTML por si hay que revertir, eliminamos en V252+.
+
+### Compatibilidad
+
+- **Pedidos viejos guardados con nombres antiguos** (`cadColor`, `mecColor`) siguen abriéndose; pero al editarlos NO se ven los detalles técnicos en el form. Para ver/editar esos detalles hay que volver a pasar por el flujo overlay (commit futuro).
+- **Convertir cotización → pedido**: sigue funcionando exactamente igual desde el botón 📦.
+
 ## V250 — 2026-05-07
 
 ### Fixes
