@@ -1,5 +1,27 @@
 # Changelog
 
+## V254 — 2026-05-07
+
+### Fix definitivo del scanner en iPad
+
+V253 cambió `keypress` por `keydown`, pero el scanner seguía sin funcionar en iPad **excepto cuando había un campo de texto focused**. Eso es porque iPad/iOS solo dispara eventos de teclado en el elemento que tiene foco — no a nivel `document` como en desktop.
+
+**Solución**: input fantasma siempre focused (canónico para iPad/iOS).
+
+- **Input invisible** (1px, fuera de pantalla, opacidad 0) inyectado dinámicamente al body.
+- **Auto-focus al cargar** y refocus automático en cualquier interacción del usuario que no sea sobre un campo de texto real.
+- **Refocus inteligente**: solo cede el foco a campos de TEXTO reales (`text`, `textarea`, `search`, `email`, etc.). Botones, selects, checkboxes, divs → vuelven a poner foco en el ghost para que el scanner siga capturando.
+- **Listeners triple**: `pointerdown` + `touchstart` + `click` (todos en captura) — máxima cobertura en iPad.
+- **`inputmode="none"`**: suprime el teclado en pantalla del iPad.
+- **Refocus periódico** cada 2 segundos como red de seguridad.
+- **Indicador visual** chico (🔍) en la esquina inferior derecha. Click para forzar refocus si algo se desincroniza.
+
+**Doble estrategia**:
+1. **Input fantasma** (canónica iOS) — captura `input` + `keydown` del scanner.
+2. **Listener global de keydown** (respaldo desktop) — sigue funcionando como antes.
+
+Mantiene toda la lógica V253 (detección scanner vs humano por ritmo y patrón, auto-procesamiento sin Enter, etc.).
+
 ## V253 — 2026-05-07
 
 ### Mejoras

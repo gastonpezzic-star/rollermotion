@@ -7966,18 +7966,17 @@ function resetEtqConfig(){
 
 (function initScanner(){
   // Scanner global — funciona en cualquier pestaña (cotizaciones, pedidos, fábrica, etc.)
-  // Detecta scanner vs tipeo humano por ritmo y patrón. Compatible con iPad/iOS:
-  //   - Usa 'keydown' (moderno, fiable en iOS) en lugar de 'keypress' (deprecado)
-  //   - Auto-procesa tras pausa (no requiere Enter — algunos scanners iOS no lo envían)
-  //   - Tolera apóstrofes / smart quotes / espacios (los limpia en processScan)
+  // Compatible con iPad/iOS via doble estrategia:
+  //   1. Input fantasma siempre focused (fiable en iOS — captura todo el input del scanner)
+  //   2. Listener global de keydown (respaldo — funciona en desktop)
+  // Detecta scanner vs tipeo humano por ritmo y patrón.
   let buffer = '';
   let firstKey = 0;
   let lastKey  = 0;
   let processTimer = null;
-  const RESET_TIMEOUT      = 300;  // ms — pausa larga resetea buffer
-  const AUTO_PROCESS_DELAY = 150;  // ms — pausa breve dispara procesamiento (sin Enter)
-  const SCAN_MAX_AVG_MS    = 80;   // ms promedio entre teclas para considerar scanner
-  // Patrón de código de pedido: letras seguidas (opcionalmente con separador) de dígitos
+  const RESET_TIMEOUT      = 300;
+  const AUTO_PROCESS_DELAY = 150;
+  const SCAN_MAX_AVG_MS    = 80;
   const SCAN_PATTERN = /^[A-Z]+[\W_]?\d{3,}$/i;
 
   function tryProcess(){
@@ -7995,33 +7994,142 @@ function resetEtqConfig(){
     if(looksLikeScan) processScan(scanned);
   }
 
-  function handleKey(e){
-    // Bloquear si hay overlay abierto (excepto el propio scan-confirm)
-    const anyOverlayOpen = document.querySelector('.overlay.on:not(#overlay-scan)');
-    if(anyOverlayOpen) return;
+  function isOverlayBlocked(){
+    return !!document.querySelector('.overlay.on:not(#overlay-scan)');
+  }
 
+  function handleChar(ch){
+    if(isOverlayBlocked()) return;
     const now = Date.now();
     const elapsed = now - lastKey;
     if(elapsed > RESET_TIMEOUT){ buffer = ''; firstKey = now; }
+    if(!buffer) firstKey = now;
     lastKey = now;
+    buffer += ch;
+    if(processTimer) clearTimeout(processTimer);
+    processTimer = setTimeout(tryProcess, AUTO_PROCESS_DELAY);
+  }
 
-    if(e.key === 'Enter'){
-      if(buffer.length >= 4){
-        const totalTime = now - firstKey;
-        const avgKey = buffer.length > 1 ? totalTime / (buffer.length - 1) : 0;
-        // Si parece scanner, prevenir el Enter para que no submitee un form
-        if(avgKey <= SCAN_MAX_AVG_MS) e.preventDefault();
-        tryProcess();
-      }
-    } else if(e.key && e.key.length === 1){
-      if(!buffer) firstKey = now;
-      buffer += e.key;
-      if(processTimer) clearTimeout(processTimer);
-      processTimer = setTimeout(tryProcess, AUTO_PROCESS_DELAY);
+  function handleEnter(e){
+    if(isOverlayBlocked()) return;
+    if(buffer.length >= 4){
+      const now = Date.now();
+      const totalTime = now - firstKey;
+      const avgKey = buffer.length > 1 ? totalTime / (buffer.length - 1) : 0;
+      if(avgKey <= SCAN_MAX_AVG_MS && e && e.preventDefault) e.preventDefault();
+      tryProcess();
     }
   }
 
-  document.addEventListener('keydown', handleKey);
+  // ── ESTRATEGIA 1: input fantasma (canónica para iOS/iPad) ──
+  function setupGhostInput(){
+    if(document.getElementById('scanner-ghost')) return;
+    const inp = document.createElement('input');
+    inp.id = 'scanner-ghost';
+    inp.type = 'text';
+    inp.autocomplete = 'off';
+    inp.setAttribute('autocorrect','off');
+    inp.setAttribute('autocapitalize','off');
+    inp.setAttribute('spellcheck','false');
+    inp.setAttribute('inputmode','none'); // suprime teclado en pantalla en iOS
+    inp.setAttribute('aria-hidden','true');
+    inp.tabIndex = -1;
+    inp.style.cssText = 'position:fixed;top:0;left:-9999px;width:1px;height:1px;opacity:0;border:none;outline:none;padding:0;margin:0';
+    document.body.appendChild(inp);
+
+    // Procesar cada cambio (input event = fiable en iOS)
+    let lastVal = '';
+    inp.addEventListener('input', ()=>{
+      const v = inp.value;
+      // Calcular el delta (caracteres nuevos)
+      let delta = '';
+      if(v.startsWith(lastVal)) delta = v.slice(lastVal.length);
+      else delta = v; // reset (paste / clear)
+      lastVal = v;
+      for(const ch of delta){ handleChar(ch); }
+      // Limpiar el input cada cierto tiempo para no acumular
+      if(v.length > 60){ inp.value = ''; lastVal = ''; }
+    });
+
+    // Capturar Enter (algunos scanners terminan así)
+    inp.addEventListener('keydown', e=>{
+      if(e.key === 'Enter'){
+        handleEnter(e);
+        inp.value = ''; lastVal = '';
+      }
+    });
+
+    // Detecta si el elemento es un campo de TEXTO real donde el usuario quiere tipear.
+    // Solo en esos casos cedemos el foco — para botones, selects, checkboxes, etc.
+    // refocuseamos al ghost para que el scanner siga capturando.
+    function isRealTextField(el){
+      if(!el || !el.tagName) return false;
+      if(el.id === 'scanner-ghost') return false;
+      if(el.isContentEditable) return true;
+      const tag = el.tagName.toLowerCase();
+      if(tag === 'textarea') return true;
+      if(tag === 'input'){
+        const type = (el.type||'text').toLowerCase();
+        return ['text','search','tel','email','url','password','number'].includes(type);
+      }
+      return false;
+    }
+
+    function refocus(){
+      const ae = document.activeElement;
+      // No quitar foco si el usuario está tipeando en un campo de texto real
+      if(isRealTextField(ae)) return;
+      try{ inp.focus({preventScroll:true}); } catch(_){}
+    }
+
+    // Auto-focus al cargar (delay para no chocar con login)
+    setTimeout(refocus, 300);
+
+    // Refocus en CUALQUIER interacción del usuario que NO sea sobre un campo de texto.
+    // Usamos pointerdown (más temprano que click, más fiable en iOS).
+    function onUserGesture(e){
+      if(!isRealTextField(e.target)){
+        setTimeout(refocus, 60);
+      }
+    }
+    document.addEventListener('pointerdown', onUserGesture, true);
+    document.addEventListener('touchstart',  onUserGesture, true);
+    document.addEventListener('click',       onUserGesture, true);
+
+    // Refocus cuando se cierra cualquier overlay/modal (puede robar el foco)
+    document.addEventListener('focusout', ()=>{
+      setTimeout(refocus, 100);
+    });
+
+    // Refocus periódico de respaldo (cada 2s) por si algo se nos escapa
+    setInterval(refocus, 2000);
+
+    // Indicador visual chico (esquina inf-derecha) para confirmar que el scanner está listo
+    const ind = document.createElement('div');
+    ind.id = 'scanner-indicator';
+    ind.title = 'Scanner listo';
+    ind.textContent = '🔍';
+    ind.style.cssText = 'position:fixed;bottom:8px;right:8px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;z-index:99999;cursor:pointer;user-select:none;opacity:.4;transition:opacity .2s';
+    ind.onmouseenter = ()=>{ ind.style.opacity = '1'; };
+    ind.onmouseleave = ()=>{ ind.style.opacity = '.4'; };
+    ind.onclick = ()=>{ refocus(); ind.style.background = '#22c55e'; setTimeout(()=>{ ind.style.background='rgba(0,0,0,.55)'; }, 600); };
+    document.body.appendChild(ind);
+  }
+
+  // ── ESTRATEGIA 2: listener global de keydown (respaldo para desktop) ──
+  document.addEventListener('keydown', e=>{
+    // Si el target es el ghost input, ya lo maneja el listener específico
+    if(e.target && e.target.id === 'scanner-ghost') return;
+    if(e.key === 'Enter'){ handleEnter(e); return; }
+    if(e.key && e.key.length === 1) handleChar(e.key);
+  });
+
+  // Inicializar el ghost input cuando el DOM esté listo
+  if(document.readyState === 'loading'){
+    document.addEventListener('DOMContentLoaded', setupGhostInput);
+  } else {
+    setupGhostInput();
+  }
 })();
 
 async function processScan(code){
