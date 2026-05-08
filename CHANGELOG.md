@@ -1,5 +1,20 @@
 # Changelog
 
+## V256 — 2026-05-07
+
+### Más fixes del scanner para iPad
+
+V255 mejoró el scanner pero seguía sin funcionar sin tener un input focused. Investigando: iOS Safari rechaza `focus()` en elementos posicionados fuera del viewport (`left:-9999px`) y pierde el "user-activation context" cuando se hace focus en `setTimeout`.
+
+**Cambios**:
+
+- **Ghost input dentro del viewport**: posicionado en `top:0; left:0; width:1px; height:1px; opacity:0; pointer-events:none`. Sigue invisible pero iOS sí lo acepta para focus.
+- **Focus sincrónico durante gestos**: los handlers de `pointerdown`/`touchstart`/`click` llaman `focus()` directamente, sin `setTimeout`. iOS solo permite el focus mientras todavía estamos en el contexto del gesto del usuario.
+- **`tabIndex = 0`** en lugar de `-1`: algunos navegadores rechazan `focus()` en elementos con `tabindex=-1`.
+- **Más eventos**: agregamos `touchend` y `visibilitychange` (refocus al volver de background).
+- **Indicador clickeable**: el 🔍 chico en la esquina ahora es un botón. Si el scanner deja de funcionar, tocarlo "lo despierta" (`focus()` durante el tap).
+- **Logging**: el ghost input loguea `[Scan] ghost FOCUSED` y `[Scan] ghost BLURRED` con info del elemento que tomó el foco. Útil para debuggear desde el inspector del iPad.
+
 ## V255 — 2026-05-07
 
 ### Fixes y mejoras del scanner

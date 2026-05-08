@@ -8033,8 +8033,10 @@ function resetEtqConfig(){
     inp.setAttribute('spellcheck','false');
     inp.setAttribute('inputmode','none'); // suprime teclado en pantalla en iOS
     inp.setAttribute('aria-hidden','true');
-    inp.tabIndex = -1;
-    inp.style.cssText = 'position:fixed;top:0;left:-9999px;width:1px;height:1px;opacity:0;border:none;outline:none;padding:0;margin:0';
+    inp.tabIndex = 0; // 0 (focusable) en lugar de -1 — algunos navegadores rechazan focus en -1
+    // ⚠ Posicionado DENTRO del viewport (iOS Safari rechaza focus en elementos
+    // fuera de pantalla con left:-9999px). Lo hacemos invisible con opacity:0.
+    inp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0;outline:0;padding:0;margin:0;background:transparent;font-size:16px;-webkit-user-select:none;user-select:none;pointer-events:none;z-index:-1';
     document.body.appendChild(inp);
 
     // Procesar cada cambio (input event = fiable en iOS)
@@ -8087,16 +8089,18 @@ function resetEtqConfig(){
     // Auto-focus al cargar (delay para no chocar con login)
     setTimeout(refocus, 300);
 
-    // Refocus en interacciones del usuario sobre elementos NO interactivos.
-    // No tocamos selects/inputs/textarea (necesitan foco para que el picker
-    // nativo se abra correctamente). Para clicks en botones/divs, refocus.
+    // ⚠ Refocus SINCRÓNICO durante el gesto del usuario.
+    // iOS Safari pierde el "user-activation context" si llamamos focus() en setTimeout,
+    // por eso ejecutamos directamente y sin demora.
     function onUserGesture(e){
-      if(!shouldKeepFocusOn(e.target)){
-        setTimeout(refocus, 80);
-      }
+      if(shouldKeepFocusOn(e.target)) return;
+      const ae = document.activeElement;
+      if(shouldKeepFocusOn(ae)) return;
+      try{ inp.focus({preventScroll:true}); }catch(_){}
     }
     document.addEventListener('pointerdown', onUserGesture, true);
     document.addEventListener('touchstart',  onUserGesture, true);
+    document.addEventListener('touchend',    onUserGesture, true);
     document.addEventListener('click',       onUserGesture, true);
 
     // Refocus cuando se cierra cualquier overlay/modal (puede robar el foco)
@@ -8107,16 +8111,33 @@ function resetEtqConfig(){
     // Refocus periódico de respaldo (cada 2s) por si algo se nos escapa
     setInterval(refocus, 2000);
 
-    // Indicador visual chico (esquina inf-derecha) para confirmar que el scanner está listo
-    const ind = document.createElement('div');
+    // Cuando la app vuelve a primer plano (cambio de pestaña, lock/unlock), refocus
+    document.addEventListener('visibilitychange', ()=>{
+      if(!document.hidden) setTimeout(refocus, 200);
+    });
+
+    // ── INDICADOR / ACTIVADOR ──
+    // Botón visible en la esquina que el usuario puede tocar para "activar" el scanner.
+    // Útil cuando iOS no permite focus automático sin gesto previo.
+    const ind = document.createElement('button');
     ind.id = 'scanner-indicator';
-    ind.title = 'Scanner listo';
+    ind.type = 'button';
+    ind.title = 'Tocá para activar el scanner';
     ind.textContent = '🔍';
-    ind.style.cssText = 'position:fixed;bottom:8px;right:8px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;z-index:99999;cursor:pointer;user-select:none;opacity:.4;transition:opacity .2s';
-    ind.onmouseenter = ()=>{ ind.style.opacity = '1'; };
-    ind.onmouseleave = ()=>{ ind.style.opacity = '.4'; };
-    ind.onclick = ()=>{ refocus(); ind.style.background = '#22c55e'; setTimeout(()=>{ ind.style.background='rgba(0,0,0,.55)'; }, 600); };
+    ind.style.cssText = 'position:fixed;bottom:10px;right:10px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:0;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:99999;cursor:pointer;user-select:none;opacity:.55;transition:opacity .2s,background .2s;box-shadow:0 2px 8px rgba(0,0,0,.2)';
+    ind.addEventListener('pointerdown', e=>{
+      // SINCRÓNICO en el gesto — máxima chance de que iOS acepte el focus
+      e.preventDefault();
+      try{ inp.focus({preventScroll:true}); }catch(_){}
+      ind.style.background = '#22c55e';
+      ind.style.opacity = '1';
+      setTimeout(()=>{ ind.style.background='rgba(0,0,0,.55)'; ind.style.opacity='.55'; }, 800);
+    });
     document.body.appendChild(ind);
+
+    // Log helper para debug
+    inp.addEventListener('focus', ()=> console.log('[Scan] ghost FOCUSED'));
+    inp.addEventListener('blur',  ()=> console.log('[Scan] ghost BLURRED, activeEl:', document.activeElement?.tagName, document.activeElement?.id||document.activeElement?.className));
   }
 
   // ── ESTRATEGIA 2: listener global de keydown (respaldo para desktop) ──
