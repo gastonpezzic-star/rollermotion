@@ -4540,6 +4540,33 @@ function recalcTotalConInstal(){
   if(tdf) tdf.textContent = fmt;
   if(ic)  ic.textContent  = units;
   if(icb) icb.textContent = `${document.querySelectorAll('#items-list tr').length} items`;
+  // Mantener sincronizado el display del descuento — la base cambia cuando se
+  // toggleéa instalación, adicionales, ítems, etc. Sin esto, el monto mostrado
+  // queda desactualizado y varía según el orden de operaciones.
+  updateDescuentoDisplay();
+  // Mismo motivo para el precio corporativo si está activo.
+  if(_corpActivo){
+    const corpDisp = document.getElementById('corp-precio-display');
+    if(corpDisp){
+      const bruto = getTotalBruto();
+      corpDisp.textContent = fmtM(Math.round(bruto * (1 - CORP_PCT/100)));
+    }
+  }
+}
+
+function updateDescuentoDisplay(){
+  const disp = document.getElementById('desc-monto-display');
+  const res  = document.getElementById('desc-resumen');
+  if(!_descuentoActivo){
+    if(disp) disp.textContent = '';
+    return;
+  }
+  const monto = getDescuentoMonto();
+  const pct   = getDescuentoPct();
+  if(disp) disp.textContent = monto ? `−${fmtM(Math.abs(monto))}` : '';
+  if(res)  res.textContent  = monto
+    ? `${pct}% → −${fmtM(Math.abs(monto))}`
+    : 'Ingresá concepto y porcentaje abajo';
 }
 
 // addRow also needs selOpts available (already defined)
@@ -8485,14 +8512,8 @@ function getDescuentoMonto(){
 }
 
 function calcDescuento(){
-  const monto = getDescuentoMonto();
-  const pct   = getDescuentoPct();
-  const disp  = document.getElementById('desc-monto-display');
-  const res   = document.getElementById('desc-resumen');
-  if(disp) disp.textContent = monto ? `−${fmtM(Math.abs(monto))}` : '';
-  if(res && _descuentoActivo) res.textContent = monto
-    ? `${pct}% → −${fmtM(Math.abs(monto))}`
-    : 'Ingresá concepto y porcentaje abajo';
+  // recalcTotalConInstal se encarga de actualizar el display del descuento
+  // y el total. Mantener un solo punto de verdad evita desincronización.
   recalcTotalConInstal();
 }
 

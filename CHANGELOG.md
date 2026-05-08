@@ -1,5 +1,22 @@
 # Changelog
 
+## V252 — 2026-05-07
+
+### Fixes
+
+**Descuento desincronizado del display**
+
+El monto del descuento se calculaba sobre la base correcta (suma total: items + adicionales + instalación) pero el **display visual no se refrescaba** cuando se cambiaba la instalación, los adicionales u otros valores después de activar el descuento. Resultado: el monto mostrado dependía del orden en que el usuario tocaba las cosas, aunque al guardar siempre se calculaba bien.
+
+**Fix**:
+
+- Nueva función `updateDescuentoDisplay()` — actualiza solo la UI del descuento sin tocar el total.
+- `recalcTotalConInstal()` ahora siempre llama a `updateDescuentoDisplay()` al final, así cualquier cambio en items / instalación / adicionales sincroniza el display del descuento.
+- Lo mismo para el precio Corporativo: si está activo, se refresca cuando cambia la base.
+- `calcDescuento()` simplificado — un solo punto de verdad evita doble cálculo.
+
+Resultado: el monto que ves siempre coincide con el monto que se guarda, sin depender del orden.
+
 ## V251 — 2026-05-07
 
 ### Mejoras
