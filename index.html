@@ -1765,7 +1765,7 @@ body{
   <div class="pbox" style="width:440px">
     <div class="ptbar" style="background:#2c6e49">
       <span>📡 Código escaneado</span>
-      <button class="bpa bpa-c" onclick="document.getElementById('overlay-scan').classList.remove('on');_scanDoc=null;_scanNextEstado=null">✕</button>
+      <button class="bpa bpa-c" onclick="cerrarOverlayScan()">✕</button>
     </div>
     <div style="padding:24px 28px;text-align:center">
       <div style="font-size:11px;color:var(--muted);margin-bottom:4px">Código</div>
@@ -8059,37 +8059,40 @@ function resetEtqConfig(){
       }
     });
 
-    // Detecta si el elemento es un campo de TEXTO real donde el usuario quiere tipear.
-    // Solo en esos casos cedemos el foco — para botones, selects, checkboxes, etc.
-    // refocuseamos al ghost para que el scanner siga capturando.
-    function isRealTextField(el){
+    // Decide si NO debemos quitarle el foco al elemento.
+    // Caso típico: campos de texto (usuario tipeando) y SELECTS (picker nativo
+    // de iOS necesita mantener el foco para abrirse). Si robamos el foco a un
+    // select en iPad, el picker se cierra antes de mostrarse.
+    function shouldKeepFocusOn(el){
       if(!el || !el.tagName) return false;
       if(el.id === 'scanner-ghost') return false;
       if(el.isContentEditable) return true;
       const tag = el.tagName.toLowerCase();
-      if(tag === 'textarea') return true;
+      if(tag === 'textarea' || tag === 'select' || tag === 'option') return true;
       if(tag === 'input'){
         const type = (el.type||'text').toLowerCase();
-        return ['text','search','tel','email','url','password','number'].includes(type);
+        // Tipos que abren un picker o donde el usuario tipea
+        return ['text','search','tel','email','url','password','number','date','time','datetime-local','month','week','color'].includes(type);
       }
       return false;
     }
 
     function refocus(){
       const ae = document.activeElement;
-      // No quitar foco si el usuario está tipeando en un campo de texto real
-      if(isRealTextField(ae)) return;
+      // No quitar foco si el usuario está interactuando con un campo de texto o select
+      if(shouldKeepFocusOn(ae)) return;
       try{ inp.focus({preventScroll:true}); } catch(_){}
     }
 
     // Auto-focus al cargar (delay para no chocar con login)
     setTimeout(refocus, 300);
 
-    // Refocus en CUALQUIER interacción del usuario que NO sea sobre un campo de texto.
-    // Usamos pointerdown (más temprano que click, más fiable en iOS).
+    // Refocus en interacciones del usuario sobre elementos NO interactivos.
+    // No tocamos selects/inputs/textarea (necesitan foco para que el picker
+    // nativo se abra correctamente). Para clicks en botones/divs, refocus.
     function onUserGesture(e){
-      if(!isRealTextField(e.target)){
-        setTimeout(refocus, 60);
+      if(!shouldKeepFocusOn(e.target)){
+        setTimeout(refocus, 80);
       }
     }
     document.addEventListener('pointerdown', onUserGesture, true);
@@ -8168,8 +8171,11 @@ async function processScan(code){
 
 let _scanDoc = null;
 let _scanNextEstado = null;
+let _scanAutoTimer  = null; // timer para auto-confirm tras 1s
 
 function abrirScanConfirm(doc, code){
+  // Si había un timer pendiente, cancelarlo (nuevo scan reemplaza el anterior)
+  if(_scanAutoTimer){ clearTimeout(_scanAutoTimer); _scanAutoTimer = null; }
   _scanDoc = doc;
 
   // Decidir el siguiente estado según el actual
@@ -8197,7 +8203,8 @@ function abrirScanConfirm(doc, code){
       const iconMap = {'En Fabricación':'⚙️','Finalizado':'✅'};
       sugBox.style.display = 'block';
       sugBox.innerHTML = `<div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700">Siguiente paso sugerido</div>
-        <div style="font-size:18px;font-weight:800;color:${colorMap[_scanNextEstado]||'#141414'};margin-top:4px">${iconMap[_scanNextEstado]||''} ${_scanNextEstado}</div>`;
+        <div style="font-size:18px;font-weight:800;color:${colorMap[_scanNextEstado]||'#141414'};margin-top:4px">${iconMap[_scanNextEstado]||''} ${_scanNextEstado}</div>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:center">⏱ Confirmando automáticamente…</div>`;
       btnAvanzar.style.display = 'inline-flex';
       btnAvanzar.textContent = `${iconMap[_scanNextEstado]||''} Marcar ${_scanNextEstado}`;
       btnAvanzar.style.background = colorMap[_scanNextEstado] || '#1a5f8a';
@@ -8209,6 +8216,30 @@ function abrirScanConfirm(doc, code){
   }
 
   el.classList.add('on');
+
+  // Auto-confirmar tras 1 segundo si hay un siguiente estado
+  if(_scanNextEstado){
+    _scanAutoTimer = setTimeout(()=>{
+      _scanAutoTimer = null;
+      confirmarScanAvance();
+    }, 1000);
+  } else {
+    // Si ya está en estado terminal, cerrar el popup tras 1.5s
+    _scanAutoTimer = setTimeout(()=>{
+      _scanAutoTimer = null;
+      cerrarOverlayScan();
+    }, 1500);
+  }
+}
+
+function cerrarOverlayScan(){
+  if(_scanAutoTimer){ clearTimeout(_scanAutoTimer); _scanAutoTimer = null; }
+  document.getElementById('overlay-scan').classList.remove('on');
+  _scanDoc = null;
+  _scanNextEstado = null;
+  // Refocusear el ghost input para que el próximo scan funcione
+  const ghost = document.getElementById('scanner-ghost');
+  if(ghost) setTimeout(()=>{ try{ ghost.focus({preventScroll:true}); }catch(_){} }, 80);
 }
 
 // ── BEEP de confirmación ──
@@ -8241,10 +8272,14 @@ function beepScan(success){
 
 async function confirmarScanAvance(){
   if(!_scanDoc || !_scanNextEstado) return;
-  await changeStatus(_scanDoc.id, _scanNextEstado);
-  document.getElementById('overlay-scan').classList.remove('on');
+  // Cancelar el timer de auto-confirm si todavía está pendiente (caso: usuario tocó manualmente)
+  if(_scanAutoTimer){ clearTimeout(_scanAutoTimer); _scanAutoTimer = null; }
   const estadoFinal = _scanNextEstado;
+  const docId = _scanDoc.id;
+  // Limpiar referencias antes del await para evitar doble dispara
   _scanDoc = null; _scanNextEstado = null;
+  await changeStatus(docId, estadoFinal);
+  cerrarOverlayScan();
   const iconMap = {'En Fabricación':'⚙️','Finalizado':'✅'};
   beepScan(true);
   toast(`${iconMap[estadoFinal]||''} Pedido → ${estadoFinal}`,'ok');

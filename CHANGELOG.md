@@ -1,5 +1,33 @@
 # Changelog
 
+## V255 — 2026-05-07
+
+### Fixes y mejoras del scanner
+
+**Bug 1: no se podían cambiar estados manualmente en Fábrica**
+
+Después de V254, el ghost input refocuseaba al hacer click en cualquier elemento que no fuera un campo de texto. Eso incluía los `<select>` que controlan el estado de los pedidos en la pestaña Fábrica → al tocarlos en iPad, el ghost les robaba el foco antes de que el picker nativo se abriera.
+
+**Fix**: extender la lista de elementos que NO pierden foco para incluir `select`, `option`, y todos los inputs con picker nativo (`date`, `time`, `color`, etc.). El ghost respeta el foco mientras hay un picker abierto y vuelve a tomarlo después.
+
+**Bug 2: el segundo escaneo no avanzaba a Finalizado**
+
+Después de confirmar un scan, el ghost input no se refocusea automáticamente. Cualquier scan posterior se perdía si el foco estaba en un elemento sin captura de teclado.
+
+**Fix**: refocusear el ghost input explícitamente después de cerrar el overlay de scan-confirm.
+
+**Mejora: auto-confirmación tras 1 segundo**
+
+El popup de confirmación ahora se confirma automáticamente después de 1 segundo. No hace falta tocar la pantalla. Si hay un error, el usuario lo corrige manualmente desde la lista (cambio de estado por el select).
+
+- Si el doc ya está en estado terminal (Finalizado/Cancelado): el popup se auto-cierra tras 1.5s.
+- Si llega un nuevo scan mientras hay un timer pendiente, el timer se reinicia con el nuevo doc.
+- El botón "Avanzar" sigue visible y funcional por si el usuario quiere acelerar el confirm.
+
+**Cleanup interno**:
+- Nueva función `cerrarOverlayScan()` centraliza el cierre + reset + refocus del ghost (antes había código duplicado en el botón de cerrar y en confirmarScanAvance).
+- En `confirmarScanAvance` se limpian referencias antes del `await` para evitar doble disparo si el usuario cliquea + auto-confirm casi simultáneamente.
+
 ## V254 — 2026-05-07
 
 ### Fix definitivo del scanner en iPad
