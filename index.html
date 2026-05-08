@@ -7965,38 +7965,63 @@ function resetEtqConfig(){
 }
 
 (function initScanner(){
+  // Scanner global — funciona en cualquier pestaña (cotizaciones, pedidos, fábrica, etc.)
+  // Detecta scanner vs tipeo humano por ritmo y patrón. Compatible con iPad/iOS:
+  //   - Usa 'keydown' (moderno, fiable en iOS) en lugar de 'keypress' (deprecado)
+  //   - Auto-procesa tras pausa (no requiere Enter — algunos scanners iOS no lo envían)
+  //   - Tolera apóstrofes / smart quotes / espacios (los limpia en processScan)
   let buffer = '';
-  let lastKey = 0;
-  const TIMEOUT = 80; // ms entre teclas — scanner es más rápido que humano
+  let firstKey = 0;
+  let lastKey  = 0;
+  let processTimer = null;
+  const RESET_TIMEOUT      = 300;  // ms — pausa larga resetea buffer
+  const AUTO_PROCESS_DELAY = 150;  // ms — pausa breve dispara procesamiento (sin Enter)
+  const SCAN_MAX_AVG_MS    = 80;   // ms promedio entre teclas para considerar scanner
+  // Patrón de código de pedido: letras seguidas (opcionalmente con separador) de dígitos
+  const SCAN_PATTERN = /^[A-Z]+[\W_]?\d{3,}$/i;
 
-  document.addEventListener('keypress', e=>{
-    // No procesar si el usuario está escribiendo en un campo
-    const tag = (e.target.tagName||'').toLowerCase();
-    if(tag === 'input' || tag === 'textarea' || tag === 'select') return;
-    // No procesar si hay un overlay/modal abierto (excepto el scan-confirm)
+  function tryProcess(){
+    if(processTimer){ clearTimeout(processTimer); processTimer = null; }
+    const scanned = buffer.trim();
+    const len = scanned.length;
+    buffer = '';
+    if(!scanned) return;
+    const totalTime = lastKey - firstKey;
+    const avgKey = len > 1 ? totalTime / (len - 1) : 0;
+    const matchesPattern = SCAN_PATTERN.test(scanned);
+    const fastEnough = len <= 1 || avgKey <= SCAN_MAX_AVG_MS;
+    const looksLikeScan = matchesPattern && fastEnough && len >= 4;
+    console.log('[Scan]', JSON.stringify(scanned), 'len:', len, 'avg:', avgKey.toFixed(0)+'ms', 'pattern:', matchesPattern, 'fast:', fastEnough, '→ scan:', looksLikeScan);
+    if(looksLikeScan) processScan(scanned);
+  }
+
+  function handleKey(e){
+    // Bloquear si hay overlay abierto (excepto el propio scan-confirm)
     const anyOverlayOpen = document.querySelector('.overlay.on:not(#overlay-scan)');
     if(anyOverlayOpen) return;
 
     const now = Date.now();
-    // Si hay pausa larga, resetear buffer
-    if(now - lastKey > 500) buffer = '';
+    const elapsed = now - lastKey;
+    if(elapsed > RESET_TIMEOUT){ buffer = ''; firstKey = now; }
     lastKey = now;
 
     if(e.key === 'Enter'){
-      // Fin de scan
-      const scanned = buffer.trim();
-      buffer = '';
-      // Solo procesar si tiene mínimo 4 caracteres y contiene letras + dígitos (formato pedido)
-      // Acepta: PED-0030, PED'0030, PED0030, PED 0030, etc.
-      const tieneLetras = /[A-Za-z]/.test(scanned);
-      const tieneDigitos = /\d/.test(scanned);
-      if(scanned.length >= 4 && tieneLetras && tieneDigitos){
-        processScan(scanned);
+      if(buffer.length >= 4){
+        const totalTime = now - firstKey;
+        const avgKey = buffer.length > 1 ? totalTime / (buffer.length - 1) : 0;
+        // Si parece scanner, prevenir el Enter para que no submitee un form
+        if(avgKey <= SCAN_MAX_AVG_MS) e.preventDefault();
+        tryProcess();
       }
-    } else {
+    } else if(e.key && e.key.length === 1){
+      if(!buffer) firstKey = now;
       buffer += e.key;
+      if(processTimer) clearTimeout(processTimer);
+      processTimer = setTimeout(tryProcess, AUTO_PROCESS_DELAY);
     }
-  });
+  }
+
+  document.addEventListener('keydown', handleKey);
 })();
 
 async function processScan(code){
