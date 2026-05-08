@@ -8086,58 +8086,96 @@ function resetEtqConfig(){
       try{ inp.focus({preventScroll:true}); } catch(_){}
     }
 
-    // Auto-focus al cargar (delay para no chocar con login)
-    setTimeout(refocus, 300);
+    // ── INDICADOR DE ESTADO (pildorita visible) ──
+    const ind = document.createElement('button');
+    ind.id = 'scanner-indicator';
+    ind.type = 'button';
+    ind.title = 'Estado del scanner';
+    ind.style.cssText = 'position:fixed;bottom:10px;right:10px;height:30px;padding:0 12px;border-radius:18px;border:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:-apple-system,system-ui,sans-serif;font-size:11.5px;font-weight:700;z-index:99999;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 10px rgba(0,0,0,.18);transition:all .2s';
+    document.body.appendChild(ind);
 
-    // ⚠ Refocus SINCRÓNICO durante el gesto del usuario.
-    // iOS Safari pierde el "user-activation context" si llamamos focus() en setTimeout,
-    // por eso ejecutamos directamente y sin demora.
-    function onUserGesture(e){
-      if(shouldKeepFocusOn(e.target)) return;
-      const ae = document.activeElement;
-      if(shouldKeepFocusOn(ae)) return;
-      try{ inp.focus({preventScroll:true}); }catch(_){}
+    function setIndState(state){
+      // state: 'active', 'inactive', 'success'
+      if(state === 'active'){
+        ind.style.background = '#22c55e';
+        ind.style.color = '#fff';
+        ind.innerHTML = '🔍 Scanner activo';
+      } else if(state === 'success'){
+        ind.style.background = '#16a34a';
+        ind.style.color = '#fff';
+        ind.innerHTML = '✓ Procesado';
+      } else {
+        ind.style.background = '#f59e0b';
+        ind.style.color = '#fff';
+        ind.innerHTML = '⚠ Tocá para activar';
+      }
     }
-    document.addEventListener('pointerdown', onUserGesture, true);
-    document.addEventListener('touchstart',  onUserGesture, true);
-    document.addEventListener('touchend',    onUserGesture, true);
-    document.addEventListener('click',       onUserGesture, true);
+    setIndState('inactive');
 
-    // Refocus cuando se cierra cualquier overlay/modal (puede robar el foco)
-    document.addEventListener('focusout', ()=>{
-      setTimeout(refocus, 100);
+    // Tocar el indicador → focus sincrónico al ghost
+    ind.addEventListener('pointerdown', e=>{
+      e.preventDefault();
+      try{ inp.focus({preventScroll:true}); }catch(_){}
     });
 
-    // Refocus periódico de respaldo (cada 2s) por si algo se nos escapa
-    setInterval(refocus, 2000);
+    // Auto-focus al cargar
+    setTimeout(refocus, 300);
 
-    // Cuando la app vuelve a primer plano (cambio de pestaña, lock/unlock), refocus
+    // ⚠ TÉCNICA CLAVE: prevenir que iOS le saque el foco al ghost cuando el
+    // usuario toca elementos no-interactivos. mousedown/pointerdown.preventDefault()
+    // bloquea el cambio de foco PERO deja que el evento click siga disparándose.
+    function preventFocusShift(e){
+      // No prevenir si el usuario quiere interactuar con un campo de texto o select
+      if(shouldKeepFocusOn(e.target)) return;
+      // No prevenir si tocaron el propio indicador (ya tiene su handler)
+      if(e.target === ind || (e.target.parentNode === ind)) return;
+      e.preventDefault();
+    }
+    document.addEventListener('mousedown',   preventFocusShift, true);
+    document.addEventListener('pointerdown', preventFocusShift, true);
+
+    // Refocus sincrónico durante gestos como red de seguridad adicional
+    function onUserGesture(e){
+      if(shouldKeepFocusOn(e.target)) return;
+      if(shouldKeepFocusOn(document.activeElement)) return;
+      try{ inp.focus({preventScroll:true}); }catch(_){}
+    }
+    document.addEventListener('touchstart', onUserGesture, true);
+    document.addEventListener('touchend',   onUserGesture, true);
+    document.addEventListener('click',      onUserGesture, true);
+
+    // Si el ghost pierde foco, intentar reclamarlo INMEDIATAMENTE
+    inp.addEventListener('blur', ()=>{
+      requestAnimationFrame(()=>{
+        if(!shouldKeepFocusOn(document.activeElement)){
+          try{ inp.focus({preventScroll:true}); }catch(_){}
+        }
+      });
+    });
+
+    // Estado del indicador sincronizado con focus del ghost
+    inp.addEventListener('focus', ()=> setIndState('active'));
+    inp.addEventListener('blur',  ()=>{
+      // Después de que se complete el ciclo del DOM, ver si el ghost recuperó el foco
+      setTimeout(()=>{
+        if(document.activeElement !== inp) setIndState('inactive');
+      }, 100);
+    });
+
+    // Cuando la app vuelve a primer plano, refocus
     document.addEventListener('visibilitychange', ()=>{
       if(!document.hidden) setTimeout(refocus, 200);
     });
 
-    // ── INDICADOR / ACTIVADOR ──
-    // Botón visible en la esquina que el usuario puede tocar para "activar" el scanner.
-    // Útil cuando iOS no permite focus automático sin gesto previo.
-    const ind = document.createElement('button');
-    ind.id = 'scanner-indicator';
-    ind.type = 'button';
-    ind.title = 'Tocá para activar el scanner';
-    ind.textContent = '🔍';
-    ind.style.cssText = 'position:fixed;bottom:10px;right:10px;width:36px;height:36px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;border:0;display:flex;align-items:center;justify-content:center;font-size:16px;z-index:99999;cursor:pointer;user-select:none;opacity:.55;transition:opacity .2s,background .2s;box-shadow:0 2px 8px rgba(0,0,0,.2)';
-    ind.addEventListener('pointerdown', e=>{
-      // SINCRÓNICO en el gesto — máxima chance de que iOS acepte el focus
-      e.preventDefault();
-      try{ inp.focus({preventScroll:true}); }catch(_){}
-      ind.style.background = '#22c55e';
-      ind.style.opacity = '1';
-      setTimeout(()=>{ ind.style.background='rgba(0,0,0,.55)'; ind.style.opacity='.55'; }, 800);
-    });
-    document.body.appendChild(ind);
+    // Helper público para feedback visual de scan exitoso
+    window._scannerFlashSuccess = function(){
+      setIndState('success');
+      setTimeout(()=>{ if(document.activeElement === inp) setIndState('active'); else setIndState('inactive'); }, 1200);
+    };
 
     // Log helper para debug
     inp.addEventListener('focus', ()=> console.log('[Scan] ghost FOCUSED'));
-    inp.addEventListener('blur',  ()=> console.log('[Scan] ghost BLURRED, activeEl:', document.activeElement?.tagName, document.activeElement?.id||document.activeElement?.className));
+    inp.addEventListener('blur',  ()=> console.log('[Scan] ghost BLURRED → activeEl:', document.activeElement?.tagName, document.activeElement?.id||document.activeElement?.className||''));
   }
 
   // ── ESTRATEGIA 2: listener global de keydown (respaldo para desktop) ──
@@ -8264,29 +8302,54 @@ function cerrarOverlayScan(){
 }
 
 // ── BEEP de confirmación ──
-function beepScan(success){
+// kind: 'success' (avance normal), 'finalizado' (más triunfal), 'error' (grave)
+function beepScan(kind){
   try {
     const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    if(success){
-      // Beep doble agudo (éxito)
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(880, ctx.currentTime);
-      osc.frequency.setValueAtTime(1320, ctx.currentTime + 0.08);
-      gain.gain.setValueAtTime(0.3, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.25);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.26);
+    if(ctx.state === 'suspended') ctx.resume();
+
+    function tone(freq, startOffset, dur, gainPeak, type){
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = type || 'triangle';
+      const t0 = ctx.currentTime + startOffset;
+      o.frequency.setValueAtTime(freq, t0);
+      g.gain.setValueAtTime(0, t0);
+      g.gain.linearRampToValueAtTime(gainPeak, t0 + 0.012);
+      g.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+      o.start(t0);
+      o.stop(t0 + dur + 0.02);
+    }
+
+    // 'success' booleano legacy = avance normal
+    if(kind === true) kind = 'success';
+    if(kind === false) kind = 'error';
+
+    if(kind === 'finalizado'){
+      // Jingle triunfal de 4 tonos: arpegio mayor ascendente + final largo
+      // C5 → E5 → G5 → C6 (acorde de Do mayor en arpegio)
+      tone(523.25, 0.00, 0.10, 0.45);  // C5
+      tone(659.25, 0.10, 0.10, 0.45);  // E5
+      tone(783.99, 0.20, 0.10, 0.45);  // G5
+      tone(1046.5, 0.30, 0.45, 0.50);  // C6 (largo)
+      // Armónica con segundo oscilador para más cuerpo
+      tone(2093.0, 0.30, 0.45, 0.18, 'sine'); // C7 (octava arriba, suave)
+    } else if(kind === 'success' || kind === true){
+      // Avance normal: 2 tonos cortos ascendentes
+      tone(660, 0.00, 0.08, 0.4);   // E5
+      tone(990, 0.08, 0.18, 0.4);   // B5
     } else {
-      // Beep grave (error)
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(220, ctx.currentTime);
-      gain.gain.setValueAtTime(0.2, ctx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
-      osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + 0.32);
+      // Error: tono grave + corto
+      const o = ctx.createOscillator();
+      const g = ctx.createGain();
+      o.connect(g); g.connect(ctx.destination);
+      o.type = 'square';
+      o.frequency.setValueAtTime(220, ctx.currentTime);
+      g.gain.setValueAtTime(0.2, ctx.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3);
+      o.start(ctx.currentTime);
+      o.stop(ctx.currentTime + 0.32);
     }
   } catch(e){ /* AudioContext no disponible, ignorar */ }
 }
@@ -8301,26 +8364,33 @@ async function confirmarScanAvance(){
   _scanDoc = null; _scanNextEstado = null;
   await changeStatus(docId, estadoFinal);
   cerrarOverlayScan();
-  const iconMap = {'En Fabricación':'⚙️','Finalizado':'✅'};
-  beepScan(true);
+  const iconMap = {'En Fabricación':'⚙️','Finalizado':'🎉'};
+  // Sonido específico según el estado: Finalizado → jingle triunfal
+  beepScan(estadoFinal === 'Finalizado' ? 'finalizado' : 'success');
+  // Flash visual en el indicador del scanner
+  if(typeof window._scannerFlashSuccess === 'function') window._scannerFlashSuccess();
   toast(`${iconMap[estadoFinal]||''} Pedido → ${estadoFinal}`,'ok');
 }
 
 async function confirmarScanFinalizado(){
   if(!_scanDoc) return;
-  await changeStatus(_scanDoc.id, 'Finalizado');
-  document.getElementById('overlay-scan').classList.remove('on');
+  const docId = _scanDoc.id;
   _scanDoc = null; _scanNextEstado = null;
-  beepScan(true);
-  toast('✅ Pedido marcado como Finalizado','ok');
+  await changeStatus(docId, 'Finalizado');
+  cerrarOverlayScan();
+  beepScan('finalizado');
+  if(typeof window._scannerFlashSuccess === 'function') window._scannerFlashSuccess();
+  toast('🎉 Pedido marcado como Finalizado','ok');
 }
 
 async function confirmarScanFabricacion(){
   if(!_scanDoc) return;
-  await changeStatus(_scanDoc.id, 'En Fabricación');
-  document.getElementById('overlay-scan').classList.remove('on');
+  const docId = _scanDoc.id;
   _scanDoc = null; _scanNextEstado = null;
-  beepScan(true);
+  await changeStatus(docId, 'En Fabricación');
+  cerrarOverlayScan();
+  beepScan('success');
+  if(typeof window._scannerFlashSuccess === 'function') window._scannerFlashSuccess();
   toast('⚙️ Pedido marcado como En Fabricación','ok');
 }
 

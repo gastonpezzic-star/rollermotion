@@ -1,5 +1,31 @@
 # Changelog
 
+## V257 — 2026-05-07
+
+### Scanner: indicador visible y persistente
+
+V256 dejó el ghost input dentro del viewport, pero seguía perdiendo el foco constantemente — el operario tenía que tocar el dot 🔍 antes de cada escaneo. Imposible de operar.
+
+**Cambios para que NO haga falta tocar nada**:
+
+- **`mousedown.preventDefault()`** en elementos no-interactivos: bloquea el cambio de foco que iOS aplica al tocar un botón/div, pero deja que el evento `click` siga disparándose. **Esta es la técnica clave**: el ghost ya no pierde foco al tocar tabs/botones.
+- **Refocus inmediato en `blur`** del ghost: si algo logra robarle el foco, lo reclamamos en el próximo frame.
+- **Indicador visible más prominente**: en vez de un dot chico, ahora es una pildorita en la esquina inferior derecha que muestra el estado:
+  - 🟢 **Scanner activo** (verde) — el ghost tiene foco, todo OK
+  - 🟡 **Tocá para activar** (amarillo) — el foco se perdió, tocá una vez para reactivar
+  - ✓ **Procesado** (verde fuerte, 1.2s) — feedback visual de un scan exitoso
+- Tocar el indicador hace `focus()` sincrónico durante el gesto.
+
+### Sonido más triunfal al finalizar
+
+El beep anterior era casi inaudible. Ahora hay 3 sonidos distintos según el evento:
+
+- **Avance normal** (Pendiente → Fabricación): 2 tonos cortos ascendentes (E5 → B5).
+- **Finalizado** 🎉: jingle triunfal de 4 tonos. Arpegio de Do mayor ascendente (C5-E5-G5-C6) con armónica en C7. Volumen incrementado y duración más larga para que se escuche claramente en un taller con ruido de fábrica.
+- **Error**: beep grave (sin cambios).
+
+Toast de finalizado también cambia el ícono de ✅ a 🎉.
+
 ## V256 — 2026-05-07
 
 ### Más fixes del scanner para iPad
