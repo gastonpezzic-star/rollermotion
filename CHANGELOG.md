@@ -1,5 +1,66 @@
 # Changelog
 
+## V258 — 2026-05-07
+
+### Mejoras
+
+**Planilla de Confección — PDF separado para el confeccionista**
+
+Hasta ahora la planilla de fabricación cubría solo cortinas Roller (corte de tela + corte de aluminio). Las cortinas de confección tradicional (Gasa de lino liviana, Blackout Tex) viajaban junto pero sin instrucciones específicas para el confeccionista — que en el taller suele ser una persona distinta de la que arma rollers.
+
+V258 agrega una **planilla independiente de confección** que se imprime/exporta en su propio PDF.
+
+#### Datos capturados al cotizar
+
+Al cotizar una cortina de confección ahora se persisten en el item:
+
+- `metrosTela` — metros lineales necesarios
+- `anchoRollo` — ancho del rollo elegido (mm)
+- `frunceReal` — factor de frunce calculado
+- `frunceSolicitado` — factor de frunce ingresado
+- `pedazos` — cantidad de pedazos a cortar
+- `nombreTela` — código + nombre de la tela
+
+#### Campo nuevo en el overlay de detalles técnicos
+
+- **Cabezal**: Americano / Tablas encontradas / Bolsillo / Ojal (default Americano)
+- Aparece solo en items de confección (`conf_liviana` / `conf_blackout`)
+- Se guarda en `it.cabezal`
+- No aparece en la cotización ni en el PDF de cotización
+
+#### La planilla en sí
+
+- **Header**: logo, número de pedido, cliente, fecha entrega, código de barras
+- **Por cada cortina**:
+  - **Dibujo SVG** de la cortina:
+    - Apertura central: 2 paños con flechas apuntando hacia los lados
+    - Un paño: 1 paño con flecha apuntando al lado de recogida
+    - Cotas (ancho arriba, alto a la derecha)
+    - Banda dobladillo (zona naranja con etiqueta)
+    - Banda arrastre (zona debajo del piso, verde semi-transparente)
+  - **TOTAL TELA destacado** (cuadro grande verde con los metros)
+  - **Datos principales** (cuadrícula 2×2): Tela / Cabezal / Ancho rollo / Frunce
+  - **Desglose secundario** (chico, abajo): medidas, pedazos, dobladillo, arrastre
+
+#### Botones por pedido en la pestaña Fábrica
+
+| Botón | Cuándo aparece |
+|---|---|
+| 📋 Planilla armado (Roller) | si el pedido tiene roller / motores / rieles |
+| 🧵 Planilla confección (verde) | si el pedido tiene `conf_liviana` o `conf_blackout` |
+| 🏷 Etiquetas | siempre |
+| ✏️ Editar | siempre |
+| ! Revisión | siempre |
+
+Si el pedido tiene ambos tipos (roller + confección), aparecen los dos botones de planilla. Cada uno se puede imprimir como PDF independiente — útil porque cada planilla va a un confeccionista distinto.
+
+### Notas técnicas
+
+- Nuevo flag `_isPlanillaConf` (paralelo a `_isPlanilla`) para que el botón de imprimir maneje ambos.
+- Nueva función `_svgCortinaConf(it)` que genera el SVG de la cortina con apertura, cotas, dobladillo y arrastre.
+- `closeOverlay()` resetea ambos flags.
+- `abrirDocFab` acepta nuevo `accion='planilla-conf'`.
+
 ## V257 — 2026-05-07
 
 ### Scanner: indicador visible y persistente

@@ -3869,6 +3869,7 @@ function qaAgregar(){
   const esCambioTela = telaObjA.tipo === 'cambiotela';
   const esLibre      = telaObjA.tipo === 'libre';
   const esRielTipo   = telaObjA.tipo === 'riel';
+  let confData = null; // datos extras de confección para la planilla
 
   if(esRielTipo && !ancho) return;
   if(!esUnitario && !esAccesorio && !esCambioTela && !esLibre && !esRielTipo && (!ancho || !alto)) return;
@@ -3957,6 +3958,7 @@ function qaAgregar(){
       || (telaSelDataA && /black\s*out/i.test(telaSelDataA.nombre));
     const pTelaA = telaSelDataA ? telaSelDataA.precio : (getPrecio(esBlackoutAgregar ? 'conf_bk_tela' : 'conf_liv_tela')||telaObjA.costoTela);
     const ANCHO_ROLLO_A = telaSelDataA ? Math.round(telaSelDataA.ancho * 1000) : 2900;
+    let pedazosFinal = 1;
     // Recalcular pedazos con el ancho real del rollo seleccionado
     if(altoMmA > 2600){
       const largoDesarrolloR = altoMmA + EXTRA_CONF;
@@ -3965,6 +3967,9 @@ function qaAgregar(){
       if(frunceRealR < frunce){ pedazosR++; frunceRealR = (pedazosR * ANCHO_ROLLO_A) / anchoMmA; }
       metrosTela = pedazosR * largoDesarrolloR / 1000;
       frunceReal = frunceRealR;
+      pedazosFinal = pedazosR;
+    } else {
+      pedazosFinal = Math.max(1, Math.ceil((anchoMmA * frunce) / ANCHO_ROLLO_A));
     }
     const costoTela = metrosTela * pTelaA;
     const esBlackoutTex = esBlackoutAgregar;
@@ -3976,6 +3981,16 @@ function qaAgregar(){
     const nombreTela = telaSelDataA ? `${telaSelDataA.cod} — ${telaSelDataA.nombre}` : colorBase;
     color = nombreTela + (conRiel ? ' · Con riel' : ' · Sin riel') + ` · Frunce: ${frunceReal.toFixed(2)}`;
     tela = esBlackoutTex ? 'conf_blackout' : 'conf_liviana';
+    // Datos para la planilla de confección — se persisten en el item
+    confData = {
+      metrosTela:    +metrosTela.toFixed(2),
+      anchoRollo:    ANCHO_ROLLO_A,       // mm
+      frunceReal:    +frunceReal.toFixed(2),
+      frunceSolicitado: frunce,
+      pedazos:       pedazosFinal,
+      nombreTela:    nombreTela,
+      conRiel:       conRiel,
+    };
 
   } else if(telaObjA?.tipo === 'duozebra'){
     const a = parseInt(ancho), h = parseInt(alto);
@@ -4046,7 +4061,7 @@ function qaAgregar(){
   }
 
   addRow({ tela, color, ancho, alto, cant, ref, zoc, sent, sop, cad, cadColor, mecColor, adic, col, precio,
-           accionamiento, dobladillo, arrastre });
+           accionamiento, dobladillo, arrastre, ...(confData||{}) });
 
   // Reset
   if(!esUnitario && !esAccesorio && !esCambioTela){
@@ -4151,6 +4166,15 @@ function addRow(item){
     eje:getEje(item.ancho), ceje:parseInt(item.ancho)?parseInt(item.ancho)-35:null,
     ctela:parseInt(item.ancho)?parseInt(item.ancho)-30:null,
     ctelah:parseInt(item.alto)?parseInt(item.alto)+350:null,
+    // Datos de confección (solo se llenan si el item es conf_liviana / conf_blackout)
+    metrosTela:    item.metrosTela,
+    anchoRollo:    item.anchoRollo,
+    frunceReal:    item.frunceReal,
+    frunceSolicitado: item.frunceSolicitado,
+    pedazos:       item.pedazos,
+    nombreTela:    item.nombreTela,
+    conRiel:       item.conRiel,
+    cabezal:       item.cabezal,    // se llena en el overlay de confirmación
   });
 
   // Hacer la fila arrastrable
@@ -5620,6 +5644,7 @@ function convertToOrder(idOrDoc){
       const accVal = it.accionamiento||'Apertura central';
       const dobVal = it.dobladillo??20;
       const arrVal = it.arrastre??0;
+      const cabVal = it.cabezal||'Americano';
       return `<div style="border:1.5px solid #a8d8b0;border-radius:8px;padding:14px 18px;margin-bottom:10px;background:#f4fbf5">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
           <div style="background:#2c6e49;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">🧵 ${ci+1}</div>
@@ -5628,7 +5653,7 @@ function convertToOrder(idOrDoc){
           ${it.color?`<div style="font-size:11px;color:#555;background:#e0f0e4;border-radius:4px;padding:2px 8px">${it.color}</div>`:''}
           ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
           <div>
             ${lbl('Accionamiento')}
             <select class="ped-conf-acc" data-cidx="${ci}" ${sel()}>
@@ -5637,6 +5662,17 @@ function convertToOrder(idOrDoc){
               <option${accVal==='Un paño · recoge derecha'?' selected':''}>Un paño · recoge derecha</option>
             </select>
           </div>
+          <div>
+            ${lbl('Cabezal')}
+            <select class="ped-conf-cab" data-cidx="${ci}" ${sel()}>
+              <option${cabVal==='Americano'?' selected':''}>Americano</option>
+              <option${cabVal==='Tablas encontradas'?' selected':''}>Tablas encontradas</option>
+              <option${cabVal==='Bolsillo'?' selected':''}>Bolsillo</option>
+              <option${cabVal==='Ojal'?' selected':''}>Ojal</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
             ${lbl('Dobladillo inferior (cm)')}
             <input type="number" class="ped-conf-dob" data-cidx="${ci}" value="${dobVal}" min="0" max="50"
@@ -5743,6 +5779,7 @@ async function confirmarPedido(){
   const confItems = (src.items||[]).filter(it=>it.tela==='conf_liviana'||it.tela==='conf_blackout');
   confItems.forEach((it,ci)=>{
     it.accionamiento = document.querySelector(`.ped-conf-acc[data-cidx="${ci}"]`)?.value || 'Apertura central';
+    it.cabezal       = document.querySelector(`.ped-conf-cab[data-cidx="${ci}"]`)?.value || 'Americano';
     it.dobladillo    = parseFloat(document.querySelector(`.ped-conf-dob[data-cidx="${ci}"]`)?.value)||20;
     it.arrastre      = parseFloat(document.querySelector(`.ped-conf-arr[data-cidx="${ci}"]`)?.value)||0;
   });
@@ -6175,7 +6212,10 @@ function renderFab(){
   window._fabDocs = window._fabDocs || {};
   data.forEach(d => { window._fabDocs[d.id] = d; });
 
-  tb.innerHTML = data.map(d=>`<tr style="border-bottom:1px solid var(--border)">
+  tb.innerHTML = data.map(d=>{
+    const tieneRoller = (d.items||[]).some(it => isRollerTela(it.tela) || it.tela==='riel_manual' || it.tela==='riel_motorizado');
+    const tieneConf   = (d.items||[]).some(it => it.tela==='conf_liviana' || it.tela==='conf_blackout');
+    return `<tr style="border-bottom:1px solid var(--border)">
     <td style="vertical-align:middle"><strong>#${d.numero||'—'}</strong></td>
     <td style="vertical-align:middle">${fmtD(d.fecha)}</td>
     <td style="vertical-align:middle">${d.cliente}</td>
@@ -6190,13 +6230,15 @@ function renderFab(){
     </td>
     <td style="vertical-align:middle;white-space:nowrap">
       <div style="display:flex;gap:5px;align-items:center">
-        <button class="btn-t" onclick="abrirDocFab('${d.id}','planilla')" title="Planilla de fabricación">📋</button>
+        ${tieneRoller?`<button class="btn-t" onclick="abrirDocFab('${d.id}','planilla')" title="Planilla de armado (Roller)">📋</button>`:''}
+        ${tieneConf?`<button class="btn-t" style="border-color:#2c6e49;color:#2c6e49" onclick="abrirDocFab('${d.id}','planilla-conf')" title="Planilla de confección (telas tradicionales)">🧵</button>`:''}
         <button class="btn-t" onclick="abrirDocFab('${d.id}','etiquetas')" title="Imprimir etiquetas">🏷</button>
         <button class="btn-t" onclick="editDoc('${d.id}')" title="Editar pedido">✏️</button>
         <button class="btn-t" style="border-color:#d4820e;color:#d4820e;font-weight:700" onclick="abrirRevision('${d.id}')" title="Solicitar revisión">!</button>
       </div>
     </td>
-  </tr>`).join('');
+  </tr>`;
+  }).join('');
 }
 
 function updateStats(){
@@ -6984,9 +7026,10 @@ let _overlayDoc = null;
 
 
 let _isPlanilla = false; // true cuando el overlay muestra una planilla de fabricación
+let _isPlanillaConf = false; // true cuando el overlay muestra una planilla de CONFECCIÓN
 
 function printOverlay(){
-  if(_isPlanilla){
+  if(_isPlanilla || _isPlanillaConf){
     printPlanilla();
   } else {
     printDoc();
@@ -7735,6 +7778,239 @@ function openPlanilla(d){
   }, 200);
 }
 
+// ── PLANILLA DE CONFECCIÓN ──
+// Genera un PDF separado pensado para el confeccionista (otra persona que la
+// del armado de roller). Incluye: dibujo SVG de la cortina (apertura central /
+// un paño + flecha) con cotas, dobladillo, arrastre, y los datos para confeccionar.
+
+function _svgCortinaConf(it){
+  const W = 320, H = 360;
+  const padX = 36, padTop = 28, padBot = 56;
+  const drawW = W - padX*2;
+  const drawH = H - padTop - padBot;
+  const ancho = parseInt(it.ancho)||1500;
+  const alto  = parseInt(it.alto)||2200;
+  const dob   = parseFloat(it.dobladillo)||0;
+  const arr   = parseFloat(it.arrastre)||0;
+  const acc   = it.accionamiento||'Apertura central';
+  const esCentral  = acc === 'Apertura central';
+  const esIzq      = /izquierda/i.test(acc);
+  const x0 = padX, y0 = padTop, yFloor = y0 + drawH;
+  const arrPx = arr > 0 ? Math.min(34, arr * 0.6) : 0;
+  const c = '#1a4a2a', c2 = '#2c6e49';
+
+  function panel(x,y,w,h){
+    const stripes = Math.max(3, Math.floor(w/14));
+    let s = `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="url(#confPanelGrad)" stroke="${c}" stroke-width="1.5"/>`;
+    for(let i=1;i<stripes;i++){
+      const sx = x + (w/stripes)*i;
+      s += `<line x1="${sx}" y1="${y}" x2="${sx}" y2="${y+h}" stroke="${c2}" stroke-width="0.6" opacity="0.45"/>`;
+    }
+    return s;
+  }
+
+  let svg = `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" style="display:block;margin:0 auto">
+    <defs>
+      <linearGradient id="confPanelGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+        <stop offset="0%" stop-color="#e8f3ec"/>
+        <stop offset="100%" stop-color="#c8e1d2"/>
+      </linearGradient>
+    </defs>`;
+
+  // Riel (barra superior gruesa)
+  svg += `<rect x="${x0-12}" y="${y0-4}" width="${drawW+24}" height="8" fill="#141414" rx="1"/>`;
+
+  // Cortinas
+  if(esCentral){
+    const gapW = 36;
+    const panelW = (drawW - gapW)/2;
+    svg += panel(x0, y0+4, panelW, drawH-4);
+    svg += panel(x0+panelW+gapW, y0+4, panelW, drawH-4);
+    // Flechas hacia afuera (apertura central)
+    const aY = y0 + drawH/2;
+    svg += `<g stroke="${c}" stroke-width="2.2" fill="none" stroke-linecap="round">
+      <path d="M ${x0+panelW+8} ${aY} L ${x0+panelW-6} ${aY} M ${x0+panelW-2} ${aY-5} L ${x0+panelW-6} ${aY} L ${x0+panelW-2} ${aY+5}"/>
+      <path d="M ${x0+panelW+gapW-8} ${aY} L ${x0+panelW+gapW+6} ${aY} M ${x0+panelW+gapW+2} ${aY-5} L ${x0+panelW+gapW+6} ${aY} L ${x0+panelW+gapW+2} ${aY+5}"/>
+    </g>`;
+  } else {
+    svg += panel(x0, y0+4, drawW, drawH-4);
+    // Flecha hacia el lado de recogida
+    const aY = y0 + drawH/2;
+    if(esIzq){
+      svg += `<g stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round">
+        <path d="M ${x0+drawW-15} ${aY} L ${x0+15} ${aY} M ${x0+22} ${aY-7} L ${x0+15} ${aY} L ${x0+22} ${aY+7}"/>
+      </g>`;
+    } else {
+      svg += `<g stroke="#fff" stroke-width="3" fill="none" stroke-linecap="round">
+        <path d="M ${x0+15} ${aY} L ${x0+drawW-15} ${aY} M ${x0+drawW-22} ${aY-7} L ${x0+drawW-15} ${aY} L ${x0+drawW-22} ${aY+7}"/>
+      </g>`;
+    }
+  }
+
+  // Línea de piso
+  svg += `<line x1="${x0-15}" y1="${yFloor}" x2="${x0+drawW+15}" y2="${yFloor}" stroke="#888" stroke-width="1" stroke-dasharray="3,3"/>`;
+
+  // Arrastre
+  if(arr > 0){
+    svg += `<rect x="${x0}" y="${yFloor}" width="${drawW}" height="${arrPx}" fill="rgba(44,110,73,0.18)" stroke="${c2}" stroke-width="0.8" stroke-dasharray="2,2"/>`;
+    svg += `<text x="${x0+drawW/2}" y="${yFloor+arrPx/2+4}" text-anchor="middle" font-size="9" font-weight="700" fill="${c2}">Arrastre ${arr} cm</text>`;
+  }
+
+  // Cota Ancho (arriba)
+  svg += `<g stroke="${c}" stroke-width="0.7" fill="none">
+    <line x1="${x0}" y1="${y0-15}" x2="${x0+drawW}" y2="${y0-15}"/>
+    <line x1="${x0}" y1="${y0-12}" x2="${x0}" y2="${y0-18}"/>
+    <line x1="${x0+drawW}" y1="${y0-12}" x2="${x0+drawW}" y2="${y0-18}"/>
+  </g>
+  <rect x="${x0+drawW/2-30}" y="${y0-23}" width="60" height="14" fill="#fff" stroke="${c}" stroke-width="0.5" rx="2"/>
+  <text x="${x0+drawW/2}" y="${y0-13}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${c}">${ancho} mm</text>`;
+
+  // Cota Alto (derecha)
+  svg += `<g stroke="${c}" stroke-width="0.7" fill="none">
+    <line x1="${x0+drawW+18}" y1="${y0}" x2="${x0+drawW+18}" y2="${yFloor}"/>
+    <line x1="${x0+drawW+15}" y1="${y0}" x2="${x0+drawW+21}" y2="${y0}"/>
+    <line x1="${x0+drawW+15}" y1="${yFloor}" x2="${x0+drawW+21}" y2="${yFloor}"/>
+  </g>
+  <text x="${x0+drawW+24}" y="${y0+drawH/2+3}" font-size="9.5" font-weight="700" fill="${c}" transform="rotate(-90 ${x0+drawW+24} ${y0+drawH/2+3})" text-anchor="middle">${alto} mm</text>`;
+
+  // Indicador dobladillo (línea cerca del piso, en el paño)
+  if(dob > 0){
+    const dobBandH = Math.min(20, dob * 0.5);
+    const dobY = yFloor - dobBandH;
+    svg += `<rect x="${x0+2}" y="${dobY}" width="${drawW-4}" height="${dobBandH}" fill="rgba(245,158,11,0.22)" stroke="#d4820e" stroke-width="0.8" stroke-dasharray="3,2"/>`;
+    svg += `<text x="${x0+drawW/2}" y="${dobY+dobBandH/2+3}" text-anchor="middle" font-size="9" font-weight="700" fill="#a05c00">Dobladillo ${dob} cm</text>`;
+  }
+
+  svg += `</svg>`;
+  return svg;
+}
+
+function openPlanillaConfeccion(d){
+  if(!d) return;
+  const items = (d.items||[]).filter(it => it.tela==='conf_liviana' || it.tela==='conf_blackout');
+  if(!items.length){
+    toast('⚠ Este pedido no tiene cortinas de confección','err');
+    return;
+  }
+  const pedNum = d.numero || '—';
+  const cliente = d.cliente || '—';
+  const fechaEnt = d.entrega ? fmtD(d.entrega) : '—';
+
+  const cortinasHtml = items.map((it,i)=>{
+    const cant = parseInt(it.cant)||1;
+    const telaLabel = it.tela==='conf_blackout' ? 'Blackout Tex' : 'Gasa de lino';
+    const acc = it.accionamiento || 'Apertura central';
+    const cabezal = it.cabezal || 'Americano';
+    const dob = parseFloat(it.dobladillo)||0;
+    const arr = parseFloat(it.arrastre)||0;
+    const metros = it.metrosTela ? `${it.metrosTela.toFixed ? it.metrosTela.toFixed(2) : it.metrosTela} m` : '— m';
+    const anchoRollo = it.anchoRollo ? `${it.anchoRollo} mm` : '—';
+    const frunce = it.frunceReal ? it.frunceReal.toFixed ? it.frunceReal.toFixed(2) : it.frunceReal : '—';
+    const pedazos = it.pedazos || '—';
+    const nombreTela = it.nombreTela || it.color || '—';
+
+    return `<div style="border:1.5px solid #c8e1d2;border-radius:8px;background:#fff;padding:14px 18px;margin-bottom:14px;break-inside:avoid;page-break-inside:avoid">
+      <!-- Header de la cortina -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;padding-bottom:10px;border-bottom:1.5px dashed #c8e1d2">
+        <div style="background:#2c6e49;color:#fff;border-radius:6px;padding:4px 12px;font-size:13px;font-weight:800">🧵 ${i+1}</div>
+        <div style="font-size:14px;font-weight:800;color:#1a4a2a">${telaLabel}</div>
+        <div style="font-size:12px;color:#666">${cant} und.</div>
+        ${it.ref?`<div style="font-size:11px;color:#666;margin-left:auto;background:#f4fbf5;padding:3px 9px;border-radius:4px">Ref: ${it.ref}</div>`:''}
+      </div>
+      <!-- Body: dibujo + datos -->
+      <div style="display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:flex-start">
+        <!-- SVG -->
+        <div>
+          ${_svgCortinaConf(it)}
+          <div style="text-align:center;font-size:10px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:4px">${acc}</div>
+        </div>
+        <!-- Datos -->
+        <div>
+          <!-- TOTAL TELA — destacado -->
+          <div style="background:linear-gradient(135deg,#2c6e49,#1a4a2a);color:#fff;border-radius:8px;padding:14px 18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(44,110,73,0.25)">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;opacity:.85;font-weight:700">Total tela</div>
+            <div style="font-family:'Manrope',sans-serif;font-size:32px;font-weight:800;line-height:1;margin-top:4px">${metros}</div>
+          </div>
+          <!-- Datos principales -->
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+            <div style="background:#f4fbf5;border-radius:6px;padding:8px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Tela</div>
+              <div style="font-size:12px;font-weight:700;color:#141414;margin-top:2px;line-height:1.3">${nombreTela}</div>
+            </div>
+            <div style="background:#f4fbf5;border-radius:6px;padding:8px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Cabezal</div>
+              <div style="font-size:14px;font-weight:800;color:#1a4a2a;margin-top:2px">${cabezal}</div>
+            </div>
+            <div style="background:#f4fbf5;border-radius:6px;padding:8px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Ancho rollo</div>
+              <div style="font-size:13px;font-weight:700;color:#141414;margin-top:2px">${anchoRollo}</div>
+            </div>
+            <div style="background:#f4fbf5;border-radius:6px;padding:8px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Frunce</div>
+              <div style="font-size:13px;font-weight:700;color:#141414;margin-top:2px">${frunce}</div>
+            </div>
+          </div>
+          <!-- Desglose secundario (chico) -->
+          <div style="border-top:1px solid #e0e0de;padding-top:8px;font-size:10.5px;color:#888;line-height:1.55">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#999;font-weight:700;margin-bottom:3px">Detalles</div>
+            <div>Medidas: ${it.ancho||'—'} × ${it.alto||'—'} mm  ·  Pedazos: ${pedazos}</div>
+            <div>Dobladillo: ${dob} cm  ·  Arrastre: ${arr} cm</div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const html = `<div class="fab-doc" style="font-family:'DM Sans',sans-serif;background:#fff">
+    <!-- HEADER -->
+    <div style="padding:14px 20px;background:#1a4a2a;color:#fff;display:flex;justify-content:space-between;align-items:center">
+      <div>
+        <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;letter-spacing:-0.3px">RollerMotion ®</div>
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.12em;opacity:.85;font-weight:700;margin-top:2px">Planilla de Confección</div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;opacity:.7;font-weight:700">Pedido</div>
+        <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800">${pedNum}</div>
+      </div>
+    </div>
+    <!-- INFO PEDIDO -->
+    <div style="padding:10px 20px;background:#f4fbf5;border-bottom:2px solid #2c6e49;display:flex;gap:24px;align-items:center;font-family:'DM Sans',sans-serif;font-size:11.5px">
+      <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Cliente</span><span style="font-weight:700">${cliente}</span></div>
+      <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Entrega</span><span style="font-weight:700">${fechaEnt}</span></div>
+      <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Cortinas</span><span style="font-weight:700">${items.length}</span></div>
+      <div id="fab-barcode-conf-only" style="margin-left:auto"></div>
+    </div>
+    <!-- CORTINAS -->
+    <div style="padding:14px 20px">
+      ${cortinasHtml}
+    </div>
+  </div>`;
+
+  document.getElementById('overlay-title').textContent = `Planilla Confección — ${pedNum}`;
+  document.getElementById('doc-content').innerHTML = html;
+  _isPlanilla = false;
+  _isPlanillaConf = true;
+  document.getElementById('overlay').classList.add('on');
+
+  // Barcode
+  setTimeout(()=>{
+    const wrap = document.getElementById('fab-barcode-conf-only');
+    if(!wrap) return;
+    wrap.innerHTML = '';
+    try{
+      const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
+      wrap.appendChild(svg);
+      JsBarcode(svg, pedNum, {
+        format:'CODE128', width:1.3, height:32, displayValue:true,
+        text:pedNum, fontOptions:'bold', fontSize:10, margin:2,
+        lineColor:'#141414', background:'transparent'
+      });
+    } catch(e){
+      wrap.innerHTML = `<code style="font-size:10px;font-weight:700;background:#f0f0ee;padding:3px 7px;border-radius:3px">${pedNum}</code>`;
+    }
+  }, 200);
+}
+
 
 let _revisionDocId = null;
 
@@ -8409,6 +8685,7 @@ function abrirDocFab(id, accion){
     return;
   }
   if(accion === 'planilla') openPlanilla(doc);
+  if(accion === 'planilla-conf') openPlanillaConfeccion(doc);
   if(accion === 'etiquetas') openEtiquetas(doc);
 }
 
@@ -8658,6 +8935,8 @@ function openEtiquetas(d){
 
 function closeOverlay(){
   document.getElementById('overlay').classList.remove('on');
+  _isPlanilla = false;
+  _isPlanillaConf = false;
 }
 
 // Cerrar overlay al hacer click en el fondo
