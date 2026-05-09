@@ -7784,8 +7784,8 @@ function openPlanilla(d){
 // un paño + flecha) con cotas, dobladillo, arrastre, y los datos para confeccionar.
 
 function _svgCortinaConf(it){
-  const W = 320, H = 360;
-  const padX = 36, padTop = 28, padBot = 56;
+  const W = 360, H = 380;
+  const padX = 50, padTop = 32, padBot = 70;
   const drawW = W - padX*2;
   const drawH = H - padTop - padBot;
   const ancho = parseInt(it.ancho)||1500;
@@ -7796,7 +7796,9 @@ function _svgCortinaConf(it){
   const esCentral  = acc === 'Apertura central';
   const esIzq      = /izquierda/i.test(acc);
   const x0 = padX, y0 = padTop, yFloor = y0 + drawH;
-  const arrPx = arr > 0 ? Math.min(34, arr * 0.6) : 0;
+  // Bandas con dimensiones FIJAS (independientes del valor) para que los labels nunca se solapen
+  const dobBandH = dob > 0 ? 16 : 0;
+  const arrPx    = arr > 0 ? 22 : 0;
   const c = '#1a4a2a', c2 = '#2c6e49';
 
   function panel(x,y,w,h){
@@ -7847,39 +7849,68 @@ function _svgCortinaConf(it){
     }
   }
 
-  // Línea de piso
-  svg += `<line x1="${x0-15}" y1="${yFloor}" x2="${x0+drawW+15}" y2="${yFloor}" stroke="#888" stroke-width="1" stroke-dasharray="3,3"/>`;
+  // Banda de DOBLADILLO (parte del paño, dentro del rectángulo, justo arriba del piso)
+  if(dob > 0){
+    const dobY = yFloor - dobBandH;
+    svg += `<rect x="${x0+2}" y="${dobY}" width="${drawW-4}" height="${dobBandH}" fill="rgba(245,158,11,0.32)" stroke="#d4820e" stroke-width="0.9" stroke-dasharray="3,2"/>`;
+  }
 
-  // Arrastre
+  // Línea de piso
+  svg += `<line x1="${x0-15}" y1="${yFloor}" x2="${x0+drawW+15}" y2="${yFloor}" stroke="#666" stroke-width="1.2" stroke-dasharray="3,3"/>`;
+
+  // Banda de ARRASTRE (debajo del piso, separada visualmente del dobladillo por la línea)
   if(arr > 0){
     svg += `<rect x="${x0}" y="${yFloor}" width="${drawW}" height="${arrPx}" fill="rgba(44,110,73,0.18)" stroke="${c2}" stroke-width="0.8" stroke-dasharray="2,2"/>`;
-    svg += `<text x="${x0+drawW/2}" y="${yFloor+arrPx/2+4}" text-anchor="middle" font-size="9" font-weight="700" fill="${c2}">Arrastre ${arr} cm</text>`;
+  }
+
+  // ── ANOTACIONES LATERALES ──
+  // Dobladillo: línea de cota a la izquierda con etiqueta en bloque
+  if(dob > 0){
+    const lx = x0 - 28;          // posición x de la cota
+    const labelW = 72;
+    const labelX = lx - labelW + 14;
+    const dobYTop = yFloor - dobBandH;
+    svg += `<g stroke="#d4820e" stroke-width="0.8" fill="none">
+      <line x1="${lx}" y1="${dobYTop}" x2="${lx}" y2="${yFloor}"/>
+      <line x1="${lx-3}" y1="${dobYTop}" x2="${lx+3}" y2="${dobYTop}"/>
+      <line x1="${lx-3}" y1="${yFloor}" x2="${lx+3}" y2="${yFloor}"/>
+      <line x1="${lx}" y1="${(dobYTop+yFloor)/2}" x2="${x0+1}" y2="${(dobYTop+yFloor)/2}" stroke-dasharray="2,2"/>
+    </g>
+    <rect x="${labelX}" y="${(dobYTop+yFloor)/2 - 8}" width="${labelW}" height="16" fill="#fef3e2" stroke="#d4820e" stroke-width="0.8" rx="3"/>
+    <text x="${labelX + labelW/2}" y="${(dobYTop+yFloor)/2 + 4}" text-anchor="middle" font-size="9.5" font-weight="800" fill="#a05c00">Dobladillo ${dob}cm</text>`;
+  }
+
+  // Arrastre: cota a la izquierda con etiqueta debajo del piso
+  if(arr > 0){
+    const lx = x0 - 28;
+    const labelW = 72;
+    const labelX = lx - labelW + 14;
+    svg += `<g stroke="${c2}" stroke-width="0.8" fill="none">
+      <line x1="${lx}" y1="${yFloor}" x2="${lx}" y2="${yFloor + arrPx}"/>
+      <line x1="${lx-3}" y1="${yFloor}" x2="${lx+3}" y2="${yFloor}"/>
+      <line x1="${lx-3}" y1="${yFloor + arrPx}" x2="${lx+3}" y2="${yFloor + arrPx}"/>
+      <line x1="${lx}" y1="${yFloor + arrPx/2}" x2="${x0+1}" y2="${yFloor + arrPx/2}" stroke-dasharray="2,2"/>
+    </g>
+    <rect x="${labelX}" y="${yFloor + arrPx/2 - 8}" width="${labelW}" height="16" fill="#e8f3ec" stroke="${c2}" stroke-width="0.8" rx="3"/>
+    <text x="${labelX + labelW/2}" y="${yFloor + arrPx/2 + 4}" text-anchor="middle" font-size="9.5" font-weight="800" fill="${c}">Arrastre ${arr}cm</text>`;
   }
 
   // Cota Ancho (arriba)
   svg += `<g stroke="${c}" stroke-width="0.7" fill="none">
-    <line x1="${x0}" y1="${y0-15}" x2="${x0+drawW}" y2="${y0-15}"/>
-    <line x1="${x0}" y1="${y0-12}" x2="${x0}" y2="${y0-18}"/>
-    <line x1="${x0+drawW}" y1="${y0-12}" x2="${x0+drawW}" y2="${y0-18}"/>
+    <line x1="${x0}" y1="${y0-18}" x2="${x0+drawW}" y2="${y0-18}"/>
+    <line x1="${x0}" y1="${y0-15}" x2="${x0}" y2="${y0-21}"/>
+    <line x1="${x0+drawW}" y1="${y0-15}" x2="${x0+drawW}" y2="${y0-21}"/>
   </g>
-  <rect x="${x0+drawW/2-30}" y="${y0-23}" width="60" height="14" fill="#fff" stroke="${c}" stroke-width="0.5" rx="2"/>
-  <text x="${x0+drawW/2}" y="${y0-13}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${c}">${ancho} mm</text>`;
+  <rect x="${x0+drawW/2-32}" y="${y0-26}" width="64" height="15" fill="#fff" stroke="${c}" stroke-width="0.5" rx="2"/>
+  <text x="${x0+drawW/2}" y="${y0-15}" text-anchor="middle" font-size="9.5" font-weight="700" fill="${c}">${ancho} mm</text>`;
 
   // Cota Alto (derecha)
   svg += `<g stroke="${c}" stroke-width="0.7" fill="none">
-    <line x1="${x0+drawW+18}" y1="${y0}" x2="${x0+drawW+18}" y2="${yFloor}"/>
-    <line x1="${x0+drawW+15}" y1="${y0}" x2="${x0+drawW+21}" y2="${y0}"/>
-    <line x1="${x0+drawW+15}" y1="${yFloor}" x2="${x0+drawW+21}" y2="${yFloor}"/>
+    <line x1="${x0+drawW+22}" y1="${y0}" x2="${x0+drawW+22}" y2="${yFloor}"/>
+    <line x1="${x0+drawW+19}" y1="${y0}" x2="${x0+drawW+25}" y2="${y0}"/>
+    <line x1="${x0+drawW+19}" y1="${yFloor}" x2="${x0+drawW+25}" y2="${yFloor}"/>
   </g>
-  <text x="${x0+drawW+24}" y="${y0+drawH/2+3}" font-size="9.5" font-weight="700" fill="${c}" transform="rotate(-90 ${x0+drawW+24} ${y0+drawH/2+3})" text-anchor="middle">${alto} mm</text>`;
-
-  // Indicador dobladillo (línea cerca del piso, en el paño)
-  if(dob > 0){
-    const dobBandH = Math.min(20, dob * 0.5);
-    const dobY = yFloor - dobBandH;
-    svg += `<rect x="${x0+2}" y="${dobY}" width="${drawW-4}" height="${dobBandH}" fill="rgba(245,158,11,0.22)" stroke="#d4820e" stroke-width="0.8" stroke-dasharray="3,2"/>`;
-    svg += `<text x="${x0+drawW/2}" y="${dobY+dobBandH/2+3}" text-anchor="middle" font-size="9" font-weight="700" fill="#a05c00">Dobladillo ${dob} cm</text>`;
-  }
+  <text x="${x0+drawW+30}" y="${y0+drawH/2+3}" font-size="9.5" font-weight="700" fill="${c}" transform="rotate(-90 ${x0+drawW+30} ${y0+drawH/2+3})" text-anchor="middle">${alto} mm</text>`;
 
   svg += `</svg>`;
   return svg;
@@ -7903,11 +7934,28 @@ function openPlanillaConfeccion(d){
     const cabezal = it.cabezal || 'Americano';
     const dob = parseFloat(it.dobladillo)||0;
     const arr = parseFloat(it.arrastre)||0;
-    const metros = it.metrosTela ? `${it.metrosTela.toFixed ? it.metrosTela.toFixed(2) : it.metrosTela} m` : '— m';
+    const metrosNum = (typeof it.metrosTela === 'number') ? it.metrosTela : null;
+    const metros = metrosNum != null ? `${metrosNum.toFixed(2)} m` : '— m';
     const anchoRollo = it.anchoRollo ? `${it.anchoRollo} mm` : '—';
-    const frunce = it.frunceReal ? it.frunceReal.toFixed ? it.frunceReal.toFixed(2) : it.frunceReal : '—';
-    const pedazos = it.pedazos || '—';
+    const frunceNum = (typeof it.frunceReal === 'number') ? it.frunceReal : null;
+    const frunce = frunceNum != null ? frunceNum.toFixed(2) : '—';
+    const pedazos = it.pedazos || 1;
     const nombreTela = it.nombreTela || it.color || '—';
+    const anchoMm = parseInt(it.ancho)||0;
+    const altoMm  = parseInt(it.alto)||0;
+    const anchoRolloMm = parseInt(it.anchoRollo)||2900;
+    // Lógica del cálculo (texto explicativo del breakdown)
+    let calculoTxt = '';
+    if(metrosNum != null && anchoMm){
+      if(altoMm <= 2600){
+        // Caso simple: la cortina entra en el alto del rollo → ancho × frunce
+        calculoTxt = `${(anchoMm/1000).toFixed(2)} m (ancho) × ${frunce} (frunce) = ${metros}`;
+      } else {
+        // Caso compuesto: pedazos × largo desarrollo
+        const largoDesarrollo = altoMm + 300;
+        calculoTxt = `${pedazos} pedazo${pedazos>1?'s':''} × ${(largoDesarrollo/1000).toFixed(2)} m (alto+30 cm de desarrollo) = ${metros}`;
+      }
+    }
 
     return `<div style="border:1.5px solid #c8e1d2;border-radius:8px;background:#fff;padding:14px 18px;margin-bottom:14px;break-inside:avoid;page-break-inside:avoid">
       <!-- Header de la cortina -->
@@ -7918,43 +7966,55 @@ function openPlanillaConfeccion(d){
         ${it.ref?`<div style="font-size:11px;color:#666;margin-left:auto;background:#f4fbf5;padding:3px 9px;border-radius:4px">Ref: ${it.ref}</div>`:''}
       </div>
       <!-- Body: dibujo + datos -->
-      <div style="display:grid;grid-template-columns:340px 1fr;gap:18px;align-items:flex-start">
+      <div style="display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:flex-start">
         <!-- SVG -->
         <div>
           ${_svgCortinaConf(it)}
-          <div style="text-align:center;font-size:10px;color:#666;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:4px">${acc}</div>
+          <div style="text-align:center;font-size:10.5px;color:#1a4a2a;font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-top:6px;background:#f4fbf5;border:1px solid #c8e1d2;border-radius:5px;padding:5px 10px">${acc}</div>
         </div>
         <!-- Datos -->
         <div>
-          <!-- TOTAL TELA — destacado -->
-          <div style="background:linear-gradient(135deg,#2c6e49,#1a4a2a);color:#fff;border-radius:8px;padding:14px 18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(44,110,73,0.25)">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;opacity:.85;font-weight:700">Total tela</div>
-            <div style="font-family:'Manrope',sans-serif;font-size:32px;font-weight:800;line-height:1;margin-top:4px">${metros}</div>
+          <!-- CANTIDAD DE METROS A USAR — destacado -->
+          <div style="background:linear-gradient(135deg,#2c6e49,#1a4a2a);color:#fff;border-radius:10px;padding:14px 18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(44,110,73,0.25)">
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;opacity:.85;font-weight:700">Cantidad de metros a usar</div>
+            <div style="font-family:'Manrope',sans-serif;font-size:38px;font-weight:800;line-height:1;margin-top:4px">${metros}</div>
+            ${calculoTxt?`<div style="font-size:10.5px;opacity:.78;margin-top:6px;font-style:italic">${calculoTxt}</div>`:''}
           </div>
-          <!-- Datos principales -->
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
-            <div style="background:#f4fbf5;border-radius:6px;padding:8px 11px">
-              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Tela</div>
-              <div style="font-size:12px;font-weight:700;color:#141414;margin-top:2px;line-height:1.3">${nombreTela}</div>
-            </div>
-            <div style="background:#f4fbf5;border-radius:6px;padding:8px 11px">
-              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Cabezal</div>
-              <div style="font-size:14px;font-weight:800;color:#1a4a2a;margin-top:2px">${cabezal}</div>
-            </div>
-            <div style="background:#f4fbf5;border-radius:6px;padding:8px 11px">
-              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Ancho rollo</div>
-              <div style="font-size:13px;font-weight:700;color:#141414;margin-top:2px">${anchoRollo}</div>
-            </div>
-            <div style="background:#f4fbf5;border-radius:6px;padding:8px 11px">
+          <!-- Datos importantes — grid 2x3 -->
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+            <div style="background:#fff;border:1.5px solid #c8e1d2;border-radius:7px;padding:9px 11px">
               <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Frunce</div>
-              <div style="font-size:13px;font-weight:700;color:#141414;margin-top:2px">${frunce}</div>
+              <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;color:#1a4a2a;margin-top:2px;line-height:1">${frunce}</div>
+            </div>
+            <div style="background:#fff;border:1.5px solid #c8e1d2;border-radius:7px;padding:9px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Cabezal</div>
+              <div style="font-size:14px;font-weight:800;color:#1a4a2a;margin-top:2px;line-height:1.1">${cabezal}</div>
+            </div>
+            <div style="background:#fff;border:1.5px solid #c8e1d2;border-radius:7px;padding:9px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Ancho rollo</div>
+              <div style="font-family:'Manrope',sans-serif;font-size:14px;font-weight:800;color:#1a4a2a;margin-top:2px">${anchoRollo}</div>
+            </div>
+            <div style="background:#fef9f0;border:1.5px solid #f5d195;border-radius:7px;padding:9px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#a05c00;font-weight:700">Dobladillo</div>
+              <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;color:#a05c00;margin-top:2px;line-height:1">${dob} cm</div>
+            </div>
+            <div style="background:#f4fbf5;border:1.5px solid #a8d8b0;border-radius:7px;padding:9px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#1a4a2a;font-weight:700">Arrastre</div>
+              <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;color:#1a4a2a;margin-top:2px;line-height:1">${arr} cm</div>
+            </div>
+            <div style="background:#fff;border:1.5px solid #c8e1d2;border-radius:7px;padding:9px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Pedazos</div>
+              <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;color:#1a4a2a;margin-top:2px;line-height:1">${pedazos}</div>
             </div>
           </div>
-          <!-- Desglose secundario (chico) -->
-          <div style="border-top:1px solid #e0e0de;padding-top:8px;font-size:10.5px;color:#888;line-height:1.55">
-            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#999;font-weight:700;margin-bottom:3px">Detalles</div>
-            <div>Medidas: ${it.ancho||'—'} × ${it.alto||'—'} mm  ·  Pedazos: ${pedazos}</div>
-            <div>Dobladillo: ${dob} cm  ·  Arrastre: ${arr} cm</div>
+          <!-- Tela: span completo abajo -->
+          <div style="background:#1a4a2a;color:#fff;border-radius:7px;padding:9px 13px;margin-top:8px">
+            <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.7;font-weight:700">Tela</div>
+            <div style="font-size:13px;font-weight:700;margin-top:2px;line-height:1.3">${nombreTela}</div>
+          </div>
+          <!-- Medidas (info menor) -->
+          <div style="margin-top:8px;font-size:10.5px;color:#888;text-align:center">
+            Medidas terminadas: <strong style="color:#444">${it.ancho||'—'} × ${it.alto||'—'} mm</strong>
           </div>
         </div>
       </div>

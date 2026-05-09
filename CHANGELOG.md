@@ -1,5 +1,39 @@
 # Changelog
 
+## V259 — 2026-05-07
+
+### Mejoras a la planilla de confección
+
+Después del feedback inicial:
+
+**Bug visual: dobladillo y arrastre superpuestos en el SVG**
+
+Cuando el `dob` o el `arr` eran chicos, las bandas de color se hacían muy delgadas y los labels se solapaban con la línea de piso. Fix:
+
+- **Bandas con altura fija** (16px dobladillo, 22px arrastre) independientes del valor — siempre legibles.
+- **Labels movidos a anotaciones laterales** a la izquierda del paño, con líneas de cota tipo plano técnico. Ya no se solapan con nada.
+- **Línea de piso más visible** (gris medio, ancho 1.2px) para separar claramente las dos bandas.
+- **Canvas SVG más ancho** (360 vs 320) para acomodar las anotaciones laterales.
+
+**Datos importantes destacados**
+
+- **"Total tela" → "Cantidad de metros a usar"** con número grande (38px) y debajo la fórmula del cálculo en cursiva: ej. `2.20 m (ancho) × 2 (frunce) = 4.40 m` o `1 pedazo × 2.50 m (alto+30 cm) = 4.40 m`.
+- Reorganización del panel de datos: **grid 2×3 con 6 datos importantes**:
+  - Frunce (número grande)
+  - Cabezal
+  - Ancho rollo
+  - **Dobladillo** (con color naranja, ahora prominente)
+  - **Arrastre** (con color verde, ahora prominente)
+  - Pedazos
+- **Tela** con su propio bloque oscuro abajo (span completo).
+- Medidas terminadas se mantienen abajo como nota chica.
+- Etiqueta de accionamiento bajo el SVG ahora con borde y fondo (más legible).
+
+**Cómo funciona el cálculo de metros**
+
+Si `alto ≤ 2600 mm` (entra en el ancho del rollo): `metros = ancho × frunce`. Ejemplo: 2200 × 2 = 4.4 m.
+Si `alto > 2600 mm` (necesita pedazos): `metros = pedazos × (alto + 30 cm de desarrollo)`.
+
 ## V258 — 2026-05-07
 
 ### Mejoras
