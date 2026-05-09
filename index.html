@@ -8422,26 +8422,44 @@ function resetEtqConfig(){
       try{ inp.focus({preventScroll:true}); } catch(_){}
     }
 
-    // ── INDICADOR DE ESTADO (pildorita visible) ──
+    // ── INDICADOR DE ESTADO ──
+    // Lo ubicamos en la topbar (al lado del indicador de sincronización)
+    // para que no se solape con el botón Guardar / Vista previa del form.
     const ind = document.createElement('button');
     ind.id = 'scanner-indicator';
     ind.type = 'button';
-    ind.title = 'Estado del scanner';
-    ind.style.cssText = 'position:fixed;bottom:10px;right:10px;height:30px;padding:0 12px;border-radius:18px;border:0;display:inline-flex;align-items:center;justify-content:center;gap:6px;font-family:-apple-system,system-ui,sans-serif;font-size:11.5px;font-weight:700;z-index:99999;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;box-shadow:0 2px 10px rgba(0,0,0,.18);transition:all .2s';
-    document.body.appendChild(ind);
+    ind.title = 'Estado del scanner — tocá para activar';
+    ind.style.cssText = 'height:26px;padding:0 11px;border-radius:14px;border:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:-apple-system,system-ui,sans-serif;font-size:10.5px;font-weight:700;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:all .2s;line-height:1;white-space:nowrap';
+    // Insertarlo en la topbar (junto al sync-indicator). Si la topbar todavía no
+    // existe en el DOM, esperar y reintentar.
+    function attachToTopbar(){
+      const right = document.querySelector('.topbar-right');
+      const sync  = document.getElementById('sync-indicator');
+      if(right){
+        if(sync) right.insertBefore(ind, sync); else right.appendChild(ind);
+        return true;
+      }
+      return false;
+    }
+    if(!attachToTopbar()){
+      const obs = new MutationObserver(()=>{
+        if(attachToTopbar()) obs.disconnect();
+      });
+      obs.observe(document.body, { childList:true, subtree:true });
+    }
 
     function setIndState(state){
       // state: 'active', 'inactive', 'success'
       if(state === 'active'){
-        ind.style.background = '#22c55e';
+        ind.style.background = 'rgba(34,197,94,0.92)';
         ind.style.color = '#fff';
-        ind.innerHTML = '🔍 Scanner activo';
+        ind.innerHTML = '🔍 Scanner';
       } else if(state === 'success'){
         ind.style.background = '#16a34a';
         ind.style.color = '#fff';
         ind.innerHTML = '✓ Procesado';
       } else {
-        ind.style.background = '#f59e0b';
+        ind.style.background = 'rgba(245,158,11,0.92)';
         ind.style.color = '#fff';
         ind.innerHTML = '⚠ Tocá para activar';
       }

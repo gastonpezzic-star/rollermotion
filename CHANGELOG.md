@@ -1,5 +1,19 @@
 # Changelog
 
+## V260 — 2026-05-07
+
+### UX
+
+**Indicador del scanner movido a la topbar**
+
+El indicador "🔍 Scanner / Tocá para activar" estaba en la esquina inferior derecha como un botón flotante (`position:fixed`). Eso lo hacía solaparse con el botón "💾 Guardar" y "👁 Vista previa" del formulario de cotización/pedido.
+
+Ahora se ubica **dentro de la topbar**, al lado del indicador de sincronización (`#sync-indicator`). Más visible (siempre presente arriba), no tapa nada y agrupado lógicamente con el otro indicador de estado.
+
+- Estilos adaptados al tamaño de la topbar (26px de alto, font 10.5px).
+- Texto más corto: "🔍 Scanner" cuando activo (en vez de "🔍 Scanner activo").
+- `MutationObserver` espera a que `.topbar-right` exista en el DOM antes de insertar (por si el script corre antes que el HTML).
+
 ## V259 — 2026-05-07
 
 ### Mejoras a la planilla de confección
