@@ -1,5 +1,44 @@
 # Changelog
 
+## V261 — 2026-05-07
+
+### Scanner: intento de "siempre activo" sin tocar nada
+
+El indicador "tocá para activar" hacía que el operario tuviera que tocar antes de cada escaneo, lo cual rompe el flujo en taller. En desktop el scanner funciona sin tocar nada porque los `keydown` se disparan a nivel `document` aún sin un elemento con foco — en iPad esto no pasa, los eventos solo se disparan en el elemento focused.
+
+V261 implementa **doble red de captura** para que el scanner ande automático en iPad sin requerir interacción:
+
+**1. Body como respaldo del ghost input**
+
+- `<body tabindex="-1">` lo hace focusable. Ahora si iOS rechaza el focus al ghost, hacemos focus al body — body también dispara `keydown`.
+- Cuando el body tiene foco, los keydowns de scanner se capturan vía nuestro listener global de document.
+- El indicador se muestra "🔍 Scanner" cuando ghost O body están con foco (no solo ghost).
+
+**2. Cambios en el ghost input para mejor compatibilidad iOS**
+
+- **Sin `inputmode="none"`**: podía estar bloqueando el input desde teclado HW de iPad.
+- **Sin `pointer-events:none`**: iOS lo trataba como "no-interactivo" y le rechazaba el foco.
+- Tamaño levemente mayor (2px en vez de 1px) — iOS respeta más los elementos con dimensión positiva.
+
+**3. Refocus más agresivo**
+
+- Periódico cada **700ms** (antes 2 segundos).
+- Tras `scroll` (iOS a veces blurea durante scroll) — debounce 150ms.
+- Tras `visibilitychange` (cambio de pestaña / lock screen).
+- Listener de keydown adicional en `window` (algunos browsers iOS lo disparan ahí).
+
+**4. Indicador más realista**
+
+- Estado se calcula con `focusin`/`focusout` a nivel document (no solo eventos del ghost).
+- Verde si ghost o body tienen foco. Amarillo solo si es algo no-textual que se quedó con foco.
+
+### Si aún no anda 100%
+
+iOS Safari es restrictivo con focus en elementos invisibles. Si después de V261 sigue requiriendo tap ocasional:
+
+- **Recomendación**: instalar la app como PWA (Safari → Compartir → "Añadir a pantalla de inicio"). En modo PWA iOS es más permisivo con el focus.
+- Como respaldo, el indicador 🔍 sigue siendo tappable para reactivar manualmente.
+
 ## V260 — 2026-05-07
 
 ### UX

@@ -8357,9 +8357,18 @@ function resetEtqConfig(){
     }
   }
 
-  // ── ESTRATEGIA 1: input fantasma (canónica para iOS/iPad) ──
+  // ── ESTRATEGIA 1: input fantasma + body focusable (canónica para iOS/iPad) ──
   function setupGhostInput(){
     if(document.getElementById('scanner-ghost')) return;
+
+    // Hacer el body focusable para que pueda atrapar keydowns aunque el ghost
+    // pierda foco. Body con tabindex=-1 puede recibir focus programático y
+    // disparar eventos de teclado.
+    if(!document.body.hasAttribute('tabindex')){
+      document.body.setAttribute('tabindex','-1');
+      document.body.style.outline = 'none'; // que no se vea el highlight de foco
+    }
+
     const inp = document.createElement('input');
     inp.id = 'scanner-ghost';
     inp.type = 'text';
@@ -8367,12 +8376,12 @@ function resetEtqConfig(){
     inp.setAttribute('autocorrect','off');
     inp.setAttribute('autocapitalize','off');
     inp.setAttribute('spellcheck','false');
-    inp.setAttribute('inputmode','none'); // suprime teclado en pantalla en iOS
     inp.setAttribute('aria-hidden','true');
-    inp.tabIndex = 0; // 0 (focusable) en lugar de -1 — algunos navegadores rechazan focus en -1
-    // ⚠ Posicionado DENTRO del viewport (iOS Safari rechaza focus en elementos
-    // fuera de pantalla con left:-9999px). Lo hacemos invisible con opacity:0.
-    inp.style.cssText = 'position:fixed;top:0;left:0;width:1px;height:1px;opacity:0;border:0;outline:0;padding:0;margin:0;background:transparent;font-size:16px;-webkit-user-select:none;user-select:none;pointer-events:none;z-index:-1';
+    inp.tabIndex = 0;
+    // ⚠ Sin inputmode='none' (puede bloquear input desde teclado HW en iOS).
+    // Sin pointer-events:none (iOS lo trata como "no-interactivo" y no le da foco).
+    // Posicionado dentro del viewport, completamente transparente.
+    inp.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0;border:0;outline:0;padding:0;margin:0;background:transparent;color:transparent;caret-color:transparent;font-size:16px;-webkit-user-select:none;user-select:none;z-index:-1';
     document.body.appendChild(inp);
 
     // Procesar cada cambio (input event = fiable en iOS)
@@ -8420,6 +8429,13 @@ function resetEtqConfig(){
       // No quitar foco si el usuario está interactuando con un campo de texto o select
       if(shouldKeepFocusOn(ae)) return;
       try{ inp.focus({preventScroll:true}); } catch(_){}
+      // Si el ghost no logró obtener foco (iOS lo rechazó), poner foco al body
+      // como red de seguridad — body tiene tabindex=-1 y puede recibir keydowns.
+      setTimeout(()=>{
+        if(document.activeElement !== inp && !shouldKeepFocusOn(document.activeElement)){
+          try{ document.body.focus({preventScroll:true}); }catch(_){}
+        }
+      }, 0);
     }
 
     // ── INDICADOR DE ESTADO ──
@@ -8507,19 +8523,42 @@ function resetEtqConfig(){
       });
     });
 
-    // Estado del indicador sincronizado con focus del ghost
-    inp.addEventListener('focus', ()=> setIndState('active'));
-    inp.addEventListener('blur',  ()=>{
-      // Después de que se complete el ciclo del DOM, ver si el ghost recuperó el foco
-      setTimeout(()=>{
-        if(document.activeElement !== inp) setIndState('inactive');
-      }, 100);
-    });
+    // El estado "activo" se cumple si el ghost O el body tienen foco — ambos
+    // pueden capturar keydowns. Usamos focusin/focusout a nivel document para
+    // detectar cualquier cambio de foco.
+    function isScannerReady(){
+      const ae = document.activeElement;
+      return ae === inp || ae === document.body || !ae;
+    }
+    function syncIndicator(){
+      if(isScannerReady()) setIndState('active');
+      else if(!shouldKeepFocusOn(document.activeElement)) setIndState('inactive');
+      // Si el activo es un campo real, no cambiamos el indicador (sigue como estaba)
+    }
+    document.addEventListener('focusin',  syncIndicator);
+    document.addEventListener('focusout', ()=>setTimeout(syncIndicator, 50));
 
     // Cuando la app vuelve a primer plano, refocus
     document.addEventListener('visibilitychange', ()=>{
       if(!document.hidden) setTimeout(refocus, 200);
     });
+
+    // Refocus después de scroll (iOS a veces blurea durante scroll)
+    let scrollTimer = null;
+    document.addEventListener('scroll', ()=>{
+      clearTimeout(scrollTimer);
+      scrollTimer = setTimeout(refocus, 150);
+    }, true);
+
+    // Listeners de teclado adicionales en window (algunos browsers iOS los disparan ahí)
+    window.addEventListener('keydown', e=>{
+      if(e.target === inp) return; // ya lo maneja su listener específico
+      if(e.key === 'Enter'){ handleEnter(e); return; }
+      if(e.key && e.key.length === 1) handleChar(e.key);
+    }, true);
+
+    // Refocus periódico de respaldo (cada 700ms)
+    setInterval(refocus, 700);
 
     // Helper público para feedback visual de scan exitoso
     window._scannerFlashSuccess = function(){
