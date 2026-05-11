@@ -4472,8 +4472,9 @@ const TIPOS_CON_INSTALACION = [
 const TIPOS_MOTORIZADOS = ['motores','riel_motorizado'];
 
 // Tipos que son cortinas Roller (todos los porcentajes de Sunscreen + Blackout)
-const TIPOS_ROLLER = ['blackout','sunscreen5','sunscreen3','sunscreen1'];
+const TIPOS_ROLLER = ['blackout','sunscreen5','sunscreen3','sunscreen1','rollerdoble','doble'];
 function isRollerTela(t){ return TIPOS_ROLLER.includes((t||'').toLowerCase()); }
+function isRollerDoble(t){ const k=(t||'').toLowerCase(); return k==='rollerdoble' || k==='doble'; }
 
 function esItemConInstalacion(item){
   const tela = (item.tela||'').toLowerCase();
@@ -5555,6 +5556,8 @@ function convertToOrder(idOrDoc){
       colorMec: isNegro ? 'Negro' : 'Blanco',
       cadena:   isNegro ? 'Negra' : 'Blanca',
       zoc:      'Bolsillo',
+      // Soporte: default 'Doble' si es roller doble, sino 'Largo' como default neutro
+      soporte:  isRollerDoble(item.tela) ? 'Doble' : 'Largo',
     };
   }
 
@@ -5607,7 +5610,7 @@ function convertToOrder(idOrDoc){
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
           ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
         </div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
           <div>${lbl('Sentido caída')}<select class="ped-sent" data-idx="${i}" ${sel()}>
             <option${d.sent==='Detrás'?' selected':''}>Detrás</option>
             <option${d.sent==='Delante'?' selected':''}>Delante</option>
@@ -5629,6 +5632,12 @@ function convertToOrder(idOrDoc){
             <option${d.zoc==='Bolsillo'?' selected':''}>Bolsillo</option>
             <option${d.zoc==='Visto Blanco'?' selected':''}>Visto Blanco</option>
             <option${d.zoc==='Visto Negro'?' selected':''}>Visto Negro</option>
+          </select></div>
+          <div>${lbl('Soporte')}<select class="ped-sop" data-idx="${i}" ${sel()}>
+            <option${d.soporte==='Corto'?' selected':''}>Corto</option>
+            <option${d.soporte==='Largo'?' selected':''}>Largo</option>
+            <option${d.soporte==='Doble'?' selected':''}>Doble</option>
+            <option${d.soporte==='Intermedio'?' selected':''}>Intermedio</option>
           </select></div>
         </div>
       </div>`;
@@ -5773,6 +5782,7 @@ async function confirmarPedido(){
     it.colorMec = document.querySelector(`.ped-mec[data-idx="${i}"]`)?.value  || 'Blanco';
     it.cadena   = document.querySelector(`.ped-cad[data-idx="${i}"]`)?.value  || 'Blanca';
     it.zoc      = document.querySelector(`.ped-zoc[data-idx="${i}"]`)?.value  || 'Bolsillo';
+    it.soporte  = document.querySelector(`.ped-sop[data-idx="${i}"]`)?.value  || (isRollerDoble(it.tela) ? 'Doble' : 'Largo');
   });
 
   // Confección tradicional
@@ -5883,6 +5893,17 @@ async function confirmarPedido(){
   }
 }
 
+// Click en una fila de cotización/pedido/admin abre el doc (como si clickearan 👁).
+// Ignora clicks sobre controles interactivos (botones, selects, links, dropdown menu).
+function rowOpenDoc(ev, id){
+  const t = ev.target;
+  if(!t) return;
+  // Si el click fue en un control interactivo → no hacer nada (sigue su flujo normal)
+  if(t.closest && t.closest('button, select, input, textarea, a, .menu-dropdown, .btn-menu-wrap')) return;
+  const doc = typeof getDocById==='function' ? getDocById(id) : getDocs().find(x=>x.id===id);
+  if(doc) openDoc(doc);
+}
+
 function renderRow(d, isAdmin){
   const canEdit = isAdmin || d.vendedor===ME.name || ME.role==='admin';
   const isQuote = d.type==='quote';
@@ -5895,7 +5916,7 @@ function renderRow(d, isAdmin){
   if(isQuote&&canEdit) menuItems.push(`<button class="menu-dropdown-item" onclick="duplicateDoc('${d.id}')">📋 Duplicar</button>`);
   if(canEdit) menuItems.push(`<button class="menu-dropdown-item del" onclick="deleteDoc('${d.id}')">🗑 Eliminar</button>`);
   const menuHTML = menuItems.join('').replace(/"/g,'&quot;');
-  return `<tr style="border-bottom:1px solid var(--border)">
+  return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="rowOpenDoc(event,'${d.id}')">
     <td style="vertical-align:middle;white-space:nowrap"><strong>#${d.numero||'—'}</strong>${d.cotizacionOrigen?`<br><span style="font-size:10px;color:var(--muted);white-space:nowrap">de cot. #${d.cotizacionOrigen}</span>`:''}</td>
     <td style="vertical-align:middle">${fmtD(d.fecha)}</td>
     <td style="vertical-align:middle">${d.cliente}</td>
@@ -5989,7 +6010,7 @@ function renderAdmin(){
       `<button class="menu-dropdown-item" onclick="editDoc('${d.id}')">✏️ Editar</button>`+
       `<button class="menu-dropdown-item del" onclick="deleteDoc('${d.id}')">🗑 Eliminar</button>`
     ).replace(/"/g,'&quot;');
-    return `<tr style="border-bottom:1px solid var(--border)">
+    return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="rowOpenDoc(event,'${d.id}')">
       <td style="vertical-align:middle"><strong>#${d.numero||'—'}</strong></td>
       <td style="vertical-align:middle"><span class="${d.type==='quote'?'type-quote':'type-order'}">${d.type==='quote'?'Cotización':'Pedido'}</span></td>
       <td style="vertical-align:middle">${fmtD(d.fecha)}</td>
@@ -8437,6 +8458,8 @@ function resetEtqConfig(){
     function preventFocusShift(e){
       // No prevenir si el usuario quiere interactuar con un campo de texto o select
       if(shouldKeepFocusOn(e.target)) return;
+      // No prevenir si el elemento es arrastrable o está dentro de uno (drag-and-drop)
+      if(e.target.closest && e.target.closest('[draggable="true"]')) return;
       e.preventDefault();
     }
     document.addEventListener('mousedown',   preventFocusShift, true);

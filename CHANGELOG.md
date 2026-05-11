@@ -1,5 +1,39 @@
 # Changelog
 
+## V264 — 2026-05-07
+
+### Fixes y mejoras
+
+**Bug 1: drag-and-drop de items no funcionaba**
+
+V261 agregó `preventFocusShift` con `mousedown.preventDefault()` para mantener el foco del scanner. Eso bloqueaba sin querer el inicio del drag (los handlers de drag necesitan que el mousedown procese su default).
+
+**Fix**: `preventFocusShift` ahora respeta elementos con `draggable="true"` (o descendientes) y no prevee el default cuando se interactúa con uno.
+
+**Feature 2: campo Soporte en el overlay de fabricación**
+
+Para cortinas Roller (Blackout y Sunscreen 1/3/5%) y Roller Doble ahora se pregunta el tipo de soporte al pasar a fabricación.
+
+- Opciones: **Corto / Largo / Doble / Intermedio**
+- Default inteligente:
+  - Roller Doble → "Doble" preseleccionado
+  - Demás rollers → "Largo" como default neutro
+- Se guarda en `it.soporte` (compatible con lo que ya leía la planilla).
+- Layout del overlay: pasó de 5 columnas a 2 filas × 3 columnas para acomodar el campo nuevo sin que queden muy angostas.
+
+**Feature 3: click en cualquier parte de la fila abre el doc**
+
+En las listas de Cotizaciones, Pedidos y Administración, ahora se puede tocar **cualquier parte de la fila** (no solo el ícono 👁) para abrir el documento.
+
+- Helper `rowOpenDoc(ev, id)` que detecta si el click fue sobre un control (botón, select, input, link, dropdown) y en ese caso deja pasar el evento normal.
+- Si fue sobre una zona "neutra" de la fila (número, fecha, cliente, vendedor, etc.) → abre el doc.
+- Cursor cambia a `pointer` en la fila para que se vea que es clickeable.
+- Aplicado en `renderRow` (cotizaciones/pedidos) y `renderAdmin` (panel de admin).
+
+**Roller Doble incluido en `TIPOS_ROLLER`**
+
+Antes los items de "Roller Doble" (`rollerdoble`/`doble`) no aparecían en el overlay de detalles técnicos. Ahora sí, junto con los demás rollers. Nueva función `isRollerDoble(tela)` para detectar el caso especial.
+
 ## V263 — 2026-05-07
 
 ### UX
