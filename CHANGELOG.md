@@ -1,5 +1,22 @@
 # Changelog
 
+## V263 — 2026-05-07
+
+### UX
+
+**Indicador visual del scanner removido**
+
+Con V262 el scanner funciona automático y sin abrir el teclado en pantalla del iPad. El indicador "🔍 Scanner / Tocá para activar" en la topbar dejó de tener sentido — era clutter visual.
+
+- Removido el botón indicador de la topbar.
+- Removidas las funciones `setIndState`, `syncIndicator`, `isScannerReady`, `_scannerFlashSuccess` (la lógica de estado visual).
+- **Toda la lógica de captura del scanner se mantiene intacta**: ghost input readonly, body focusable, doble red, refocus agresivo cada 700ms, listeners en window, etc.
+- Las llamadas a `_scannerFlashSuccess()` que quedaban en `confirmarScanAvance` etc. tienen check `typeof === 'function'` y simplemente son no-ops ahora.
+
+**Beep + toast** se mantienen como feedback de un scan exitoso (sonido jingle al finalizar, toast verde, etc.).
+
+Si en algún momento querés volver a ver el indicador (debug, problemas), avisame y lo agregamos como dot chico de diagnóstico.
+
 ## V262 — 2026-05-07
 
 ### Scanner iPad — readonly suprime el teclado en pantalla

@@ -8428,56 +8428,6 @@ function resetEtqConfig(){
       }, 0);
     }
 
-    // ── INDICADOR DE ESTADO ──
-    // Lo ubicamos en la topbar (al lado del indicador de sincronización)
-    // para que no se solape con el botón Guardar / Vista previa del form.
-    const ind = document.createElement('button');
-    ind.id = 'scanner-indicator';
-    ind.type = 'button';
-    ind.title = 'Estado del scanner — tocá para activar';
-    ind.style.cssText = 'height:26px;padding:0 11px;border-radius:14px;border:0;display:inline-flex;align-items:center;justify-content:center;gap:5px;font-family:-apple-system,system-ui,sans-serif;font-size:10.5px;font-weight:700;cursor:pointer;user-select:none;-webkit-tap-highlight-color:transparent;transition:all .2s;line-height:1;white-space:nowrap';
-    // Insertarlo en la topbar (junto al sync-indicator). Si la topbar todavía no
-    // existe en el DOM, esperar y reintentar.
-    function attachToTopbar(){
-      const right = document.querySelector('.topbar-right');
-      const sync  = document.getElementById('sync-indicator');
-      if(right){
-        if(sync) right.insertBefore(ind, sync); else right.appendChild(ind);
-        return true;
-      }
-      return false;
-    }
-    if(!attachToTopbar()){
-      const obs = new MutationObserver(()=>{
-        if(attachToTopbar()) obs.disconnect();
-      });
-      obs.observe(document.body, { childList:true, subtree:true });
-    }
-
-    function setIndState(state){
-      // state: 'active', 'inactive', 'success'
-      if(state === 'active'){
-        ind.style.background = 'rgba(34,197,94,0.92)';
-        ind.style.color = '#fff';
-        ind.innerHTML = '🔍 Scanner';
-      } else if(state === 'success'){
-        ind.style.background = '#16a34a';
-        ind.style.color = '#fff';
-        ind.innerHTML = '✓ Procesado';
-      } else {
-        ind.style.background = 'rgba(245,158,11,0.92)';
-        ind.style.color = '#fff';
-        ind.innerHTML = '⚠ Tocá para activar';
-      }
-    }
-    setIndState('inactive');
-
-    // Tocar el indicador → focus sincrónico al ghost
-    ind.addEventListener('pointerdown', e=>{
-      e.preventDefault();
-      try{ inp.focus({preventScroll:true}); }catch(_){}
-    });
-
     // Auto-focus al cargar
     setTimeout(refocus, 300);
 
@@ -8487,8 +8437,6 @@ function resetEtqConfig(){
     function preventFocusShift(e){
       // No prevenir si el usuario quiere interactuar con un campo de texto o select
       if(shouldKeepFocusOn(e.target)) return;
-      // No prevenir si tocaron el propio indicador (ya tiene su handler)
-      if(e.target === ind || (e.target.parentNode === ind)) return;
       e.preventDefault();
     }
     document.addEventListener('mousedown',   preventFocusShift, true);
@@ -8513,21 +8461,6 @@ function resetEtqConfig(){
       });
     });
 
-    // El estado "activo" se cumple si el ghost O el body tienen foco — ambos
-    // pueden capturar keydowns. Usamos focusin/focusout a nivel document para
-    // detectar cualquier cambio de foco.
-    function isScannerReady(){
-      const ae = document.activeElement;
-      return ae === inp || ae === document.body || !ae;
-    }
-    function syncIndicator(){
-      if(isScannerReady()) setIndState('active');
-      else if(!shouldKeepFocusOn(document.activeElement)) setIndState('inactive');
-      // Si el activo es un campo real, no cambiamos el indicador (sigue como estaba)
-    }
-    document.addEventListener('focusin',  syncIndicator);
-    document.addEventListener('focusout', ()=>setTimeout(syncIndicator, 50));
-
     // Cuando la app vuelve a primer plano, refocus
     document.addEventListener('visibilitychange', ()=>{
       if(!document.hidden) setTimeout(refocus, 200);
@@ -8549,12 +8482,6 @@ function resetEtqConfig(){
 
     // Refocus periódico de respaldo (cada 700ms)
     setInterval(refocus, 700);
-
-    // Helper público para feedback visual de scan exitoso
-    window._scannerFlashSuccess = function(){
-      setIndState('success');
-      setTimeout(()=>{ if(document.activeElement === inp) setIndState('active'); else setIndState('inactive'); }, 1200);
-    };
 
     // Log helper para debug
     inp.addEventListener('focus', ()=> console.log('[Scan] ghost FOCUSED'));
