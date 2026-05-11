@@ -8372,38 +8372,28 @@ function resetEtqConfig(){
     const inp = document.createElement('input');
     inp.id = 'scanner-ghost';
     inp.type = 'text';
+    // ⚠ readonly = el input se puede FOCUSEAR pero iOS NO abre el teclado en pantalla
+    // (porque interpreta que no se puede editar). Los eventos keydown del scanner
+    // (teclado HW Bluetooth) siguen disparándose normalmente. Este es el patrón
+    // canónico que usan apps POS en iOS para capturar input de scanner sin teclado.
+    inp.readOnly = true;
     inp.autocomplete = 'off';
     inp.setAttribute('autocorrect','off');
     inp.setAttribute('autocapitalize','off');
     inp.setAttribute('spellcheck','false');
+    inp.setAttribute('inputmode','none'); // doble seguridad para suprimir teclado
     inp.setAttribute('aria-hidden','true');
     inp.tabIndex = 0;
-    // ⚠ Sin inputmode='none' (puede bloquear input desde teclado HW en iOS).
-    // Sin pointer-events:none (iOS lo trata como "no-interactivo" y no le da foco).
     // Posicionado dentro del viewport, completamente transparente.
     inp.style.cssText = 'position:fixed;top:0;left:0;width:2px;height:2px;opacity:0;border:0;outline:0;padding:0;margin:0;background:transparent;color:transparent;caret-color:transparent;font-size:16px;-webkit-user-select:none;user-select:none;z-index:-1';
     document.body.appendChild(inp);
 
-    // Procesar cada cambio (input event = fiable en iOS)
-    let lastVal = '';
-    inp.addEventListener('input', ()=>{
-      const v = inp.value;
-      // Calcular el delta (caracteres nuevos)
-      let delta = '';
-      if(v.startsWith(lastVal)) delta = v.slice(lastVal.length);
-      else delta = v; // reset (paste / clear)
-      lastVal = v;
-      for(const ch of delta){ handleChar(ch); }
-      // Limpiar el input cada cierto tiempo para no acumular
-      if(v.length > 60){ inp.value = ''; lastVal = ''; }
-    });
-
-    // Capturar Enter (algunos scanners terminan así)
+    // El input es readonly → el evento 'input' no se dispara. Capturamos
+    // directamente del keydown (el scanner HW dispara keydown aunque el input
+    // sea readonly, solo se bloquea la edición por software).
     inp.addEventListener('keydown', e=>{
-      if(e.key === 'Enter'){
-        handleEnter(e);
-        inp.value = ''; lastVal = '';
-      }
+      if(e.key === 'Enter'){ handleEnter(e); return; }
+      if(e.key && e.key.length === 1) handleChar(e.key);
     });
 
     // Decide si NO debemos quitarle el foco al elemento.

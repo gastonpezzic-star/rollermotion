@@ -1,5 +1,31 @@
 # Changelog
 
+## V262 — 2026-05-07
+
+### Scanner iPad — readonly suprime el teclado en pantalla
+
+En V261 saqué `inputmode="none"` porque podía estar bloqueando el teclado HW. Resultado: el ghost input recibía foco pero iOS **abría el teclado en pantalla**, molesto al operario.
+
+V262 aplica el patrón canónico que usan apps POS en iOS: **input con `readonly`**.
+
+**Cómo funciona**:
+
+- `readonly` significa "no se puede editar" → iOS NO abre el teclado en pantalla.
+- PERO el elemento sigue siendo **focusable**, y los teclados de hardware (Bluetooth scanners) siguen disparando eventos `keydown` cuando está enfocado.
+- Solo se bloquea la edición por software, no la captura de eventos.
+
+**Cambios**:
+
+- Ghost input: `readonly = true` + `inputmode="none"` (doble seguridad para suprimir teclado en pantalla).
+- Quité el listener del evento `input` (con readonly nunca se dispara — el valor no cambia). Toda la captura ocurre vía `keydown`.
+- Mantiene la doble red de V261: ghost input + body como respaldos para capturar keydowns.
+
+### Resultado esperado
+
+- ❌ Sin teclado en pantalla nunca.
+- ✅ Scanner captura sin necesidad de tocar el indicador.
+- ✅ Tap manual en el indicador sigue siendo backup por si iOS rechaza el focus.
+
 ## V261 — 2026-05-07
 
 ### Scanner: intento de "siempre activo" sin tocar nada
