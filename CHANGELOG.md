@@ -1,5 +1,34 @@
 # Changelog
 
+## V269 — 2026-05-07
+
+### Fix urgente: scanner no detectaba el código de confección
+
+El patrón regex que decide si un buffer de teclas parece un scanner (`SCAN_PATTERN`) era:
+
+```
+/^[A-Z]+[\W_]?\d{3,}$/i
+```
+
+Esto matcheaba `PED-0184` pero **NO** `PED-0184-C` (el sufijo extra `-C` rompía el match al final). Resultado: el scanner descartaba el buffer antes de llegar a `processScan`, así que la nota de confección no se procesaba.
+
+**Fix**: actualizado el patrón para aceptar el sufijo opcional de confección.
+
+```
+/^[A-Z]+[\W_]?\d{3,}(?:[\W_]?C)?$/i
+```
+
+Acepta todas estas formas (incluyendo cuando iOS convierte `-` en `'` por smart quotes):
+
+- `PED-0184` ✓
+- `PED'0184` ✓
+- `PED0184` ✓
+- `PED-0184-C` ✓ (nuevo)
+- `PED'0184'C` ✓ (nuevo)
+- `PED0184C` ✓ (nuevo)
+
+La normalización dentro de `processScan` ya manejaba bien la detección del sufijo C — el problema era el filtro previo en `tryProcess` que ni siquiera dejaba llegar el código.
+
 ## V268 — 2026-05-07
 
 ### Ajustes a la planilla de confección

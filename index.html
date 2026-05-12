@@ -8414,7 +8414,9 @@ function resetEtqConfig(){
   const RESET_TIMEOUT      = 300;
   const AUTO_PROCESS_DELAY = 150;
   const SCAN_MAX_AVG_MS    = 80;
-  const SCAN_PATTERN = /^[A-Z]+[\W_]?\d{3,}$/i;
+  // Patrón: LETRAS + (separador opc.) + DIGITOS + opcionalmente (separador opc. + C)
+  // Acepta: PED-0184, PED'0184, PED0184, PED-0184-C, PED'0184'C, PED0184C
+  const SCAN_PATTERN = /^[A-Z]+[\W_]?\d{3,}(?:[\W_]?C)?$/i;
 
   function tryProcess(){
     if(processTimer){ clearTimeout(processTimer); processTimer = null; }
