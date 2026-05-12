@@ -7955,26 +7955,50 @@ function openPlanillaConfeccion(d){
     const cabezal = it.cabezal || 'Americano';
     const dob = parseFloat(it.dobladillo)||0;
     const arr = parseFloat(it.arrastre)||0;
-    const metrosNum = (typeof it.metrosTela === 'number') ? it.metrosTela : null;
-    const metros = metrosNum != null ? `${metrosNum.toFixed(2)} m` : '— m';
-    const anchoRollo = it.anchoRollo ? `${it.anchoRollo} mm` : '—';
-    const frunceNum = (typeof it.frunceReal === 'number') ? it.frunceReal : null;
-    const frunce = frunceNum != null ? frunceNum.toFixed(2) : '—';
-    const pedazos = it.pedazos || 1;
-    const nombreTela = it.nombreTela || it.color || '—';
     const anchoMm = parseInt(it.ancho)||0;
     const altoMm  = parseInt(it.alto)||0;
-    const anchoRolloMm = parseInt(it.anchoRollo)||2900;
-    // Lógica del cálculo (texto explicativo del breakdown)
-    let calculoTxt = '';
-    if(metrosNum != null && anchoMm){
+    const nombreTela = it.nombreTela || it.color || '—';
+
+    // Frunce: del campo, o parseado del color string ("Frunce: 2.00")
+    let frunceNum = (typeof it.frunceReal === 'number') ? it.frunceReal : null;
+    if(frunceNum == null && it.color){
+      const fm = it.color.match(/Frunce:\s*([\d.]+)/i);
+      if(fm) frunceNum = parseFloat(fm[1]);
+    }
+    const frunce = frunceNum != null ? frunceNum.toFixed(2) : '—';
+
+    // Ancho del rollo en metros (catálogo Sirota: 1.4, 2.9, etc.)
+    const anchoRolloMm = parseInt(it.anchoRollo)||0;
+    const anchoRolloM = anchoRolloMm > 0 ? (anchoRolloMm/1000).toFixed(1) + ' m' : '—';
+
+    // Metros de tela a usar/pedir. Si no se guardó, recalcular.
+    let metrosNum = (typeof it.metrosTela === 'number') ? it.metrosTela : null;
+    if(metrosNum == null && anchoMm && frunceNum){
+      const rolloMm = anchoRolloMm || 2900;
       if(altoMm <= 2600){
-        // Caso simple: la cortina entra en el alto del rollo → ancho × frunce
+        // Cortina entra en el ancho del rollo → ancho × frunce
+        metrosNum = (anchoMm/1000) * frunceNum;
+      } else {
+        // Cortina más alta que el rollo → pedazos × (alto+30cm de desarrollo)
+        const largoDesarrollo = (altoMm + 300)/1000;
+        const pedazosCalc = Math.ceil((anchoMm * frunceNum) / rolloMm);
+        metrosNum = pedazosCalc * largoDesarrollo;
+      }
+    }
+    const metros = metrosNum != null ? `${metrosNum.toFixed(2)} m` : '— m';
+
+    // Medida final (ancho × alto) → ahora en el lugar destacado
+    const medidaFinal = (anchoMm && altoMm) ? `${anchoMm} × ${altoMm} mm` : '—';
+
+    // Texto del cálculo de metros (debajo del tile de metros, en chico)
+    let calculoTxt = '';
+    if(metrosNum != null && anchoMm && frunceNum){
+      if(altoMm <= 2600){
         calculoTxt = `${(anchoMm/1000).toFixed(2)} m (ancho) × ${frunce} (frunce) = ${metros}`;
       } else {
-        // Caso compuesto: pedazos × largo desarrollo
-        const largoDesarrollo = altoMm + 300;
-        calculoTxt = `${pedazos} pedazo${pedazos>1?'s':''} × ${(largoDesarrollo/1000).toFixed(2)} m (alto+30 cm de desarrollo) = ${metros}`;
+        const largoDesarrollo = (altoMm + 300)/1000;
+        const pedazosCalc = it.pedazos || Math.ceil((anchoMm * frunceNum) / (anchoRolloMm||2900));
+        calculoTxt = `${pedazosCalc} pedazo${pedazosCalc>1?'s':''} × ${largoDesarrollo.toFixed(2)} m (alto+30 cm) = ${metros}`;
       }
     }
 
@@ -7995,11 +8019,11 @@ function openPlanillaConfeccion(d){
         </div>
         <!-- Datos -->
         <div>
-          <!-- CANTIDAD DE METROS A USAR — destacado -->
+          <!-- MEDIDA FINAL DE LA CORTINA — destacado arriba -->
           <div style="background:linear-gradient(135deg,#2c6e49,#1a4a2a);color:#fff;border-radius:10px;padding:14px 18px;margin-bottom:12px;box-shadow:0 2px 8px rgba(44,110,73,0.25)">
-            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;opacity:.85;font-weight:700">Cantidad de metros a usar</div>
-            <div style="font-family:'Manrope',sans-serif;font-size:38px;font-weight:800;line-height:1;margin-top:4px">${metros}</div>
-            ${calculoTxt?`<div style="font-size:10.5px;opacity:.78;margin-top:6px;font-style:italic">${calculoTxt}</div>`:''}
+            <div style="font-size:10px;text-transform:uppercase;letter-spacing:.12em;opacity:.85;font-weight:700">Medida final de la cortina</div>
+            <div style="font-family:'Manrope',sans-serif;font-size:32px;font-weight:800;line-height:1.05;margin-top:4px">${medidaFinal}</div>
+            <div style="font-size:9.5px;opacity:.72;margin-top:4px;letter-spacing:.05em">Ancho × Alto · ${cant} und.</div>
           </div>
           <!-- Datos importantes — grid 2x3 -->
           <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
@@ -8013,7 +8037,7 @@ function openPlanillaConfeccion(d){
             </div>
             <div style="background:#fff;border:1.5px solid #c8e1d2;border-radius:7px;padding:9px 11px">
               <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Ancho rollo</div>
-              <div style="font-family:'Manrope',sans-serif;font-size:14px;font-weight:800;color:#1a4a2a;margin-top:2px">${anchoRollo}</div>
+              <div style="font-family:'Manrope',sans-serif;font-size:14px;font-weight:800;color:#1a4a2a;margin-top:2px">${anchoRolloM}</div>
             </div>
             <div style="background:#fef9f0;border:1.5px solid #f5d195;border-radius:7px;padding:9px 11px">
               <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#a05c00;font-weight:700">Dobladillo</div>
@@ -8023,19 +8047,17 @@ function openPlanillaConfeccion(d){
               <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#1a4a2a;font-weight:700">Arrastre</div>
               <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;color:#1a4a2a;margin-top:2px;line-height:1">${arr} cm</div>
             </div>
-            <div style="background:#fff;border:1.5px solid #c8e1d2;border-radius:7px;padding:9px 11px">
-              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#666;font-weight:700">Pedazos</div>
-              <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;color:#1a4a2a;margin-top:2px;line-height:1">${pedazos}</div>
+            <div style="background:#fffbe6;border:1.5px solid #f0c674;border-radius:7px;padding:9px 11px">
+              <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;color:#7a5a00;font-weight:700">Metros de tela</div>
+              <div style="font-family:'Manrope',sans-serif;font-size:18px;font-weight:800;color:#7a5a00;margin-top:2px;line-height:1">${metros}</div>
+              <div style="font-size:8.5px;color:#a07e30;margin-top:1px">a pedir / usar</div>
             </div>
           </div>
+          ${calculoTxt?`<div style="margin-top:8px;font-size:10.5px;color:#888;font-style:italic;text-align:center;background:#fafafa;border-radius:5px;padding:5px 10px">${calculoTxt}</div>`:''}
           <!-- Tela: span completo abajo -->
           <div style="background:#1a4a2a;color:#fff;border-radius:7px;padding:9px 13px;margin-top:8px">
             <div style="font-size:9px;text-transform:uppercase;letter-spacing:.08em;opacity:.7;font-weight:700">Tela</div>
             <div style="font-size:13px;font-weight:700;margin-top:2px;line-height:1.3">${nombreTela}</div>
-          </div>
-          <!-- Medidas (info menor) -->
-          <div style="margin-top:8px;font-size:10.5px;color:#888;text-align:center">
-            Medidas terminadas: <strong style="color:#444">${it.ancho||'—'} × ${it.alto||'—'} mm</strong>
           </div>
         </div>
       </div>

@@ -1,5 +1,33 @@
 # Changelog
 
+## V265 — 2026-05-07
+
+### Mejoras a la planilla de confección
+
+Después del segundo feedback:
+
+**Cambio de jerarquía**: lo más importante para el confeccionista es la **medida final de la cortina**, no los metros de tela.
+
+- **Tile destacado arriba** ahora muestra "MEDIDA FINAL DE LA CORTINA" → ancho × alto en mm (ej. `2250 × 2120 mm`).
+- **Antiguo tile "Pedazos"** reemplazado por **"Metros de tela"** (color amarillo) con subtítulo "a pedir / usar" — el dato que el confeccionista necesita saber para pedir/usar la tela.
+- La fórmula del cálculo de metros sigue debajo del grid como texto chico en cursiva.
+
+**Ancho del rollo en metros**
+
+- Antes mostraba en mm (`2900 mm`). Ahora en metros con 1 decimal (`2.9 m`) — coincide con el formato del catálogo Sirota.
+
+**Recálculo on-the-fly para items viejos**
+
+Cotizaciones/pedidos hechos antes de V258 no tenían guardados `metrosTela`, `anchoRollo`, `frunceReal`. Antes mostraban "—". Ahora:
+
+- **Frunce**: se parsea del string `it.color` que tiene "Frunce: 2.00".
+- **Metros de tela**: si no estaba guardado, se recalcula:
+  - Si `alto ≤ 2600 mm`: `(ancho/1000) × frunce`
+  - Si `alto > 2600 mm`: `pedazos × (alto+30cm de desarrollo)` (asumiendo rollo 2.9m si no hay dato)
+- **Ancho rollo**: si no estaba guardado, muestra "—" (no asumimos default — el confeccionista lo verá faltante y consultará).
+
+**Limpieza**: quitada la línea "Medidas terminadas: …" al pie (ahora redundante con el tile destacado arriba).
+
 ## V264 — 2026-05-07
 
 ### Fixes y mejoras
