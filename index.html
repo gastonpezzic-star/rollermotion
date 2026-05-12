@@ -2400,6 +2400,33 @@ let _loadingDocs = false;
 
 function getDocs(){ return _docsCache; }
 
+// ── FLAGS DE TRACKING POR DOC (conf_recibida, roller_terminado) ──
+// Persistimos estos flags en localStorage independiente porque la tabla
+// Supabase 'documentos' no tiene columnas para ellos. Si el usuario agrega
+// las columnas, podemos pasar a guardar en Supabase también.
+function getLocalDocFlags(){
+  try{ return JSON.parse(localStorage.getItem('rm_doc_flags')||'{}'); }
+  catch(e){ return {}; }
+}
+function setLocalDocFlag(id, key, val){
+  const all = getLocalDocFlags();
+  if(!all[id]) all[id] = {};
+  all[id][key] = val;
+  try{ localStorage.setItem('rm_doc_flags', JSON.stringify(all)); }catch(e){}
+}
+function applyLocalFlagsToDoc(doc){
+  if(!doc) return doc;
+  const flags = getLocalDocFlags()[doc.id];
+  if(flags){
+    if('conf_recibida' in flags)   doc.conf_recibida   = flags.conf_recibida;
+    if('roller_terminado' in flags) doc.roller_terminado = flags.roller_terminado;
+  }
+  return doc;
+}
+function applyLocalFlagsToDocs(docs){
+  return (docs||[]).map(applyLocalFlagsToDoc);
+}
+
 function setDocs(arr){
   // Actualiza tanto el cache en memoria como localStorage
   _docsCache = arr;
@@ -2535,7 +2562,8 @@ async function loadDocs(){
       .order('created_at', { ascending: false });
     if(error) throw error;
     // Normalizar formato para compatibilidad con el código existente
-    _docsCache = (data||[]).map(normalizeDoc);
+    // + merge de flags locales (conf_recibida, roller_terminado)
+    _docsCache = applyLocalFlagsToDocs((data||[]).map(normalizeDoc));
     // También actualizar localStorage con los datos frescos de Supabase
     const raw = JSON.stringify(_docsCache);
     localStorage.setItem('rm_docs_local', raw);
@@ -2877,6 +2905,7 @@ const STATUS_HTML = {
   'Pendiente':     '<span class="badge s-p">⏳ Pendiente</span>',
   'Aprobado':      '<span class="badge s-a">✅ Aprobado</span>',
   'En Fabricación':'<span class="badge s-f">⚙️ Fabricación</span>',
+  'Parcialmente terminado': '<span class="badge" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd">🔄 Parcial</span>',
   'Finalizado':    '<span class="badge s-ok">🏁 Finalizado</span>',
   'Cancelado':     '<span class="badge s-x">❌ Cancelado</span>',
   'Necesita Revisión': '<span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107">⚠️ Revisión</span>',
@@ -5963,7 +5992,7 @@ function toggleActionMenu(btn, ev){
 function statusOpts(type, cur){
   const opts = type==='quote'
     ? ['Cotización','Enviada','Aprobada','Rechazada']
-    : ['Pendiente','Aprobado','En Fabricación','Necesita Revisión','Finalizado','Cancelado'];
+    : ['Pendiente','Aprobado','En Fabricación','Necesita Revisión','Parcialmente terminado','Finalizado','Cancelado'];
   return opts.map(o=>`<option${o===cur?' selected':''}>${o}</option>`).join('');
 }
 
@@ -7805,8 +7834,8 @@ function openPlanilla(d){
 // un paño + flecha) con cotas, dobladillo, arrastre, y los datos para confeccionar.
 
 function _svgCortinaConf(it){
-  const W = 360, H = 380;
-  const padX = 50, padTop = 32, padBot = 70;
+  const W = 420, H = 380;
+  const padX = 90, padTop = 32, padBot = 70;
   const drawW = W - padX*2;
   const drawH = H - padTop - padBot;
   const ancho = parseInt(it.ancho)||1500;
@@ -7987,8 +8016,10 @@ function openPlanillaConfeccion(d){
     }
     const metros = metrosNum != null ? `${metrosNum.toFixed(2)} m` : '— m';
 
-    // Medida final (ancho × alto) → ahora en el lugar destacado
-    const medidaFinal = (anchoMm && altoMm) ? `${anchoMm} × ${altoMm} mm` : '—';
+    // Medida final = ancho × (alto + arrastre en mm)
+    // Si tiene arrastre 3cm, el alto total a confeccionar es alto+30mm
+    const altoFinalMm = altoMm + (arr * 10); // arr está en cm
+    const medidaFinal = (anchoMm && altoMm) ? `${anchoMm} × ${altoFinalMm} mm` : '—';
 
     // Texto del cálculo de metros (debajo del tile de metros, en chico)
     let calculoTxt = '';
@@ -8011,7 +8042,7 @@ function openPlanillaConfeccion(d){
         ${it.ref?`<div style="font-size:11px;color:#666;margin-left:auto;background:#f4fbf5;padding:3px 9px;border-radius:4px">Ref: ${it.ref}</div>`:''}
       </div>
       <!-- Body: dibujo + datos -->
-      <div style="display:grid;grid-template-columns:380px 1fr;gap:18px;align-items:flex-start">
+      <div style="display:grid;grid-template-columns:440px 1fr;gap:18px;align-items:flex-start">
         <!-- SVG -->
         <div>
           ${_svgCortinaConf(it)}
@@ -8081,7 +8112,10 @@ function openPlanillaConfeccion(d){
       <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Cliente</span><span style="font-weight:700">${cliente}</span></div>
       <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Entrega</span><span style="font-weight:700">${fechaEnt}</span></div>
       <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Cortinas</span><span style="font-weight:700">${items.length}</span></div>
-      <div id="fab-barcode-conf-only" style="margin-left:auto"></div>
+      <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
+        <div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#1a4a2a">⚠ Escanear al recibir del confeccionista</div>
+        <div id="fab-barcode-conf-only"></div>
+      </div>
     </div>
     <!-- CORTINAS -->
     <div style="padding:14px 20px">
@@ -8095,7 +8129,8 @@ function openPlanillaConfeccion(d){
   _isPlanillaConf = true;
   document.getElementById('overlay').classList.add('on');
 
-  // Barcode
+  // Barcode — usamos sufijo '-C' para distinguir scan de confección recibida del scan principal
+  const confBarcodeText = `${pedNum}-C`;
   setTimeout(()=>{
     const wrap = document.getElementById('fab-barcode-conf-only');
     if(!wrap) return;
@@ -8103,13 +8138,13 @@ function openPlanillaConfeccion(d){
     try{
       const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
       wrap.appendChild(svg);
-      JsBarcode(svg, pedNum, {
+      JsBarcode(svg, confBarcodeText, {
         format:'CODE128', width:1.3, height:32, displayValue:true,
-        text:pedNum, fontOptions:'bold', fontSize:10, margin:2,
+        text:confBarcodeText, fontOptions:'bold', fontSize:10, margin:2,
         lineColor:'#141414', background:'transparent'
       });
     } catch(e){
-      wrap.innerHTML = `<code style="font-size:10px;font-weight:700;background:#f0f0ee;padding:3px 7px;border-radius:3px">${pedNum}</code>`;
+      wrap.innerHTML = `<code style="font-size:10px;font-weight:700;background:#f0f0ee;padding:3px 7px;border-radius:3px">${confBarcodeText}</code>`;
     }
   }, 200);
 }
@@ -8552,10 +8587,19 @@ function resetEtqConfig(){
 async function processScan(code){
   // Normalizar: quitar apóstrofes, guiones, espacios — algunos scanners transforman caracteres
   // PED'0067 → PED0067, PED-0067 → PED0067
+  // PED-0067-C → PED0067C → detectamos el sufijo C (código de confección)
   const normalize = s => (s||'').toUpperCase().replace(/[^A-Z0-9]/g,'');
-  const codeNorm = normalize(code);
+  let codeNorm = normalize(code);
 
-  console.log('[Scan] Original:', code, '→ Normalizado:', codeNorm);
+  // Detectar sufijo de confección (-C): código termina en C después de los dígitos
+  let isConfBarcode = false;
+  const confMatch = codeNorm.match(/^([A-Z]+\d+)C$/);
+  if(confMatch){
+    isConfBarcode = true;
+    codeNorm = confMatch[1]; // sacar la C final para buscar el doc
+  }
+
+  console.log('[Scan] Original:', code, '→ Normalizado:', codeNorm, isConfBarcode ? '(CONFECCIÓN)' : '(PRINCIPAL)');
 
   // Buscar pedido normalizando ambos lados
   const doc = getDocs().find(d => {
@@ -8570,7 +8614,7 @@ async function processScan(code){
       const docByNum = getDocs().find(d => d.type==='order' && normalize(d.numero).endsWith(soloNum));
       if(docByNum){
         console.log('[Scan] Match alternativo por número:', docByNum.numero);
-        abrirScanConfirm(docByNum, code);
+        abrirScanConfirm(docByNum, code, isConfBarcode);
         return;
       }
     }
@@ -8580,44 +8624,112 @@ async function processScan(code){
     return;
   }
   // Mostrar overlay de confirmación de scan
-  abrirScanConfirm(doc, code);
+  abrirScanConfirm(doc, code, isConfBarcode);
 }
 
 let _scanDoc = null;
 let _scanNextEstado = null;
-let _scanAutoTimer  = null; // timer para auto-confirm tras 1s
+let _scanNextFlags = null; // {conf_recibida?, roller_terminado?} updates
+let _scanIsConf = false;
+let _scanAutoTimer  = null;
 
-function abrirScanConfirm(doc, code){
-  // Si había un timer pendiente, cancelarlo (nuevo scan reemplaza el anterior)
+function _hasConfeccionItems(doc){
+  return (doc.items||[]).some(it => it.tela==='conf_liviana' || it.tela==='conf_blackout');
+}
+function _hasRollerItems(doc){
+  return (doc.items||[]).some(it => isRollerTela(it.tela) || it.tela==='riel_manual' || it.tela==='riel_motorizado' || it.tela==='motores');
+}
+
+// Devuelve { next: estado, flags: {…}, error?: 'msg', label: 'Texto a mostrar' }
+function _computeScanTransition(doc, isConfScan){
+  const tieneConf    = _hasConfeccionItems(doc);
+  const tieneRoller  = _hasRollerItems(doc);
+  const confRecibida = !!doc.conf_recibida;
+  const rollerTerm   = !!doc.roller_terminado;
+  const estado       = doc.estado;
+
+  if(isConfScan){
+    if(!tieneConf) return { error:'Este pedido no tiene cortinas de confección' };
+    if(confRecibida) return { error:'La confección ya fue marcada como recibida' };
+    const flags = { conf_recibida: true };
+    let next;
+    if(!tieneRoller){
+      // Solo confección: con recibirla, terminó
+      next = 'Finalizado';
+    } else if(rollerTerm || estado === 'Finalizado'){
+      // Roller ya estaba terminado → ahora todo terminado
+      next = 'Finalizado';
+    } else {
+      // Mixto: conf llegó pero roller pendiente
+      next = 'Parcialmente terminado';
+    }
+    return { next, flags, label: tieneRoller && next==='Parcialmente terminado'
+      ? 'Confección recibida (falta roller)'
+      : 'Pedido finalizado' };
+  }
+
+  // Scan PRINCIPAL
+  // Pedido solo de confección con scan principal: tratamos como conf scan
+  if(!tieneRoller && tieneConf){
+    return _computeScanTransition(doc, true);
+  }
+
+  let next = null;
+  if(estado === 'Pendiente' || estado === 'Aprobado' || estado === 'Cotización'){
+    next = 'En Fabricación';
+  } else if(estado === 'En Fabricación'){
+    // Roller terminó: ver si hay conf pendiente
+    if(tieneConf && !confRecibida) next = 'Parcialmente terminado';
+    else next = 'Finalizado';
+  } else if(estado === 'Parcialmente terminado'){
+    if(confRecibida) next = 'Finalizado';
+    else return { error:'Falta recibir la confección (escaneá el código terminado en -C)' };
+  } else if(estado === 'Finalizado' || estado === 'Cancelado'){
+    return { error: `Pedido ya está ${estado}` };
+  } else {
+    next = 'En Fabricación';
+  }
+
+  const flags = {};
+  if(next === 'Parcialmente terminado' || next === 'Finalizado'){
+    flags.roller_terminado = true;
+  }
+  return { next, flags, label: next };
+}
+
+function abrirScanConfirm(doc, code, isConfBarcode){
   if(_scanAutoTimer){ clearTimeout(_scanAutoTimer); _scanAutoTimer = null; }
   _scanDoc = doc;
+  _scanIsConf = !!isConfBarcode;
 
-  // Decidir el siguiente estado según el actual
-  const transiciones = {
-    'Pendiente':       'En Fabricación',
-    'Aprobado':        'En Fabricación',
-    'En Fabricación':  'Finalizado',
-    'Finalizado':      null,  // ya está finalizado
-    'Cancelado':       null,
-  };
-  _scanNextEstado = transiciones[doc.estado] !== undefined ? transiciones[doc.estado] : 'En Fabricación';
+  const trans = _computeScanTransition(doc, _scanIsConf);
+  _scanNextEstado = trans.next || null;
+  _scanNextFlags  = trans.flags || null;
 
   const el = document.getElementById('overlay-scan');
   document.getElementById('scan-pedido-num').textContent = doc.numero||'—';
   document.getElementById('scan-pedido-cli').textContent = doc.cliente||'—';
   document.getElementById('scan-pedido-est').textContent = doc.estado||'—';
-  document.getElementById('scan-code-raw').textContent = code;
+  document.getElementById('scan-code-raw').textContent = code + (_scanIsConf ? '  🧵' : '');
 
-  // Actualizar UI con la sugerencia
   const sugBox = document.getElementById('scan-sugerencia');
   const btnAvanzar = document.getElementById('scan-btn-avanzar');
+  const colorMap = {'En Fabricación':'#1a5f8a','Finalizado':'#2c6e49','Parcialmente terminado':'#1e40af'};
+  const iconMap  = {'En Fabricación':'⚙️','Finalizado':'🎉','Parcialmente terminado':'🔄'};
+
   if(sugBox && btnAvanzar){
-    if(_scanNextEstado){
-      const colorMap = {'En Fabricación':'#1a5f8a','Finalizado':'#2c6e49'};
-      const iconMap = {'En Fabricación':'⚙️','Finalizado':'✅'};
+    if(trans.error){
       sugBox.style.display = 'block';
-      sugBox.innerHTML = `<div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700">Siguiente paso sugerido</div>
-        <div style="font-size:18px;font-weight:800;color:${colorMap[_scanNextEstado]||'#141414'};margin-top:4px">${iconMap[_scanNextEstado]||''} ${_scanNextEstado}</div>
+      sugBox.innerHTML = `<div style="background:#fef3e2;color:#a05c00;border:1px solid #f5d195;padding:8px 12px;border-radius:6px;font-size:12px;font-weight:700;text-align:center">⚠ ${trans.error}</div>`;
+      btnAvanzar.style.display = 'none';
+    } else if(_scanNextEstado){
+      sugBox.style.display = 'block';
+      const tipoBadge = _scanIsConf
+        ? '<div style="display:inline-block;background:#2c6e49;color:#fff;padding:3px 9px;border-radius:5px;font-size:10px;font-weight:700;margin-bottom:6px">🧵 CÓDIGO CONFECCIÓN</div>'
+        : '';
+      sugBox.innerHTML = `${tipoBadge}
+        <div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em;font-weight:700">Siguiente paso</div>
+        <div style="font-size:17px;font-weight:800;color:${colorMap[_scanNextEstado]||'#141414'};margin-top:4px">${iconMap[_scanNextEstado]||''} ${trans.label||_scanNextEstado}</div>
         <div style="font-size:10px;color:var(--muted);margin-top:6px;text-align:center">⏱ Confirmando automáticamente…</div>`;
       btnAvanzar.style.display = 'inline-flex';
       btnAvanzar.textContent = `${iconMap[_scanNextEstado]||''} Marcar ${_scanNextEstado}`;
@@ -8631,18 +8743,10 @@ function abrirScanConfirm(doc, code){
 
   el.classList.add('on');
 
-  // Auto-confirmar tras 1 segundo si hay un siguiente estado
   if(_scanNextEstado){
-    _scanAutoTimer = setTimeout(()=>{
-      _scanAutoTimer = null;
-      confirmarScanAvance();
-    }, 1000);
+    _scanAutoTimer = setTimeout(()=>{ _scanAutoTimer = null; confirmarScanAvance(); }, 1000);
   } else {
-    // Si ya está en estado terminal, cerrar el popup tras 1.5s
-    _scanAutoTimer = setTimeout(()=>{
-      _scanAutoTimer = null;
-      cerrarOverlayScan();
-    }, 1500);
+    _scanAutoTimer = setTimeout(()=>{ _scanAutoTimer = null; cerrarOverlayScan(); }, 1500);
   }
 }
 
@@ -8651,6 +8755,8 @@ function cerrarOverlayScan(){
   document.getElementById('overlay-scan').classList.remove('on');
   _scanDoc = null;
   _scanNextEstado = null;
+  _scanNextFlags = null;
+  _scanIsConf = false;
   // Refocusear el ghost input para que el próximo scan funcione
   const ghost = document.getElementById('scanner-ghost');
   if(ghost) setTimeout(()=>{ try{ ghost.focus({preventScroll:true}); }catch(_){} }, 80);
@@ -8711,20 +8817,29 @@ function beepScan(kind){
 
 async function confirmarScanAvance(){
   if(!_scanDoc || !_scanNextEstado) return;
-  // Cancelar el timer de auto-confirm si todavía está pendiente (caso: usuario tocó manualmente)
   if(_scanAutoTimer){ clearTimeout(_scanAutoTimer); _scanAutoTimer = null; }
   const estadoFinal = _scanNextEstado;
+  const flags = _scanNextFlags || {};
   const docId = _scanDoc.id;
-  // Limpiar referencias antes del await para evitar doble dispara
-  _scanDoc = null; _scanNextEstado = null;
+  const wasConf = _scanIsConf;
+  _scanDoc = null; _scanNextEstado = null; _scanNextFlags = null; _scanIsConf = false;
+
+  // Aplicar flags primero en el cache + localStorage (para que changeStatus
+  // / loadDocs los conserve aunque venga refresh de Supabase)
+  const i = _docsCache.findIndex(x=>x.id===docId);
+  if(i>=0){
+    Object.entries(flags).forEach(([k,v])=>{
+      _docsCache[i][k] = v;
+      setLocalDocFlag(docId, k, v);
+    });
+  }
   await changeStatus(docId, estadoFinal);
   cerrarOverlayScan();
-  const iconMap = {'En Fabricación':'⚙️','Finalizado':'🎉'};
-  // Sonido específico según el estado: Finalizado → jingle triunfal
+  const iconMap = {'En Fabricación':'⚙️','Finalizado':'🎉','Parcialmente terminado':'🔄'};
   beepScan(estadoFinal === 'Finalizado' ? 'finalizado' : 'success');
-  // Flash visual en el indicador del scanner
   if(typeof window._scannerFlashSuccess === 'function') window._scannerFlashSuccess();
-  toast(`${iconMap[estadoFinal]||''} Pedido → ${estadoFinal}`,'ok');
+  const prefix = wasConf ? '🧵 Confección recibida — ' : '';
+  toast(`${prefix}${iconMap[estadoFinal]||''} Pedido → ${estadoFinal}`,'ok');
 }
 
 async function confirmarScanFinalizado(){

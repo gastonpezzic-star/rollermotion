@@ -1,5 +1,54 @@
 # Changelog
 
+## V266 — 2026-05-07
+
+### Planilla de confección
+
+**Fixes**:
+
+- **Medida final = ancho × (alto + arrastre)**. Antes solo ancho × alto. Si la cortina lleva 3 cm de arrastre, ahora la medida es `2250 × 2150 mm` (no `2250 × 2120 mm`). Esa es la medida real a confeccionar.
+- **Label de "Dobladillo / Arrastre" se cortaba** en el SVG (las cotas laterales se salían del viewBox). Ampliado el `padX` de 50 → 90 y `viewBox` de 360 → 420 para que las etiquetas entren completas. Grid del bloque ahora 440px en lugar de 380px.
+
+### Trazabilidad por tipo: roller vs confección (mixto)
+
+**Nueva feature**: doble código de barras y sub-estados para pedidos que tienen tanto roller como confección tradicional.
+
+**Cómo funciona**:
+
+- Cada pedido tiene **dos códigos**:
+  - `PED-XXXX` → en la planilla roller. Tracking del armado interno.
+  - `PED-XXXX-C` → en la planilla confección. Tracking de la devolución del confeccionista tercerizado.
+- El scanner detecta automáticamente el sufijo `-C` y aplica la lógica correspondiente.
+- Nuevo estado: **"Parcialmente terminado"** (badge azul 🔄 Parcial).
+
+**Lógica de estados al escanear**:
+
+| Pedido | Scan | Estado resultante |
+|---|---|---|
+| Solo roller | `PED-XXXX` | Pendiente → En Fabricación → Finalizado |
+| Solo confección | `PED-XXXX-C` (o principal) | Pendiente → **Finalizado** (1 scan, llegó del confeccionista) |
+| Mixto, primero roller | `PED-XXXX` (segundo scan) | En Fabricación → **Parcialmente terminado** (espera conf) |
+| Mixto, después confección llega | `PED-XXXX-C` | Parcialmente terminado → **Finalizado** |
+| Mixto, primero confección llega | `PED-XXXX-C` | Pendiente → **Parcialmente terminado** (espera roller) |
+| Mixto, luego roller termina | `PED-XXXX` | Parcialmente terminado → **Finalizado** |
+
+**Flags nuevos por doc**:
+- `conf_recibida` (boolean): set true al escanear el código `-C`
+- `roller_terminado` (boolean): set true cuando la parte roller pasa a "Parcialmente terminado" o "Finalizado"
+
+Estos flags se guardan en **localStorage independiente** (`rm_doc_flags`) porque la tabla `documentos` de Supabase no tiene esas columnas. Si querés sync entre dispositivos para esos campos, hay que agregar las columnas `conf_recibida` y `roller_terminado` a la tabla (avisame y armo el SQL).
+
+**UI del overlay de scan**:
+- Si es un código `-C`, muestra un badge "🧵 CÓDIGO CONFECCIÓN".
+- Mensajes específicos por situación:
+  - "Confección recibida (falta roller)"
+  - "Pedido finalizado"
+  - Errores: "Pedido ya está Finalizado", "Falta recibir la confección (escaneá el código -C)", etc.
+- Auto-confirm en 1s como antes.
+
+**Status options actualizados**:
+- "Parcialmente terminado" agregado al dropdown de cambio de estado en Fábrica/Admin.
+
 ## V265 — 2026-05-07
 
 ### Mejoras a la planilla de confección
