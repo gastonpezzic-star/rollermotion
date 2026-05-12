@@ -2911,6 +2911,32 @@ const STATUS_HTML = {
   'Necesita Revisión': '<span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107">⚠️ Revisión</span>',
 };
 
+// Devuelve el HTML del badge de estado. Para "Parcialmente terminado" en pedidos
+// mixtos (roller + confección), agrega un title con el detalle de qué parte está
+// terminada y cuál pendiente — visible al pasar el mouse.
+function getStatusHTMLForDoc(d){
+  if(!d) return '';
+  if(d.estado !== 'Parcialmente terminado') return STATUS_HTML[d.estado] || d.estado;
+  // Construir tooltip según el estado de los sub-flags
+  const tieneConf   = (typeof _hasConfeccionItems==='function') ? _hasConfeccionItems(d) : false;
+  const tieneRoller = (typeof _hasRollerItems==='function')     ? _hasRollerItems(d)     : false;
+  let detalle = '';
+  if(d.conf_recibida && tieneRoller && !d.roller_terminado){
+    detalle = 'Confección finalizada · Roller en fabricación';
+  } else if(d.roller_terminado && tieneConf && !d.conf_recibida){
+    detalle = 'Roller finalizado · Confección en fabricación';
+  } else if(d.conf_recibida && !d.roller_terminado){
+    detalle = 'Confección finalizada · Falta terminar el resto';
+  } else if(d.roller_terminado && !d.conf_recibida){
+    detalle = 'Roller finalizado · Falta recibir confección';
+  } else {
+    detalle = 'Avanzando — falta completar';
+  }
+  // Construir el badge directamente con title (escapando comillas dobles)
+  const tip = detalle.replace(/"/g,'&quot;');
+  return `<span class="badge" title="${tip}" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;cursor:help">🔄 Parcial</span>`;
+}
+
 /* ════════════════════════════
    CUT CALCULATIONS
 ════════════════════════════ */
@@ -5938,7 +5964,7 @@ function renderRow(d, isAdmin){
   const isQuote = d.type==='quote';
   const statusCtrl = isAdmin
     ? `<select class="st-sel" onchange="changeStatus('${d.id}',this.value)">${statusOpts(d.type,d.estado)}</select>`
-    : (STATUS_HTML[d.estado]||d.estado);
+    : getStatusHTMLForDoc(d);
   const cantTotal = (d.items||[]).reduce((s,it)=>s+(parseInt(it.cant)||1),0);
   const menuItems = [];
   if(canEdit) menuItems.push(`<button class="menu-dropdown-item" onclick="editDoc('${d.id}')">✏️ Editar</button>`);
@@ -9672,7 +9698,7 @@ function verHistorialCliente(id){
           <td>${d.vendedor||'—'}</td>
           <td style="text-align:center">${(d.items||[]).reduce((s,it)=>s+(parseInt(it.cant)||1),0)}</td>
           <td style="white-space:nowrap;font-weight:700">${fmtM(d.total)}</td>
-          <td>${STATUS_HTML[d.estado]||d.estado}</td>
+          <td>${getStatusHTMLForDoc(d)}</td>
           <td><button class="btn-t" onclick="closeOverlay();setTimeout(()=>openDoc(getDocs().find(x=>x.id==='${d.id}')),200)" title="Ver">👁</button></td>
         </tr>`).join('')}</tbody>
       </table>
@@ -9690,7 +9716,7 @@ function verHistorialCliente(id){
           <td>${d.vendedor||'—'}</td>
           <td style="text-align:center">${(d.items||[]).reduce((s,it)=>s+(parseInt(it.cant)||1),0)}</td>
           <td style="white-space:nowrap;font-weight:700">${fmtM(d.total)}</td>
-          <td>${STATUS_HTML[d.estado]||d.estado}</td>
+          <td>${getStatusHTMLForDoc(d)}</td>
           <td><button class="btn-t" onclick="closeOverlay();setTimeout(()=>openDoc(getDocs().find(x=>x.id==='${d.id}')),200)" title="Ver">👁</button></td>
         </tr>`).join('')}</tbody>
       </table>

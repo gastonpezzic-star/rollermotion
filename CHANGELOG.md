@@ -1,5 +1,28 @@
 # Changelog
 
+## V267 — 2026-05-07
+
+### Mejora UX
+
+**Tooltip al pasar el mouse sobre "Parcialmente terminado"**
+
+El badge azul 🔄 Parcial ahora muestra el detalle específico al hacer hover, según los flags del doc:
+
+- Si `conf_recibida=true` y roller sigue en proceso → **"Confección finalizada · Roller en fabricación"**
+- Si `roller_terminado=true` y conf todavía no recibida → **"Roller finalizado · Confección en fabricación"**
+- Otras combinaciones tienen sus mensajes específicos
+
+Nuevo helper `getStatusHTMLForDoc(d)`:
+- Para todos los estados que no son "Parcialmente terminado": devuelve el badge estático como antes.
+- Para "Parcialmente terminado": construye un badge con `title="..."` (tooltip nativo del browser) + `cursor:help` para indicar que es hoverable.
+
+Aplicado en:
+- `renderRow` (Cotizaciones / Pedidos)
+- Tablas en la ficha de cliente (cotizaciones e historial)
+- `renderAdmin` mantiene el dropdown editable (no cambia)
+
+En iPad/touch, mantenés el badge tapeable mostrando el tooltip al hacer tap-and-hold breve. En desktop con mouse, simplemente hover.
+
 ## V266 — 2026-05-07
 
 ### Planilla de confección
