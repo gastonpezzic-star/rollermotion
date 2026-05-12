@@ -1,5 +1,38 @@
 # Changelog
 
+## V268 — 2026-05-07
+
+### Ajustes a la planilla de confección
+
+**Quitada la zona de arrastre del dibujo SVG**
+
+El usuario reportó que se veía confusa la franja verde debajo del piso (era la zona de arrastre). El arrastre ya se incorpora a la "medida final de la cortina" (que ahora es `ancho × (alto + arrastre)`), así que mostrarla otra vez como banda visual era redundante.
+
+- SVG queda más limpio: solo paño + dobladillo (banda naranja a la izquierda del paño).
+- El dato del arrastre sigue saliendo en el tile correspondiente del grid de datos.
+- Reducido el alto del SVG (380 → 300) y el padding inferior (70 → 40) ahora que no necesitamos espacio para la zona de arrastre.
+
+**Ancho del rollo: lookup automático en catálogo Sirota**
+
+Hasta ahora, items cotizados antes de V258 mostraban "—" en Ancho rollo porque ese dato no se persistía. V268 agrega un fallback que busca el código de tela en el catálogo `TELAS_CONFECCION` (la lista de Sirota con `cod`, `nombre`, `ancho`, `precio`).
+
+- Nuevo helper `_anchoRolloMmFor(it)`:
+  1. Si el item tiene `it.anchoRollo` guardado → lo usa.
+  2. Si no, parsea el código (ej. `2746`) del inicio de `it.nombreTela` o `it.color`.
+  3. Busca en `TELAS_CONFECCION` por código y devuelve `ancho × 1000` en mm.
+- Resultado: ahora se muestra el ancho del rollo en metros (ej. `1.4 m` para Jaquard Tupungato, `2.9 m` para Gasa de Lino) aunque la cotización sea vieja.
+
+**Layout más compacto para que entren varias cortinas por hoja**
+
+- Card de cortina: padding 14→10, margin-bottom 14→10.
+- SVG: 420×380 → 380×300.
+- Grid del bloque: 440px → 390px de columna del SVG.
+- Medida final: padding 14→10, font 32→26, line-height más ajustado.
+- Datos grid: gap 8→6, padding tiles 9px→7px, fonts -2px.
+- Tela: padding 9→7, fonts -1px.
+
+Resultado: cada cortina ahora ocupa ~40% del alto de A4 (antes ~55%). Ya entran 2 cortinas cómodamente por hoja, y a veces 3 si son simples.
+
 ## V267 — 2026-05-07
 
 ### Mejora UX
