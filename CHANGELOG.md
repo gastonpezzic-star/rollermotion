@@ -1,5 +1,41 @@
 # Changelog
 
+## V279 — 2026-05-07
+
+### Mejoras de UX
+
+**1. "Confección" en lugar de "Fabricación" para pedidos solo-conf**
+
+Cuando un pedido tiene **solo items de cortina tradicional** (sin roller / motores / rieles), el estado "En Fabricación" se muestra como "En Confección" — refleja mejor que la pieza está con el confeccionista tercerizado.
+
+- Badge en la lista: 🧵 Confección (en lugar de ⚙️ Fabricación)
+- Dropdown editable en Fábrica/Admin: opción "En Confección" (pero el `value` interno sigue siendo "En Fabricación" para no romper la state machine ni cambiar la lógica del scanner)
+
+Si el pedido es **mixto** (tiene roller + confección), o solo roller, sigue mostrando "Fabricación" como antes.
+
+**2. Paginación en Cotizaciones y Pedidos**
+
+Ambas listas ahora muestran **hasta 15 items por página**. Si hay más, aparecen controles de paginación al pie de la tabla:
+
+- Botones: `« ‹ 1 … 3 4 [5] 6 7 … 20 › »`
+- Info: "Mostrando 1–15 de 87"
+- Al filtrar (buscar cliente o cambiar estado) la paginación se resetea a página 1.
+- Click en cualquier número o flecha scrollea suavemente al top.
+
+Aplica a:
+- Cotizaciones (pestaña Cotizaciones)
+- Pedidos (pestaña Pedidos)
+
+(La pestaña Administración tiene su propio listado más grande — la dejé sin paginar por ahora.)
+
+### Cambios técnicos
+
+- Nuevo CSS `.paginacion-wrap` + `.paginacion-ctrl` para los controles.
+- Helper `_renderPagination(containerId, totalItems, currentPage, onChangeFnName)` reutilizable.
+- Estado: `_pageCot`, `_pagePed` (number, 1-indexed).
+- Constante `PAGE_SIZE = 15`.
+- `statusOpts(type, cur, doc)` ahora acepta el doc para detectar el caso "solo conf" y customizar la opción "En Fabricación".
+
 ## V278 — 2026-05-07
 
 ### Fixes de descripciones
