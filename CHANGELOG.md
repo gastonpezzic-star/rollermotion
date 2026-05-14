@@ -1,5 +1,31 @@
 # Changelog
 
+## V272 — 2026-05-07
+
+### Reorganización de la lista de sistemas a cotizar
+
+Antes los sistemas estaban dispersos en muchos grupos chicos. Ahora más limpio y agrupado por familia funcional.
+
+**Grupos**:
+
+| Grupo | Sistemas |
+|---|---|
+| **Cortinas** | Roller Blackout, Sunscreen 5/3/1%, Doble, DUO Zebra, Tradicional Liviana, Tradicional Blackout Tex, Bandas Verticales, Venecianas |
+| **Cambio de tela** | Cambio de tela Roller, **Cambio de tela Bandas Verticales** (nuevo) |
+| **Motores** | Motores Tubulares (antes en "Motores Tubulares" solo, ahora más corto) |
+| **Rieles** | Riel Manual, Riel Motorizado Somfy, **Riel motorizado Celtic ®** (renombre marketinero), Motor Somfy WT, Motor Somfy MV35 |
+| **Accesorios en aluminio** (nuevo) | Tubos, Ángulos, Ejes, Cenefas curvas (MAXI + SLIM) |
+| **Accesorios generales** (renombrado) | Guías laterales, Cadenas, Contrapesos, Soportes, Controles, Cargadores |
+| **Otro** | Producto libre |
+
+### Cambios técnicos
+
+- **Riel Celtic**: label cambió de "Riel Motorizado Celtic + Motor" a **"Riel motorizado Celtic ®"** (más marketinero). Aplica también en el overlay de detalles técnicos.
+- **Cenefas separadas**: las cenefas (MAXI y SLIM) ya no están dentro del TELA `accesorios`; tienen su propia TELA `cenefas` con grupo "Accesorios en aluminio".
+- **Cambio de tela Bandas Verticales nuevo**: TELA `cambiotela_bv` con el mismo `tipo:'cambiotela'` que el de Roller, pero usa items de bandas verticales (`bv_blackout`, `bv_screen5/3/1`) y **no incluye zócalo** (las BV no llevan zócalo). El campo nuevo `incluyeZoc` controla esto.
+- **Tubos / Ángulos / Ejes** pasaron al grupo "Accesorios en aluminio".
+- **Accesorios** (cadenas, soportes, controles, etc.) renombrado a "Accesorios generales".
+
 ## V271 — 2026-05-07
 
 ### Fix: UX del Riel Celtic idéntica al Somfy

@@ -1903,17 +1903,27 @@ const TELAS = {
     esBlackout:  true,
   },
 
-  'cambiotela': { label:'Cambio de tela Roller', grupo:'Cambio de tela Roller', tipo:'cambiotela', colorLabel:'Tela / Color',
+  'cambiotela': { label:'Cambio de tela Roller', grupo:'Cambio de tela', tipo:'cambiotela', colorLabel:'Tela / Color',
                   recargo:1.30,
+                  incluyeZoc: true,
                   items:[
                     { insumoId:'tela_blackout', nombre:'Blackout Vinílico',  unidad:'m2', colors:['Blanco','Ivory','Beige','Gris','Negro'] },
                     { insumoId:'tela_screen5',  nombre:'Sunscreen 5%',       unidad:'m2', colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Negro'] },
                     { insumoId:'tela_screen3',  nombre:'Sunscreen 3%',       unidad:'m2', colors:['Blanco','Beige','Gris Claro','Gris Oscuro'] },
                     { insumoId:'tela_screen1',  nombre:'Sunscreen 1%',       unidad:'m2', colors:['Blanco','Beige'] },
                   ]},
+  'cambiotela_bv': { label:'Cambio de tela Bandas Verticales', grupo:'Cambio de tela', tipo:'cambiotela', colorLabel:'Tela / Color',
+                  recargo:1.30,
+                  incluyeZoc: false, // bandas verticales no llevan zócalo
+                  items:[
+                    { insumoId:'bv_blackout', nombre:'Blackout',     unidad:'m2', colors:['Blanco','Ivory','Beige','Gris','Negro'] },
+                    { insumoId:'bv_screen5',  nombre:'Sunscreen 5%', unidad:'m2', colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Negro'] },
+                    { insumoId:'bv_screen3',  nombre:'Sunscreen 3%', unidad:'m2', colors:['Blanco','Beige','Gris Claro','Gris Oscuro'] },
+                    { insumoId:'bv_screen1',  nombre:'Sunscreen 1%', unidad:'m2', colors:['Blanco','Beige'] },
+                  ]},
 
   // ── MOTORES TUBULARES ──
-  'motores': { label:'Motores Tubulares', grupo:'Motores Tubulares', tipo:'unitario', colorLabel:'Modelo',
+  'motores': { label:'Motores Tubulares', grupo:'Motores', tipo:'unitario', colorLabel:'Modelo',
     colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto','Motor Vertilux 50/12 RF'],
     fichas:{
       'Motor Vertilux BATERIA 2N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
@@ -1954,7 +1964,7 @@ const TELAS = {
     colors:['Blanco','Negro'],
   },
   'riel_motorizado_celtic': {
-    label:'Riel Motorizado Celtic + Motor', grupo:'Rieles', tipo:'riel', colorLabel:'Color',
+    label:'Riel motorizado Celtic ®', grupo:'Rieles', tipo:'riel', colorLabel:'Color',
     colors:['Blanco','Negro'],
     // Precio por TRAMO (no por ml). Para anchos > 6m se combinan tramos.
     tieredPricing: true,
@@ -1979,11 +1989,10 @@ const TELAS = {
   },
 
   // ── ACCESORIOS ──
-  'accesorios': { label:'Accesorios', grupo:'Accesorios', tipo:'accesorio', colorLabel:'Ítem',
+  // Accesorios generales: cadenas, soportes, controles, cargadores (sin cenefas, que pasaron a Accesorios en aluminio)
+  'accesorios': { label:'Accesorios generales', grupo:'Accesorios generales', tipo:'accesorio', colorLabel:'Ítem',
     items:[
       { insumoId:'guia_blanca',    nombre:'Guía lateral (par)',            unidad:'mm', variantes:['Blanco','Negro','Anodizado natural'], insumoIds:{'Blanco':'guia_blanca','Negro':'guia_negra','Anodizado natural':'guia_blanca'} },
-      { insumoId:'cenefa_grande',  nombre:'Cenefa curva MAXI', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_grande','Negro':'cenefa_grande'} },
-      { insumoId:'cenefa_chica',   nombre:'Cenefa curva SLIM', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_chica','Negro':'cenefa_chica'} },
       { insumoId:'cadena_blanca',  nombre:'Cadena',                  unidad:'mm', variantes:['Blanca','Negra','Metálica'], insumoIds:{'Blanca':'cadena_blanca','Negra':'cadena_negra','Metálica':'cadena_blanca'} },
       { insumoId:'contrapeso',     nombre:'Contrapeso cadena',        unidad:'u' },
       { insumoId:'union_cadena',   nombre:'Unión de cadena',          unidad:'u' },
@@ -1998,8 +2007,15 @@ const TELAS = {
       { insumoId:'cargador_usbc',  nombre:'Cargador USB-C Vertilux',  unidad:'u' },
     ]},
 
+  // Cenefas: separadas en su propia TELA para que aparezcan en "Accesorios en aluminio"
+  'cenefas': { label:'Cenefas curvas', grupo:'Accesorios en aluminio', tipo:'accesorio', colorLabel:'Modelo',
+    items:[
+      { insumoId:'cenefa_grande',  nombre:'Cenefa curva MAXI', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_grande','Negro':'cenefa_grande'} },
+      { insumoId:'cenefa_chica',   nombre:'Cenefa curva SLIM', unidad:'mm', variantes:['Blanco','Negro'], insumoIds:{'Blanco':'cenefa_chica','Negro':'cenefa_chica'} },
+    ]},
+
   // ── TUBOS ──
-  'tubos': { label:'Tubos', grupo:'Tubos', tipo:'accesorio', colorLabel:'Ítem',
+  'tubos': { label:'Tubos', grupo:'Accesorios en aluminio', tipo:'accesorio', colorLabel:'Ítem',
     colorOptions:['Blanco','Negro','Anodizado natural'],
     items:[
       { insumoId:'tubo_2020', nombre:'Tubo 20/20', unidad:'mm' },
@@ -2010,7 +2026,7 @@ const TELAS = {
     ]},
 
   // ── ÁNGULOS ──
-  'angulos': { label:'Ángulos', grupo:'Ángulos', tipo:'accesorio', colorLabel:'Ítem',
+  'angulos': { label:'Ángulos', grupo:'Accesorios en aluminio', tipo:'accesorio', colorLabel:'Ítem',
     colorOptions:['Blanco','Negro','Anodizado natural'],
     items:[
       { insumoId:'ang_2020',  nombre:'Ángulo 20/20', unidad:'mm' },
@@ -2019,7 +2035,7 @@ const TELAS = {
     ]},
 
   // ── EJES ──
-  'ejes': { label:'Ejes', grupo:'Ejes', tipo:'accesorio', colorLabel:'Ítem',
+  'ejes': { label:'Ejes', grupo:'Accesorios en aluminio', tipo:'accesorio', colorLabel:'Ítem',
     items:[
       { insumoId:'eje_32',     nombre:'Eje 32mm',         unidad:'ml' },
       { insumoId:'eje_38',     nombre:'Eje 38mm',         unidad:'ml' },
@@ -3464,7 +3480,7 @@ function qaCalcPrecio(){
                          .replace('tela_screen','ct_screen');
     const precioM2ct = getPrecio(ctId) || Math.round(getPrecio(insumoId) * 1.30);
     const costoTela = m2 * precioM2ct;
-    const costoZoc  = anchoM * getPrecio('zoc_bolsillo');
+    const costoZoc  = telaInfo.incluyeZoc ? anchoM * getPrecio('zoc_bolsillo') : 0;
     const pu = Math.round((costoTela + costoZoc) * getFV());
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
@@ -4022,7 +4038,8 @@ function qaAgregar(){
     if(item && ancho && alto){
       const m2 = (parseInt(ancho)/1000)*(parseInt(alto)/1000);
       const costoTela = m2 * getPrecio(item.insumoId) * (telaObjA.recargo||1.30);
-      const costoZoc  = (parseInt(ancho)/1000) * getPrecio('zoc_bolsillo');
+      // Solo incluir zócalo si la TELA lo declara explícitamente (cambiotela Roller sí, BV no)
+      const costoZoc  = telaObjA.incluyeZoc ? (parseInt(ancho)/1000) * getPrecio('zoc_bolsillo') : 0;
       precio = Math.round((costoTela+costoZoc)*getFV());
       color = item.nombre;
     }
@@ -5844,7 +5861,7 @@ function convertToOrder(idOrDoc){
     html += rieles.map((it,ri)=>{
       const cant = parseInt(it.cant)||1;
       const esMotor = it.tela === 'riel_motorizado' || it.tela === 'riel_motorizado_celtic';
-      const titulo = it.tela === 'riel_motorizado_celtic' ? 'Riel Motorizado Celtic + Motor'
+      const titulo = it.tela === 'riel_motorizado_celtic' ? 'Riel motorizado Celtic ®'
                    : it.tela === 'riel_motorizado'        ? 'Riel Motorizado Somfy'
                    : 'Riel Manual Aluminio';
       const apertura = it.apertura || 'Central';
