@@ -1,5 +1,13 @@
 # Changelog
 
+## V275 — 2026-05-07
+
+### Fix: el panel de opciones de paños quedaba visible tras agregar el item
+
+V274 mostraba el panel "🪡 Opciones de corte de tela" para confección con alto > 2600mm, pero al agregar el item el panel seguía en pantalla con la elección del item anterior.
+
+**Fix**: al agregar un item en `qaAgregar` se oculta `qa-pano-options` y se resetea `window._panoOverride`. Si el siguiente item necesita el panel, vuelve a aparecer recalculado.
+
 ## V274 — 2026-05-07
 
 ### Selector de paños en confección (cortinas altas)

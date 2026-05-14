@@ -4285,6 +4285,10 @@ function qaAgregar(){
     document.getElementById('qa-ancho').value = '';
     document.getElementById('qa-alto').value  = '';
   }
+  // Limpiar panel de opciones de paños (confección) y el override
+  const panoBox = document.getElementById('qa-pano-options');
+  if(panoBox) panoBox.style.display = 'none';
+  window._panoOverride = null;
   if(esLibre){
     const li = document.getElementById('qa-color-libre');
     if(li) li.value = '';
