@@ -1,5 +1,45 @@
 # Changelog
 
+## V274 — 2026-05-07
+
+### Selector de paños en confección (cortinas altas)
+
+**Problema**: cuando se cotiza una cortina de confección con `alto > 2600 mm`, la tela tiene que dividirse en **paños** (pedazos del rollo) que se cosen entre sí. El número entero de paños determina el frunce real, que casi nunca coincide exactamente con el solicitado.
+
+Ejemplo: cortina 2370 × 3190 mm, frunce solicitado 2.0, rollo 2.9m:
+
+| Paños | Cubre | Frunce real | Tela usada | Precio relativo |
+|---|---|---|---|---|
+| 1 | 2.9m | 1.22 | 3.49m | menor |
+| 2 (auto) | 5.8m | 2.45 | 6.98m | medio |
+| 3 | 8.7m | 3.67 | 10.47m | mayor |
+
+Antes el sistema elegía automáticamente la mínima cantidad de paños que cubría el frunce solicitado (típicamente da un frunce **más alto** que el pedido). Ahora el cotizador puede **elegir entre las alternativas**.
+
+### Cómo funciona
+
+- Al cotizar confección con `alto > 2600 mm`, aparece debajo de los campos un panel amarillo "🪡 Opciones de corte de tela".
+- Muestra una lista de opciones (botones tipo radio):
+  - **AUTO** marca la opción que el sistema sugiere (mínima que cubre el frunce solicitado).
+  - Cada opción muestra: cantidad de paños, frunce real, metros de tela, precio total.
+- Click en cualquier opción → se aplica al instante y el precio se actualiza.
+- Si bajás un paño, el frunce baja pero el precio también — útil cuando el cliente quiere ahorrar.
+- Si subís un paño, el frunce queda más rico — útil si el cliente lo prefiere.
+
+### Lógica
+
+- Nuevo estado global `window._panoOverride` que guarda la elección manual.
+- Se resetea al cambiar de TELA (volvés al sistema auto).
+- Se mantiene mientras editás ancho/alto/frunce (el cotizador respeta tu elección).
+- En `qaCalcPrecio` y `qaAgregar`: si hay override, se usa ese número de paños; si no, se aplica la lógica auto.
+- El item guardado lleva `pedazos` y `frunceReal` exactos según la elección.
+
+### Detalles UI
+
+- Cada opción muestra: ícono radio + "N paños" + badge AUTO si aplica + frunce + metros + precio total.
+- Filtra automáticamente combinaciones con frunce < 1.15 (descartadas por poco visuales).
+- Texto al pie: "Cada paño cubre X.Xm de ancho de rollo. Más paños = más frunce + más tela + más costo."
+
 ## V273 — 2026-05-07
 
 ### Refinamiento de cotización: rieles y motores

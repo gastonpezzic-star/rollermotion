@@ -1055,6 +1055,7 @@ body{
 
           <!-- ── ADVERTENCIAS INTERNAS — solo visible al cotizar, NO sale en PDF ── -->
           <div id="qa-recomendacion" style="margin-top:8px;display:none"></div>
+          <div id="qa-pano-options" style="margin-top:8px;display:none"></div>
           <div id="qa-warnings" style="margin-top:10px"></div>
 
           <!-- DEPRECADO V251: este bloque ya no se usa — los detalles técnicos se piden en el overlay de confirmación -->
@@ -3123,6 +3124,10 @@ function onAccesorioChange(){
 
 function qaTelaChange(){
   window._telaSelData = null; // limpiar tela por código al cambiar sistema
+  window._panoOverride = null; // limpiar elección manual de paños (confección)
+  // Ocultar panel de opciones de paños hasta que aplique
+  const panoBox = document.getElementById('qa-pano-options');
+  if(panoBox) panoBox.style.display = 'none';
   restaurarColorSelect(); // restaurar select si había input libre
   const tela    = document.getElementById('qa-tela').value;
   const telaObj = TELAS[tela]||TELAS['blackout'];
@@ -3398,6 +3403,13 @@ function qaTelaChange(){
   qaCalcPrecio();
 }
 
+// Handler global para el selector de paños (confección). Guarda la elección
+// del cotizador y re-calcula. Se llama desde los botones del panel qa-pano-options.
+function qaSelectPano(p){
+  window._panoOverride = p;
+  qaCalcPrecio();
+}
+
 function qaCalcPrecio(){
   const tela  = document.getElementById('qa-tela').value;
   const ancho = document.getElementById('qa-ancho').value;
@@ -3581,7 +3593,12 @@ function qaCalcPrecio(){
 
   // ── CONFECCIÓN LIVIANA ──
   if(telaInfo?.tipo === 'confeccion'){
-    if(!ancho || !alto){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; return; }
+    const panoBox = document.getElementById('qa-pano-options');
+    if(!ancho || !alto){
+      disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4';
+      if(panoBox) panoBox.style.display='none';
+      return;
+    }
     const anchoMm  = parseInt(ancho);
     const altoMm   = parseInt(alto);
     const anchoM   = anchoMm/1000;
@@ -3595,27 +3612,74 @@ function qaCalcPrecio(){
     const pTela    = telaSelData ? telaSelData.precio : (getPrecio(telaInsumoId)||telaInfo.costoTela);
     const pMO      = getPrecio(moInsumoIdC)||telaInfo.costoMO;
     const pRiel    = getPrecio('riel_manual_ml')||26260;
-    // Ancho del rollo: del catálogo si hay código, sino 2900mm default
     const ANCHO_ROLLO = telaSelData ? Math.round(telaSelData.ancho * 1000) : 2900;
-    const EXTRA_CONF  = 300;  // mm dobladillo + cabezal
+    const EXTRA_CONF  = 300;
 
-    let metrosTela, frunceReal, modoCalculo;
+    let metrosTela, frunceReal, modoCalculo, pedazosFinal;
 
     if(altoMm <= 2600){
-      // MODO NORMAL: tela va a lo ancho
+      // MODO NORMAL: tela va a lo ancho — sin opciones de paños
       modoCalculo = 'normal';
       metrosTela = anchoM * frunce;
       frunceReal = frunce;
+      pedazosFinal = 1;
+      if(panoBox) panoBox.style.display='none';
+      window._panoOverride = null;
     } else {
-      // MODO ALTO EXTENDIDO: rollo a lo largo
+      // MODO ALTO EXTENDIDO: tela se desarrolla a lo largo, se usan pedazos
       modoCalculo = 'extendido';
-      const largoDesarrollo = altoMm + EXTRA_CONF; // mm
-      // Pedazos necesarios para alcanzar frunce ≥ deseado
-      let pedazos = Math.ceil((anchoMm * frunce) / ANCHO_ROLLO);
-      frunceReal = (pedazos * ANCHO_ROLLO) / anchoMm;
-      // Si frunce real < deseado, agregar un pedazo más
-      if(frunceReal < frunce){ pedazos++; frunceReal = (pedazos * ANCHO_ROLLO) / anchoMm; }
-      metrosTela = pedazos * largoDesarrollo / 1000;
+      const largoDesarrollo = altoMm + EXTRA_CONF;
+      // Calcular auto-pedazos: el mínimo que cubra el frunce deseado
+      let autoP = Math.ceil((anchoMm * frunce) / ANCHO_ROLLO);
+      let autoFR = (autoP * ANCHO_ROLLO) / anchoMm;
+      if(autoFR < frunce){ autoP++; autoFR = (autoP * ANCHO_ROLLO) / anchoMm; }
+      // Si el usuario eligió un override, usar ese
+      const overrideP = (typeof window._panoOverride === 'number' && window._panoOverride > 0) ? window._panoOverride : null;
+      pedazosFinal = overrideP || autoP;
+      frunceReal   = (pedazosFinal * ANCHO_ROLLO) / anchoMm;
+      metrosTela   = pedazosFinal * largoDesarrollo / 1000;
+
+      // Renderizar opciones (panel UI)
+      if(panoBox){
+        // Mostrar 1, 2, 3 paños y eventualmente algunos más si frunce deseado es alto
+        const maxOption = Math.max(autoP + 1, 3);
+        const minOption = 1;
+        let html = `<div style="background:#fdf6e3;border:1px solid #e8d390;border-radius:8px;padding:10px 12px">
+          <div style="font-size:11px;font-weight:700;color:#8a6800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px">🪡 Opciones de corte de tela (frunce solicitado: ${frunce.toFixed(2)})</div>
+          <div style="display:flex;flex-direction:column;gap:5px">`;
+        for(let p = minOption; p <= maxOption; p++){
+          const fr  = (p * ANCHO_ROLLO) / anchoMm;
+          if(fr < 1.15) continue; // descartar combinaciones con frunce muy bajo
+          const m   = (p * largoDesarrollo) / 1000;
+          const cTela = m * pTela;
+          const cMO   = Math.ceil(m / (telaInfo.moMetros||1.4)) * pMO;
+          const cRiel = conRiel ? anchoM * pRiel : 0;
+          const puP   = Math.round((cTela + cMO + cRiel) * 2 * getFV());
+          const isSelected = p === pedazosFinal;
+          const isAuto     = p === autoP;
+          const tag        = isAuto ? ` <span style="color:#1a4a2a;background:#dcfce7;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-left:4px">AUTO</span>` : '';
+          html += `<button type="button" onclick="qaSelectPano(${p})"
+            style="display:flex;align-items:center;justify-content:space-between;gap:10px;
+              background:${isSelected?'#fef0c7':'#fff'};
+              border:${isSelected?'2px':'1px'} solid ${isSelected?'#d4820e':'#e8d390'};
+              border-radius:6px;padding:8px 10px;cursor:pointer;font-family:inherit;text-align:left;width:100%">
+            <span style="display:flex;align-items:center;gap:8px">
+              <span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid ${isSelected?'#d4820e':'#bbb'};background:${isSelected?'#d4820e':'#fff'};flex-shrink:0"></span>
+              <span style="font-size:12.5px;font-weight:700;color:#1a4a2a">${p} paño${p>1?'s':''}</span>${tag}
+            </span>
+            <span style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:#666">
+              <span>frunce <strong style="color:#141414">${fr.toFixed(2)}</strong></span>
+              <span><strong style="color:#141414">${m.toFixed(2)}m</strong> tela</span>
+              <span style="font-family:'Manrope',sans-serif;font-weight:800;color:#1a4a2a">${fmtM(puP)}</span>
+            </span>
+          </button>`;
+        }
+        html += `</div>
+          <div style="font-size:10.5px;color:#8a6800;margin-top:7px;font-style:italic">Cada paño cubre ${(ANCHO_ROLLO/1000).toFixed(1)}m de ancho de rollo. Más paños = más frunce + más tela + más costo.</div>
+        </div>`;
+        panoBox.innerHTML = html;
+        panoBox.style.display = 'block';
+      }
     }
 
     const costoTela = metrosTela * pTela;
@@ -3626,7 +3690,6 @@ function qaCalcPrecio(){
 
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
-    // Solo mostrar subtotal si cantidad > 1, sin detalle de cálculo
     if(cant > 1){
       subD.style.display = 'block';
       subD.textContent = `× ${cant} = ${fmtM(pu*cant)}`;
@@ -4072,35 +4135,29 @@ function qaAgregar(){
     const anchoMA  = anchoMmA/1000;
     const frunce   = parseFloat(document.getElementById('qa-medida')?.value||2)||2;
     const conRiel  = (document.getElementById('qa-variante')?.value||'Con riel') === 'Con riel';
-    const ANCHO_ROLLO = 2900, EXTRA_CONF = 300;
-    let metrosTela, frunceReal;
-    if(altoMmA <= 2600){
-      metrosTela = anchoMA * frunce;
-      frunceReal = frunce;
-    } else {
-      const largoDesarrollo = altoMmA + EXTRA_CONF;
-      let pedazos = Math.ceil((anchoMmA * frunce) / ANCHO_ROLLO);
-      frunceReal = (pedazos * ANCHO_ROLLO) / anchoMmA;
-      if(frunceReal < frunce){ pedazos++; frunceReal = (pedazos * ANCHO_ROLLO) / anchoMmA; }
-      metrosTela = pedazos * largoDesarrollo / 1000;
-    }
+    const EXTRA_CONF = 300;
     const telaSelDataA = window._telaSelData || null;
     const esBlackoutAgregar = tela === 'conf_blackout' || telaObjA.esBlackout
       || (telaSelDataA && /black\s*out/i.test(telaSelDataA.nombre));
     const pTelaA = telaSelDataA ? telaSelDataA.precio : (getPrecio(esBlackoutAgregar ? 'conf_bk_tela' : 'conf_liv_tela')||telaObjA.costoTela);
     const ANCHO_ROLLO_A = telaSelDataA ? Math.round(telaSelDataA.ancho * 1000) : 2900;
-    let pedazosFinal = 1;
-    // Recalcular pedazos con el ancho real del rollo seleccionado
-    if(altoMmA > 2600){
-      const largoDesarrolloR = altoMmA + EXTRA_CONF;
-      let pedazosR = Math.ceil((anchoMmA * frunce) / ANCHO_ROLLO_A);
-      let frunceRealR = (pedazosR * ANCHO_ROLLO_A) / anchoMmA;
-      if(frunceRealR < frunce){ pedazosR++; frunceRealR = (pedazosR * ANCHO_ROLLO_A) / anchoMmA; }
-      metrosTela = pedazosR * largoDesarrolloR / 1000;
-      frunceReal = frunceRealR;
-      pedazosFinal = pedazosR;
+
+    let metrosTela, frunceReal, pedazosFinal;
+    if(altoMmA <= 2600){
+      // Modo normal: tela a lo ancho, 1 paño
+      metrosTela = anchoMA * frunce;
+      frunceReal = frunce;
+      pedazosFinal = 1;
     } else {
-      pedazosFinal = Math.max(1, Math.ceil((anchoMmA * frunce) / ANCHO_ROLLO_A));
+      // Modo alto extendido: usar override del usuario si lo eligió, sino auto
+      const largoDesarrollo = altoMmA + EXTRA_CONF;
+      let autoP = Math.ceil((anchoMmA * frunce) / ANCHO_ROLLO_A);
+      const autoFR = (autoP * ANCHO_ROLLO_A) / anchoMmA;
+      if(autoFR < frunce){ autoP++; }
+      const overrideP = (typeof window._panoOverride === 'number' && window._panoOverride > 0) ? window._panoOverride : null;
+      pedazosFinal = overrideP || autoP;
+      frunceReal   = (pedazosFinal * ANCHO_ROLLO_A) / anchoMmA;
+      metrosTela   = pedazosFinal * largoDesarrollo / 1000;
     }
     const costoTela = metrosTela * pTelaA;
     const esBlackoutTex = esBlackoutAgregar;
