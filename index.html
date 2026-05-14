@@ -1913,8 +1913,8 @@ const TELAS = {
                     { insumoId:'tela_screen1',  nombre:'Sunscreen 1%',       unidad:'m2', colors:['Blanco','Beige'] },
                   ]},
   'cambiotela_bv': { label:'Cambio de tela Bandas Verticales', grupo:'Cambio de tela', tipo:'cambiotela', colorLabel:'Tela / Color',
-                  recargo:1.30,
-                  incluyeZoc: false, // bandas verticales no llevan zócalo
+                  recargo:1.0,        // sin recargo: misma fórmula que BV nueva sin contar el riel
+                  incluyeZoc: false,  // bandas verticales no llevan zócalo
                   items:[
                     { insumoId:'bv_blackout', nombre:'Blackout',     unidad:'m2', colors:['Blanco','Ivory','Beige','Gris','Negro'] },
                     { insumoId:'bv_screen5',  nombre:'Sunscreen 5%', unidad:'m2', colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Negro'] },
@@ -1962,6 +1962,11 @@ const TELAS = {
     label:'Riel Motorizado Somfy', grupo:'Rieles', tipo:'riel', colorLabel:'Color',
     insumoId:'riel_motor_ml',
     colors:['Blanco','Negro'],
+    // Selector de motor: el costo se suma al precio del riel automáticamente
+    motorOptions: [
+      { id:'motor_somfy_wt',   label:'Motor Somfy WT',              desc:'Mecánico a tecla · Adaptable a domótica externa' },
+      { id:'motor_somfy_mv35', label:'Motor Somfy Movelite 35 RTS', desc:'Control remoto' },
+    ],
   },
   'riel_motorizado_celtic': {
     label:'Riel motorizado Celtic ®', grupo:'Rieles', tipo:'riel', colorLabel:'Color',
@@ -1976,13 +1981,13 @@ const TELAS = {
     ],
   },
   'motor_somfy_wt': {
-    label:'Motor Somfy WT', grupo:'Rieles', tipo:'unitario', colorLabel:'Modelo',
+    label:'Motor Somfy WT', grupo:'Motores Rieles', tipo:'unitario', colorLabel:'Modelo',
     colors:['Motor Somfy WT'],
     precios:{ 'Motor Somfy WT': 461481 },
     aplicarSoloCoef: true,
   },
   'motor_somfy_mv35': {
-    label:'Motor Somfy Movelite 35 RTS', grupo:'Rieles', tipo:'unitario', colorLabel:'Modelo',
+    label:'Motor Somfy Movelite 35 RTS', grupo:'Motores Rieles', tipo:'unitario', colorLabel:'Modelo',
     colors:['Motor Somfy Movelite 35 RTS'],
     precios:{ 'Motor Somfy Movelite 35 RTS': 540741 },
     aplicarSoloCoef: true,
@@ -3166,7 +3171,17 @@ function qaTelaChange(){
     const colorLblEl = document.getElementById('qa-color-lbl');
     if(colorLblEl) colorLblEl.textContent = 'Color';
     const varianteWrap = document.getElementById('qa-variante-wrap');
-    if(varianteWrap) varianteWrap.style.display = 'none';
+    const varianteSel  = document.getElementById('qa-variante');
+    const varianteLbl  = document.getElementById('qa-variante-lbl');
+    // Si tiene motorOptions, mostrar selector de motor con la descripción
+    if(Array.isArray(telaObj.motorOptions) && telaObj.motorOptions.length){
+      if(varianteLbl) varianteLbl.textContent = 'Motor';
+      if(varianteSel) varianteSel.innerHTML = telaObj.motorOptions.map(m =>
+        `<option value="${m.id}">${m.label} · ${m.desc}</option>`).join('');
+      if(varianteWrap) varianteWrap.style.display = 'flex';
+    } else {
+      if(varianteWrap) varianteWrap.style.display = 'none';
+    }
     const anchoWrapEl  = document.getElementById('qa-ancho-wrap');
     const altoWrapEl   = document.getElementById('qa-alto-wrap');
     const medidaWrapEl = document.getElementById('qa-medida-wrap');
@@ -3542,14 +3557,22 @@ function qaCalcPrecio(){
       const roundEl = document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
       return;
     }
-    // Precio por ml (Somfy / Manual Aluminio)
+    // Precio por ml (Somfy / Manual Aluminio). Si hay motorOptions, sumar el costo del motor.
     const ml = parseInt(ancho)/1000;
-    const precioMl = getPrecio(telaInfo.insumoId) * getFV();
-    const pu = Math.round(ml * precioMl);
+    const precioMlLista = getPrecio(telaInfo.insumoId);
+    const motorId = (telaInfo.motorOptions && telaInfo.motorOptions.length) ? (document.getElementById('qa-variante')?.value || telaInfo.motorOptions[0].id) : '';
+    const motorCostLista = motorId ? (getPrecio(motorId)||0) : 0;
+    const subtotalLista = ml * precioMlLista + motorCostLista;
+    const pu = Math.round(subtotalLista * getFV());
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
     subD.style.display = 'block';
-    subD.textContent = `${ml.toFixed(2)} ml × ${fmtM(Math.round(precioMl))}/ml${cant>1?' × '+cant+' = '+fmtM(pu*cant):''}`;
+    if(motorId){
+      const motorLabel = (telaInfo.motorOptions||[]).find(m=>m.id===motorId)?.label || motorId;
+      subD.textContent = `Riel ${ml.toFixed(2)}m + ${motorLabel}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
+    } else {
+      subD.textContent = `${ml.toFixed(2)} ml × ${fmtM(Math.round(precioMlLista * getFV()))}/ml${cant>1?' × '+cant+' = '+fmtM(pu*cant):''}`;
+    }
     btn.disabled = false; btn.style.opacity = '1';
     cutsEl.style.display = 'none';
     const roundEl = document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4137,11 +4160,22 @@ function qaAgregar(){
       };
       alto = '—';
     } else {
-      // Riel con precio por ml (ej: Somfy, Manual Aluminio)
+      // Riel con precio por ml (ej: Somfy, Manual Aluminio).
+      // Si tiene motorOptions, se suma el costo del motor automáticamente.
       const ml = parseInt(ancho)/1000;
-      const precioMl = getPrecio(telaObjA.insumoId) * getFV();
-      precio = Math.round(ml * precioMl * cant);
-      color = document.getElementById('qa-color')?.value || '';
+      const precioMlLista = getPrecio(telaObjA.insumoId);
+      const motorId = (telaObjA.motorOptions && telaObjA.motorOptions.length) ? (document.getElementById('qa-variante')?.value || telaObjA.motorOptions[0].id) : '';
+      const motorCostLista = motorId ? (getPrecio(motorId)||0) : 0;
+      precio = Math.round((ml * precioMlLista + motorCostLista) * getFV() * cant);
+      const colorBase = document.getElementById('qa-color')?.value || '';
+      if(motorId){
+        const motorLabel = (telaObjA.motorOptions||[]).find(m=>m.id===motorId)?.label || motorId;
+        color = colorBase ? `${colorBase} · ${motorLabel}` : motorLabel;
+        // Guardar el id del motor para fábrica/trazabilidad
+        confData = Object.assign(confData||{}, { motorId, motorLabel });
+      } else {
+        color = colorBase;
+      }
       alto = '—';
     }
 
@@ -4304,6 +4338,9 @@ function addRow(item){
     // Datos de riel Celtic (combinación de tramos)
     celticTramos:  item.celticTramos,
     celticAnchoM:  item.celticAnchoM,
+    // Motor seleccionado para Riel Motorizado Somfy (id de insumo + label legible)
+    motorId:       item.motorId,
+    motorLabel:    item.motorLabel,
   });
 
   // Hacer la fila arrastrable

@@ -1,5 +1,43 @@
 # Changelog
 
+## V273 — 2026-05-07
+
+### Refinamiento de cotización: rieles y motores
+
+**1. Cambio de tela Bandas Verticales: sin recargo**
+
+Antes usaba el recargo 1.30 heredado de cambiotela Roller. Ahora `recargo:1.0` — mismo precio que cotizar una BV nueva, restando solo el riel. Fórmula: `m² × precio_tela × FV` (sin riel, sin zócalo).
+
+**2. Motores Somfy WT y MV35 movidos a su propio grupo**
+
+Antes estaban mezclados con los rieles en el grupo "Rieles". Ahora tienen su propio optgroup **"Motores Rieles"**.
+
+Resultado: el grupo Rieles ahora solo tiene los 3 rieles:
+- Riel Manual Aluminio
+- Riel Motorizado Somfy
+- Riel motorizado Celtic ®
+
+Y los motores aparecen agrupados aparte:
+- Motores (grupo) → Motores Tubulares
+- Motores Rieles (grupo) → Motor Somfy WT, Motor Somfy Movelite 35 RTS
+
+**3. Selector de motor en Riel Motorizado Somfy**
+
+Al cotizar el Riel Motorizado Somfy, el formulario ahora pide elegir cuál motor usar. El costo del motor se **suma automáticamente** al precio del riel (un solo item con todo bundleado).
+
+Opciones disponibles con descripción inline:
+
+| Motor | Descripción |
+|---|---|
+| Motor Somfy WT | Mecánico a tecla · Adaptable a domótica externa |
+| Motor Somfy Movelite 35 RTS | Control remoto |
+
+- El cálculo: `(ancho × precio_riel/ml + precio_motor) × FV × cantidad`
+- El motor seleccionado queda guardado en el item como `motorId` y `motorLabel` para trazabilidad.
+- En la cotización el item aparece como "Blanco · Motor Somfy Movelite 35 RTS" (color + motor).
+
+Nuevo campo `motorOptions` en TELAS para extensibilidad: cualquier TELA con `tipo:'riel'` puede declarar motores opcionales.
+
 ## V272 — 2026-05-07
 
 ### Reorganización de la lista de sistemas a cotizar
