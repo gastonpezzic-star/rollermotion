@@ -6587,7 +6587,16 @@ function renderFab(){
   data.forEach(d => { window._fabDocs[d.id] = d; });
 
   tb.innerHTML = data.map(d=>{
-    const tieneRoller = (d.items||[]).some(it => isRollerTela(it.tela) || it.tela==='riel_manual' || it.tela==='riel_motorizado');
+    // Mostrar la planilla "📋 Armado (Roller / aluminio)" si:
+    // - tiene roller / rieles sueltos / motorizados (necesitan armado + cortes aluminio)
+    // - o tiene confección CON riel (los rieles van en hoja 2 de cortes aluminio)
+    const tieneRoller = (d.items||[]).some(it =>
+      isRollerTela(it.tela)
+      || it.tela==='riel_manual'
+      || it.tela==='riel_motorizado'
+      || it.tela==='riel_motorizado_celtic'
+      || ((it.tela==='conf_liviana' || it.tela==='conf_blackout') && (it.conRiel === true || it.conRiel === 'true'))
+    );
     const tieneConf   = (d.items||[]).some(it => it.tela==='conf_liviana' || it.tela==='conf_blackout');
     return `<tr style="border-bottom:1px solid var(--border)">
     <td style="vertical-align:middle"><strong>#${d.numero||'—'}</strong></td>

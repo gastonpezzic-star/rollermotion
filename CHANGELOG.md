@@ -1,5 +1,25 @@
 # Changelog
 
+## V280 — 2026-05-07
+
+### Fix: planilla de cortes de aluminio no aparecía para pedidos solo de confección
+
+Cuando el pedido solo tenía cortinas de confección **con riel**, no aparecía el botón 📋 (Planilla armado/aluminio) en Fábrica — solo se veía 🧵 (Confección). El riel aluminio necesita su hoja de corte, que ya estaba implementada en la planilla roller pero el botón no se mostraba.
+
+**Fix**: extender la condición de visibilidad del botón 📋 para incluir pedidos con **confección + riel**:
+
+```js
+const tieneRoller = (d.items||[]).some(it =>
+  isRollerTela(it.tela)
+  || it.tela==='riel_manual'
+  || it.tela==='riel_motorizado'
+  || it.tela==='riel_motorizado_celtic'
+  || ((it.tela==='conf_liviana' || it.tela==='conf_blackout') && it.conRiel)
+);
+```
+
+Ahora un pedido solo-conf con riel muestra **los dos botones**: 📋 (cortes aluminio del riel) + 🧵 (corte y confección de tela).
+
 ## V279 — 2026-05-07
 
 ### Mejoras de UX
