@@ -3632,10 +3632,16 @@ function qaCalcPrecio(){
       // MODO ALTO EXTENDIDO: tela se desarrolla a lo largo, se usan pedazos
       modoCalculo = 'extendido';
       const largoDesarrollo = altoMm + EXTRA_CONF;
-      // Calcular auto-pedazos: el mínimo que cubra el frunce deseado
-      let autoP = Math.ceil((anchoMm * frunce) / ANCHO_ROLLO);
+      // Calcular auto-pedazos: el mínimo que cubra el frunce deseado.
+      // ⚠ Tolerancia para errores de redondeo: si el frunce ingresado equivale
+      //   "casi exactamente" a un entero de paños, usar ese entero. Sin esto,
+      //   un frunce 1.86 (= 1.857... redondeado, que es 2 paños) daría
+      //   ceil(2.0037)=3, sumando 1 paño innecesario.
+      const _exactP = (anchoMm * frunce) / ANCHO_ROLLO;
+      const _roundedP = Math.round(_exactP);
+      let autoP = (_roundedP > 0 && Math.abs(_exactP - _roundedP) < 0.05) ? _roundedP : Math.ceil(_exactP);
       let autoFR = (autoP * ANCHO_ROLLO) / anchoMm;
-      if(autoFR < frunce){ autoP++; autoFR = (autoP * ANCHO_ROLLO) / anchoMm; }
+      if(autoFR < frunce - 0.01){ autoP++; autoFR = (autoP * ANCHO_ROLLO) / anchoMm; }
       // Si el usuario eligió un override, usar ese
       const overrideP = (typeof window._panoOverride === 'number' && window._panoOverride > 0) ? window._panoOverride : null;
       pedazosFinal = overrideP || autoP;
@@ -4152,11 +4158,14 @@ function qaAgregar(){
       frunceReal = frunce;
       pedazosFinal = 1;
     } else {
-      // Modo alto extendido: usar override del usuario si lo eligió, sino auto
+      // Modo alto extendido: usar override del usuario si lo eligió, sino auto.
+      // Misma tolerancia que en qaCalcPrecio para evitar paños extra por error de redondeo.
       const largoDesarrollo = altoMmA + EXTRA_CONF;
-      let autoP = Math.ceil((anchoMmA * frunce) / ANCHO_ROLLO_A);
+      const _exactP = (anchoMmA * frunce) / ANCHO_ROLLO_A;
+      const _roundedP = Math.round(_exactP);
+      let autoP = (_roundedP > 0 && Math.abs(_exactP - _roundedP) < 0.05) ? _roundedP : Math.ceil(_exactP);
       const autoFR = (autoP * ANCHO_ROLLO_A) / anchoMmA;
-      if(autoFR < frunce){ autoP++; }
+      if(autoFR < frunce - 0.01){ autoP++; }
       const overrideP = (typeof window._panoOverride === 'number' && window._panoOverride > 0) ? window._panoOverride : null;
       pedazosFinal = overrideP || autoP;
       frunceReal   = (pedazosFinal * ANCHO_ROLLO_A) / anchoMmA;

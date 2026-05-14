@@ -1,5 +1,41 @@
 # Changelog
 
+## V277 — 2026-05-07
+
+### Fix: el auto-cálculo de paños subía de más con frunces "redondeados"
+
+V276 arregló el recálculo en la planilla, pero faltaba el mismo fix en `qaCalcPrecio` y `qaAgregar`.
+
+**Problema**: cuando el cotizador tipea un frunce que ya es un valor "limpio" (ej. 1.86 que es el frunce de 2 paños redondeado de 1.857), el sistema usaba `Math.ceil` así:
+
+```
+exactP = (2370 × 1.86) / 2200 = 2.0037
+ceil(2.0037) = 3 paños  ❌
+```
+
+Y devolvía 3 paños = 10.47m, cuando lo correcto es 2 paños = 6.98m.
+
+**Fix**: agregada **tolerancia de 0.05** al redondeo. Si el valor es "casi un entero" se usa ese entero como paños.
+
+```
+exactP = 2.0037
+roundedP = round(2.0037) = 2
+|2.0037 - 2| = 0.0037 < 0.05 → usar 2 paños ✓
+```
+
+También agregamos tolerancia de 0.01 al check `autoFR < frunce` para evitar disparar +1 paño por errores de redondeo simétricos.
+
+**Casos cubiertos**:
+
+| Frunce ingresado | Cálculo viejo (`ceil`) | Cálculo nuevo (con tolerancia) |
+|---|---|---|
+| 1.86 (= 2 paños) | 3 paños ❌ | 2 paños ✓ |
+| 2.00 (necesita 3 paños) | 3 paños ✓ | 3 paños ✓ |
+| 2.78 (= 3 paños) | 3 paños ✓ | 3 paños ✓ |
+| 2.50 (necesita 3 paños) | 3 paños ✓ | 3 paños ✓ |
+
+El comportamiento solo cambia cuando el frunce está "casi en un entero".
+
 ## V276 — 2026-05-07
 
 ### Fix: la planilla mostraba paños/metros equivocados cuando el cotizador elegía una opción no-auto
