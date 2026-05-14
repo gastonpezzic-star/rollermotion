@@ -1,5 +1,52 @@
 # Changelog
 
+## V270 — 2026-05-07
+
+### Nuevo sistema: Riel Motorizado Celtic + Motor
+
+Alternativa al Somfy. Diferencia clave: precio por **tramo** (no por metro lineal).
+
+**Precios de lista** (editables desde el panel de Insumos):
+
+| Tramo | Precio lista |
+|---|---|
+| Hasta 2m | $815.000 |
+| Hasta 3m | $840.000 |
+| Hasta 4m | $921.600 |
+| Hasta 6m | $1.140.000 |
+
+Se le aplica el coeficiente FV (IVA + tarjeta) como al resto.
+
+**Lógica de combinación para anchos > 6m**:
+
+- 7m → 6m + 2m
+- 8m → 6m + 2m
+- 9m → 6m + 3m
+- 12m → 6m + 6m
+- 13m → 6m + 6m + 2m
+
+El algoritmo siempre usa tramos de 6m al máximo y cubre el resto con el tramo más chico que entre.
+
+**Ejemplos de cotización**:
+
+| Ancho | Tramo(s) usados | Suma |
+|---|---|---|
+| 2.3m | 1 × 3m | $840.000 |
+| 3.7m | 1 × 4m | $921.600 |
+| 7m | 6m + 2m | $1.955.000 |
+
+(El precio final es la suma × FV × cantidad.)
+
+**Cambios técnicos**:
+
+- 4 nuevos insumos en el catálogo: `riel_celtic_2m`, `_3m`, `_4m`, `_6m` (subcategoría "Motorizado Celtic"). `en_cotizador:false` porque no se pueden agregar como item suelto — siempre vienen como combinación según el ancho.
+- Nueva TELA `riel_motorizado_celtic` con `tipo:'riel'` y `tieredPricing:true`, lista de `tiers`.
+- Helper `_calcCelticPieces(anchoM, tiers)` que devuelve la combinación óptima.
+- `qaAgregar` y `qaCalcPrecio` actualizados para detectar `tieredPricing` y aplicar lógica de tramos.
+- El item guardado lleva en `color` la combinación usada (ej. "Blanco · Combinación: 6m + 2m") para que se vea en el PDF/cotización.
+- **Cuenta como instalación motorizada** (agregado a `TIPOS_MOTORIZADOS`).
+- Aparece en el overlay de detalles técnicos de fabricación junto con los otros rieles (preguntas: Apertura + Lado del motor).
+
 ## V269 — 2026-05-07
 
 ### Fix urgente: scanner no detectaba el código de confección

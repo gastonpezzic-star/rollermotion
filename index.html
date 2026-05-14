@@ -1953,6 +1953,18 @@ const TELAS = {
     insumoId:'riel_motor_ml',
     colors:['Blanco','Negro'],
   },
+  'riel_motorizado_celtic': {
+    label:'Riel Motorizado Celtic + Motor', grupo:'Rieles', tipo:'riel', colorLabel:'Color',
+    colors:['Blanco','Negro'],
+    // Precio por TRAMO (no por ml). Para anchos > 6m se combinan tramos.
+    tieredPricing: true,
+    tiers: [
+      { maxM: 2, insumoId: 'riel_celtic_2m' },
+      { maxM: 3, insumoId: 'riel_celtic_3m' },
+      { maxM: 4, insumoId: 'riel_celtic_4m' },
+      { maxM: 6, insumoId: 'riel_celtic_6m' },
+    ],
+  },
   'motor_somfy_wt': {
     label:'Motor Somfy WT', grupo:'Rieles', tipo:'unitario', colorLabel:'Modelo',
     colors:['Motor Somfy WT'],
@@ -2120,6 +2132,12 @@ const INSUMOS_DEFAULT = [
   { id:'riel_motor_ml',   cat:'Rieles', subcat:'Motorizado',  nombre:'Riel Motorizado Somfy (ml)',         precio:253970, unidad:'ml', en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'ml' },
   { id:'motor_somfy_wt',  cat:'Rieles', subcat:'Motores',     nombre:'Motor Somfy WT',                    precio:623000, unidad:'u',  en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'u'  },
   { id:'motor_somfy_mv35',cat:'Rieles', subcat:'Motores',     nombre:'Motor Somfy Movelite 35 RTS',       precio:730000, unidad:'u',  en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'u'  },
+  // Riel Motorizado Celtic + Motor — precio por tramo (no por ml). Para anchos
+  // > 6m se combinan tramos (ej. 7m = 6m + 2m).
+  { id:'riel_celtic_2m',  cat:'Rieles', subcat:'Motorizado Celtic', nombre:'Riel Motorizado Celtic + Motor (hasta 2m)', precio:815000,  unidad:'u', en_cotizador:false, cat_cotizador:'Rieles', unidad_venta:'u' },
+  { id:'riel_celtic_3m',  cat:'Rieles', subcat:'Motorizado Celtic', nombre:'Riel Motorizado Celtic + Motor (hasta 3m)', precio:840000,  unidad:'u', en_cotizador:false, cat_cotizador:'Rieles', unidad_venta:'u' },
+  { id:'riel_celtic_4m',  cat:'Rieles', subcat:'Motorizado Celtic', nombre:'Riel Motorizado Celtic + Motor (hasta 4m)', precio:921600,  unidad:'u', en_cotizador:false, cat_cotizador:'Rieles', unidad_venta:'u' },
+  { id:'riel_celtic_6m',  cat:'Rieles', subcat:'Motorizado Celtic', nombre:'Riel Motorizado Celtic + Motor (hasta 6m)', precio:1140000, unidad:'u', en_cotizador:false, cat_cotizador:'Rieles', unidad_venta:'u' },
 
   // ── BANDAS VERTICALES ──
   { id:'riel_bv',       cat:'Bandas Verticales', subcat:'Riel',  nombre:'Riel (precio por ml)',            precio:72000, unidad:'ml', en_cotizador:true, cat_cotizador:'Bandas Verticales', unidad_venta:'ml' },
@@ -3488,9 +3506,28 @@ function qaCalcPrecio(){
     return;
   }
   // ── VENECIANAS — precio por m2 desde insumos ──
-  // ── RIELES (precio por ml según ancho) ──
+  // ── RIELES ──
   if(telaInfo?.tipo === 'riel'){
     if(!ancho){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; return; }
+    if(telaInfo.tieredPricing && Array.isArray(telaInfo.tiers)){
+      // Precio por tramo (Celtic). Combina tramos si ancho > maxM.
+      const anchoM = parseInt(ancho)/1000;
+      const pieces = _calcCelticPieces(anchoM, telaInfo.tiers);
+      const totalLista = pieces.reduce((s,p)=> s + (getPrecio(p.insumoId)||0), 0);
+      const pu = Math.round(totalLista * getFV());
+      disp.textContent = fmtM(pu);
+      disp.style.color = 'var(--brand)';
+      subD.style.display = 'block';
+      const breakdown = pieces.length === 1
+        ? `Tramo hasta ${pieces[0].maxM}m`
+        : `Combinación: ${pieces.map(p=>`${p.maxM}m`).join(' + ')}`;
+      subD.textContent = `${breakdown}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
+      btn.disabled = false; btn.style.opacity = '1';
+      cutsEl.style.display = 'none';
+      const roundEl = document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
+      return;
+    }
+    // Precio por ml (Somfy / Manual Aluminio)
     const ml = parseInt(ancho)/1000;
     const precioMl = getPrecio(telaInfo.insumoId) * getFV();
     const pu = Math.round(ml * precioMl);
@@ -4068,11 +4105,26 @@ function qaAgregar(){
     tela = 'rollerdoble';
 
   } else if(telaObjA?.tipo === 'riel'){
-    const ml = parseInt(ancho)/1000;
-    const precioMl = getPrecio(telaObjA.insumoId) * getFV();
-    precio = Math.round(ml * precioMl * cant);
-    color = document.getElementById('qa-color')?.value || '';
-    alto = '—';
+    if(telaObjA.tieredPricing && Array.isArray(telaObjA.tiers)){
+      // Riel con precio por tramo (ej: Celtic). Para ancho > maxM, se combinan tramos.
+      const anchoM = parseInt(ancho)/1000;
+      const pieces = _calcCelticPieces(anchoM, telaObjA.tiers);
+      const totalLista = pieces.reduce((s,p)=> s + (getPrecio(p.insumoId)||0), 0);
+      precio = Math.round(totalLista * getFV() * cant);
+      const colorBase = document.getElementById('qa-color')?.value || '';
+      const combTxt = pieces.length === 1
+        ? `Tramo hasta ${pieces[0].maxM}m`
+        : `Combinación: ${pieces.map(p=>`${p.maxM}m`).join(' + ')}`;
+      color = colorBase ? `${colorBase} · ${combTxt}` : combTxt;
+      alto = '—';
+    } else {
+      // Riel con precio por ml (ej: Somfy, Manual Aluminio)
+      const ml = parseInt(ancho)/1000;
+      const precioMl = getPrecio(telaObjA.insumoId) * getFV();
+      precio = Math.round(ml * precioMl * cant);
+      color = document.getElementById('qa-color')?.value || '';
+      alto = '—';
+    }
 
   } else if(telaObjA?.tipo === 'bandas'){
     const subtipoKey = document.getElementById('qa-color')?.value || 'solo_riel';
@@ -4520,16 +4572,43 @@ const TIPOS_CON_INSTALACION = [
   'veneciana',
   'riel_manual',
   'riel_motorizado',
+  'riel_motorizado_celtic',
   'motores',
 ];
 
 // Tipos que se consideran "motorizados" (cuentan como instalación motorizada)
-const TIPOS_MOTORIZADOS = ['motores','riel_motorizado'];
+const TIPOS_MOTORIZADOS = ['motores','riel_motorizado','riel_motorizado_celtic'];
 
 // Tipos que son cortinas Roller (todos los porcentajes de Sunscreen + Blackout)
 const TIPOS_ROLLER = ['blackout','sunscreen5','sunscreen3','sunscreen1','rollerdoble','doble'];
 function isRollerTela(t){ return TIPOS_ROLLER.includes((t||'').toLowerCase()); }
 function isRollerDoble(t){ const k=(t||'').toLowerCase(); return k==='rollerdoble' || k==='doble'; }
+
+// Calcula la combinación óptima de tramos para un riel con precio por tramo (ej: Celtic).
+// Para anchos hasta el máximo (6m), usa el tramo más chico que entre.
+// Para anchos > máximo, suma tramos máximos + el más chico que cubra el resto.
+// Ejemplo: 7m → [6m, 2m]; 2.3m → [3m]; 5m → [6m].
+function _calcCelticPieces(anchoM, tiers){
+  if(!Array.isArray(tiers) || !tiers.length) return [];
+  const sorted = [...tiers].sort((a,b)=> a.maxM - b.maxM);
+  const maxTier = sorted[sorted.length - 1];
+  // Caso simple: cabe en un tramo
+  if(anchoM <= maxTier.maxM){
+    return [ sorted.find(t => anchoM <= t.maxM) || maxTier ];
+  }
+  // Caso compuesto: tramos máximos + resto
+  const pieces = [];
+  let restante = anchoM;
+  while(restante > maxTier.maxM){
+    pieces.push(maxTier);
+    restante -= maxTier.maxM;
+  }
+  if(restante > 0){
+    const remainderTier = sorted.find(t => restante <= t.maxM) || maxTier;
+    pieces.push(remainderTier);
+  }
+  return pieces;
+}
 
 function esItemConInstalacion(item){
   const tela = (item.tela||'').toLowerCase();
@@ -4557,7 +4636,7 @@ function getInstalAutoCounts(){
       const cant = parseInt(cantInput?.value)||parseInt(item.cant)||1;
       const tela = (item.tela||'').toLowerCase();
       if(tela === 'motores')           motorUnits += cant;
-      else if(tela === 'riel_motorizado') rielMotorizadoUnits += cant;
+      else if(tela === 'riel_motorizado' || tela === 'riel_motorizado_celtic') rielMotorizadoUnits += cant;
       else                              cortinaManualUnits += cant;
     } catch(e){}
   });
@@ -5252,7 +5331,7 @@ async function saveDoc(andPreview){
     const itemsList = draft.items||[];
     const tieneCortinaRoller = itemsList.some(it => isRollerTela(it.tela));
     const tieneConf  = itemsList.some(it => it.tela==='conf_liviana'||it.tela==='conf_blackout');
-    const tieneRieles = itemsList.some(it => it.tela==='riel_manual'||it.tela==='riel_motorizado');
+    const tieneRieles = itemsList.some(it => it.tela==='riel_manual'||it.tela==='riel_motorizado'||it.tela==='riel_motorizado_celtic');
     const tieneMotores = itemsList.some(it => it.tela==='motores');
     if(tieneCortinaRoller || tieneConf || tieneRieles || tieneMotores){
       convertToOrder(draft);
@@ -5619,7 +5698,7 @@ function convertToOrder(idOrDoc){
   const cortinas  = (src.items||[]).filter(it => isRollerTela(it.tela));
   const motores   = (src.items||[]).filter(it => it.tela==='motores');
   const confItems = (src.items||[]).filter(it => it.tela==='conf_liviana'||it.tela==='conf_blackout');
-  const rieles    = (src.items||[]).filter(it => it.tela==='riel_manual'||it.tela==='riel_motorizado');
+  const rieles    = (src.items||[]).filter(it => it.tela==='riel_manual'||it.tela==='riel_motorizado'||it.tela==='riel_motorizado_celtic');
 
   // Si no hay nada para configurar técnicamente → no mostrar overlay
   if(!cortinas.length && !motores.length && !confItems.length && !rieles.length){
@@ -5759,8 +5838,10 @@ function convertToOrder(idOrDoc){
     html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${(cortinas.length||confItems.length)?'20px':0} 0 10px">🪝 Rieles — Detalles técnicos</div>`;
     html += rieles.map((it,ri)=>{
       const cant = parseInt(it.cant)||1;
-      const esMotor = it.tela === 'riel_motorizado';
-      const titulo = esMotor ? 'Riel Motorizado Somfy' : 'Riel Manual Aluminio';
+      const esMotor = it.tela === 'riel_motorizado' || it.tela === 'riel_motorizado_celtic';
+      const titulo = it.tela === 'riel_motorizado_celtic' ? 'Riel Motorizado Celtic + Motor'
+                   : it.tela === 'riel_motorizado'        ? 'Riel Motorizado Somfy'
+                   : 'Riel Manual Aluminio';
       const apertura = it.apertura || 'Central';
       const lado = it.lado || 'Derecha';
       const labelLado = esMotor ? 'Lado del motor' : 'Abre hacia';
