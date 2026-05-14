@@ -6949,14 +6949,17 @@ async function renderPreciosTelas(){
     'venecianas':       'Veneciana',
     'rollerdoble':       'Roller Doble',
     'duozebra':          'Roller DUO Zebra',
-    'conf_liviana':      'Cortina Gasa de lino',
-    'conf_blackout':     'Cortina Blackout Tex',
+    'conf_liviana':      'Cortina tradicional liviana',
+    'conf_blackout':     'Cortina tradicional Blackout Tex',
     'bandas_verticales': 'Bandas Verticales',
     'libre':             'Producto personalizado',
     'riel_manual':      'Riel Manual Aluminio',
     'riel_motorizado':  'Riel Motorizado Somfy',
+    'riel_motorizado_celtic': 'Riel motorizado Celtic ®',
     'motor_somfy_wt':   'Motor Somfy WT',
     'motor_somfy_mv35': 'Motor Somfy Movelite 35 RTS',
+    'cambiotela_bv':    'Cambio de tela Bandas Verticales',
+    'cenefas':          'Cenefa curva',
   };
   function getTelaLabel(tela){ return TELA_LABELS[tela] || tela; }
 
@@ -8215,7 +8218,11 @@ function openPlanillaConfeccion(d){
 
   const cortinasHtml = items.map((it,i)=>{
     const cant = parseInt(it.cant)||1;
-    const telaLabel = it.tela==='conf_blackout' ? 'Blackout Tex' : 'Gasa de lino';
+    // Si el cotizador eligió una tela específica (modal de código), usar el
+    // nombre real (ej. "2941 — Gasa Bamboo Prewash"). Si no, usar el genérico
+    // "Gasa de lino" / "Blackout Tex" según el tipo de cortina.
+    const telaDefault = it.tela==='conf_blackout' ? 'Blackout Tex' : 'Gasa de lino';
+    const telaLabel = (it.nombreTela && it.nombreTela !== telaDefault) ? it.nombreTela : telaDefault;
     const acc = it.accionamiento || 'Apertura central';
     const cabezal = it.cabezal || 'Americano';
     const dob = parseFloat(it.dobladillo)||0;

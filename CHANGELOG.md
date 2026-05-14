@@ -1,5 +1,32 @@
 # Changelog
 
+## V278 — 2026-05-07
+
+### Fixes de descripciones
+
+**1. Riel Celtic aparecía como `riel_motorizado_celtic` en la cotización**
+
+El renombre de label se aplicó en TELAS, pero faltaba en el diccionario `TELA_LABELS` que se usa al mostrar items en la cotización y otros listados. Faltaban también las claves de telas nuevas:
+
+- `riel_motorizado_celtic` → "Riel motorizado Celtic ®"
+- `cambiotela_bv` → "Cambio de tela Bandas Verticales"
+- `cenefas` → "Cenefa curva"
+
+También actualizado:
+- `conf_liviana`: "Cortina Gasa de lino" → "Cortina tradicional liviana"
+- `conf_blackout`: "Cortina Blackout Tex" → "Cortina tradicional Blackout Tex"
+
+**2. Planilla de confección mostraba "Gasa de lino" aunque hayas elegido otra tela**
+
+El header de cada cortina en la planilla mostraba siempre "Gasa de lino" o "Blackout Tex" según el tipo de cortina, ignorando si elegiste una tela específica (ej. 2941 Bamboo Prewash) en el modal de búsqueda de código.
+
+**Fix**: usa `it.nombreTela` (la tela específica elegida, ej. "2941 — Gasa Bamboo Prewash") si existe; si no, cae al genérico "Gasa de lino" / "Blackout Tex".
+
+| Caso | Header en la planilla |
+|---|---|
+| Tela 2941 (Bamboo Prewash) elegida | "2941 — Gasa Bamboo Prewash" |
+| Sin tela específica elegida | "Gasa de lino" (cortina liviana) o "Blackout Tex" (cortina blackout) |
+
 ## V277 — 2026-05-07
 
 ### Fix: el auto-cálculo de paños subía de más con frunces "redondeados"
