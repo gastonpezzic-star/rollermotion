@@ -2673,6 +2673,7 @@ function normalizeItem(it){
     ctela:        it.corte_tela_a,
     ctelah:       it.corte_tela_h,
     frunce:       it.frunce||null,
+    frunceReal:   it.frunce!=null ? parseFloat(it.frunce) : null, // restaurar como frunceReal para la planilla
     dobladillo:   it.dobladillo||null,
     arrastre:     it.arrastre||null,
     accionamiento:it.accionamiento||'',
@@ -2744,7 +2745,9 @@ async function saveDocToSupabase(doc){
       corte_eje:       it.ceje!=null ? it.ceje : null,
       corte_tela_a:    it.ctela!=null ? it.ctela : null,
       corte_tela_h:    it.ctelah!=null ? it.ctelah : null,
-      frunce:          it.frunce!=null ? parseFloat(it.frunce) : null,
+      // Guardamos el frunce real efectivo del item (ya considerando la elección de paños
+      // que hizo el cotizador en el panel de opciones, no el solicitado).
+      frunce:          it.frunceReal != null ? parseFloat(it.frunceReal) : (it.frunce != null ? parseFloat(it.frunce) : null),
       dobladillo:      it.dobladillo!=null ? parseFloat(it.dobladillo) : null,
       arrastre:        it.arrastre!=null ? parseFloat(it.arrastre) : null,
       accionamiento:   n(it.accionamiento),
@@ -8233,8 +8236,13 @@ function openPlanillaConfeccion(d){
         metrosNum = (anchoMm/1000) * frunceNum;
       } else {
         // Cortina más alta que el rollo → pedazos × (alto+30cm de desarrollo)
+        // ⚠ Usar Math.round, NO Math.ceil. El frunce guardado YA es el real
+        //   (resultado de paños enteros), así que (frunce × ancho / rollo) debe
+        //   dar un entero "casi exacto". Ceil da el siguiente entero cuando el
+        //   frunce decimal redondeado deja un resto chico.
+        //   Ej: frunce=1.86 (2 paños) → 1.86×2370/2200 = 2.004 → ceil=3 ❌ round=2 ✓
         const largoDesarrollo = (altoMm + 300)/1000;
-        const pedazosCalc = Math.ceil((anchoMm * frunceNum) / rolloMm);
+        const pedazosCalc = Math.round((anchoMm * frunceNum) / rolloMm) || 1;
         metrosNum = pedazosCalc * largoDesarrollo;
       }
     }
@@ -8252,7 +8260,8 @@ function openPlanillaConfeccion(d){
         calculoTxt = `${(anchoMm/1000).toFixed(2)} m (ancho) × ${frunce} (frunce) = ${metros}`;
       } else {
         const largoDesarrollo = (altoMm + 300)/1000;
-        const pedazosCalc = it.pedazos || Math.ceil((anchoMm * frunceNum) / (anchoRolloMm||2900));
+        // Misma corrección: usar round para derivar pedazos del frunce real guardado.
+        const pedazosCalc = it.pedazos || Math.round((anchoMm * frunceNum) / (anchoRolloMm||2900)) || 1;
         calculoTxt = `${pedazosCalc} pedazo${pedazosCalc>1?'s':''} × ${largoDesarrollo.toFixed(2)} m (alto+30 cm) = ${metros}`;
       }
     }

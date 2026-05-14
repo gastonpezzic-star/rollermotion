@@ -1,5 +1,29 @@
 # Changelog
 
+## V276 — 2026-05-07
+
+### Fix: la planilla mostraba paños/metros equivocados cuando el cotizador elegía una opción no-auto
+
+**Reportado**: en una cortina 2370 × 3190 mm (tela 2941, rollo 2.2m), el cotizador elegía la opción de "2 paños / frunce 1.86" en el panel V274, pero la planilla de confección luego mostraba **10.47 m** de tela (que corresponde a 3 paños, no a 2).
+
+**Causa raíz**:
+
+1. **Persistencia a Supabase incompleta**: los campos nuevos `metrosTela`, `pedazos`, `frunceReal` solo viven en localStorage. Cuando el realtime de Supabase pushea el doc de vuelta, esos campos se pierden (no hay columnas correspondientes).
+
+2. **Fallback con `Math.ceil`**: al perder esos campos, la planilla recalcula los metros desde el `frunce` parseado del nombre. Pero usaba `ceil` para derivar paños, lo que da el siguiente entero cuando el frunce decimal redondeado deja resto. Ejemplo: `frunce=1.86 → ceil(2370 × 1.86 / 2200) = ceil(2.004) = 3 paños ❌` (correcto: 2 paños).
+
+**Fixes aplicados**:
+
+1. **`saveDocToSupabase`** ahora guarda `it.frunceReal` en la columna `frunce` de la tabla `items`. Antes el campo no se guardaba (porque addRow no lo seteaba como `frunce`, sino como `frunceReal`). Ahora la elección del cotizador se persiste.
+
+2. **`normalizeItem`** mapea la columna `frunce` de Supabase también a `frunceReal` para que la planilla la encuentre tras el reload.
+
+3. **Recálculo de fallback**: cambiado `Math.ceil` por `Math.round` para derivar `pedazos` del `frunceReal` saved. Esto da el resultado correcto incluso con el frunce redondeado a 2 decimales:
+   - Antes: `ceil(2.004) = 3` ❌
+   - Ahora: `round(2.004) = 2` ✓
+
+**Pendiente (V277+)**: agregar columnas `metros_tela` y `pedazos` a la tabla `items` de Supabase para evitar cualquier recálculo (avísenme y armo el SQL).
+
 ## V275 — 2026-05-07
 
 ### Fix: el panel de opciones de paños quedaba visible tras agregar el item
