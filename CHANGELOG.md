@@ -1,5 +1,21 @@
 # Changelog
 
+## V281 — 2026-05-07
+
+### Nuevo archivo: `PROJECT_CONTEXT.md`
+
+Manual del proyecto para retomar contexto rápido en futuros chats. Incluye:
+
+- Qué es el proyecto y su stack
+- Mapa del `index.html` con secciones aproximadas por líneas
+- Conceptos clave (TELAS, INSUMOS, TELAS_CONFECCION, estados, scanner)
+- Convenciones (versionado V###, naming, workflow)
+- Gotchas (iPad, focus, etc.)
+- Pendientes conocidos
+- Instrucciones para arrancar un chat nuevo
+
+Diseñado para que un Claude nuevo entrando al proyecto pueda ponerse al día en ~30 segundos leyendo este archivo + el último commit del CHANGELOG.
+
 ## V280 — 2026-05-07
 
 ### Fix: planilla de cortes de aluminio no aparecía para pedidos solo de confección
