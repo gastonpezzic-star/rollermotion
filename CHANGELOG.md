@@ -1,5 +1,19 @@
 # Changelog
 
+## V271 — 2026-05-07
+
+### Fix: UX del Riel Celtic idéntica al Somfy
+
+El cotizado del Riel Celtic ya era automático (sin selector de tramos), pero estaba guardando "Combinación: 6m + 2m" pegado al color del item, dando la falsa impresión de que había configuración manual.
+
+**Cambios**:
+
+- **Color del item limpio**, igual que Somfy: solo "Blanco" o "Negro".
+- **La combinación de tramos** se guarda en campos internos `celticTramos` y `celticAnchoM` del item — para fábrica y trazabilidad, no para mostrar al cliente.
+- **Live preview** más conciso: `7.00m → 6m + 2m` (en vez del antiguo "Combinación: 6m + 2m").
+
+La forma de cotizar es **idéntica al Somfy**: el usuario solo ingresa el ancho, el sistema calcula automáticamente. Para anchos > 6m, internamente combina tramos (6m + lo que falte), pero el cliente ve solo el precio final.
+
 ## V270 — 2026-05-07
 
 ### Nuevo sistema: Riel Motorizado Celtic + Motor

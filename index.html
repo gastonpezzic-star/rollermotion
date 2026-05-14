@@ -3511,6 +3511,7 @@ function qaCalcPrecio(){
     if(!ancho){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; return; }
     if(telaInfo.tieredPricing && Array.isArray(telaInfo.tiers)){
       // Precio por tramo (Celtic). Combina tramos si ancho > maxM.
+      // Misma UX que Somfy: solo se ingresa ancho. Cálculo automático.
       const anchoM = parseInt(ancho)/1000;
       const pieces = _calcCelticPieces(anchoM, telaInfo.tiers);
       const totalLista = pieces.reduce((s,p)=> s + (getPrecio(p.insumoId)||0), 0);
@@ -3518,10 +3519,8 @@ function qaCalcPrecio(){
       disp.textContent = fmtM(pu);
       disp.style.color = 'var(--brand)';
       subD.style.display = 'block';
-      const breakdown = pieces.length === 1
-        ? `Tramo hasta ${pieces[0].maxM}m`
-        : `Combinación: ${pieces.map(p=>`${p.maxM}m`).join(' + ')}`;
-      subD.textContent = `${breakdown}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
+      const combo = pieces.map(p=>`${p.maxM}m`).join(' + ');
+      subD.textContent = `${anchoM.toFixed(2)}m → ${combo}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
       btn.disabled = false; btn.style.opacity = '1';
       cutsEl.style.display = 'none';
       const roundEl = document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4106,16 +4105,19 @@ function qaAgregar(){
 
   } else if(telaObjA?.tipo === 'riel'){
     if(telaObjA.tieredPricing && Array.isArray(telaObjA.tiers)){
-      // Riel con precio por tramo (ej: Celtic). Para ancho > maxM, se combinan tramos.
+      // Riel con precio por tramo (ej: Celtic). Para ancho > maxM se combinan tramos.
+      // UX idéntico al Somfy: solo se ingresa el ancho. El cálculo es automático.
       const anchoM = parseInt(ancho)/1000;
       const pieces = _calcCelticPieces(anchoM, telaObjA.tiers);
       const totalLista = pieces.reduce((s,p)=> s + (getPrecio(p.insumoId)||0), 0);
       precio = Math.round(totalLista * getFV() * cant);
-      const colorBase = document.getElementById('qa-color')?.value || '';
-      const combTxt = pieces.length === 1
-        ? `Tramo hasta ${pieces[0].maxM}m`
-        : `Combinación: ${pieces.map(p=>`${p.maxM}m`).join(' + ')}`;
-      color = colorBase ? `${colorBase} · ${combTxt}` : combTxt;
+      // Color limpio (igual que Somfy), sin la combinación pegada
+      color = document.getElementById('qa-color')?.value || '';
+      // Guardamos la combinación en un campo aparte para fábrica/trazabilidad
+      confData = {
+        celticTramos: pieces.map(p => p.maxM + 'm').join(' + '),
+        celticAnchoM: anchoM.toFixed(2),
+      };
       alto = '—';
     } else {
       // Riel con precio por ml (ej: Somfy, Manual Aluminio)
@@ -4282,6 +4284,9 @@ function addRow(item){
     nombreTela:    item.nombreTela,
     conRiel:       item.conRiel,
     cabezal:       item.cabezal,    // se llena en el overlay de confirmación
+    // Datos de riel Celtic (combinación de tramos)
+    celticTramos:  item.celticTramos,
+    celticAnchoM:  item.celticAnchoM,
   });
 
   // Hacer la fila arrastrable
