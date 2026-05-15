@@ -1,5 +1,59 @@
 # Changelog
 
+## V282 — 2026-05-07
+
+### Nuevo producto: Toldo Brazos Invisibles Punta a Punta
+
+Cotización del **sistema** (eje + brazos + zócalo) basada en tabla de precios por ancho y saliente. La parte de tela (m²) la calculamos en una etapa posterior.
+
+**UX al cotizar**:
+
+- Nuevo grupo **"Toldos"** en el dropdown de sistemas.
+- Selector **Ancho**: 2 / 3 / 4 / 5 m (valores estándar).
+- Selector **Saliente**: 1.60 / 2.10 / 2.60 / 3.10 m (se filtra según el ancho — solo se muestran las combinaciones válidas).
+- Cantidad de brazos: 2 (constante por ahora).
+
+**Regla de combinaciones válidas**: el saliente no puede superar al ancho.
+
+| Ancho | Salientes disponibles |
+|---|---|
+| 2 m | 1.60 |
+| 3 m | 1.60 / 2.10 / 2.60 |
+| 4 m | 1.60 / 2.10 / 2.60 / 3.10 |
+| 5 m | 1.60 / 2.10 / 2.60 / 3.10 |
+
+**Fórmula de precio**:
+
+```
+precio_lista  = tabla[ancho][saliente] × multiplicador
+precio_venta  = precio_lista × FV × cantidad
+```
+
+Con multiplicador = 2 (los precios de la tabla provista son a multiplicar × 2 para obtener lista).
+
+**Tabla de precios cargada** (precios base, antes de × 2 y FV):
+
+| Ancho \ Saliente | 1.60 | 2.10 | 2.60 | 3.10 |
+|---|---|---|---|---|
+| 2 m | $309.400 | — | — | — |
+| 3 m | $337.835 | $351.775 | $381.505 | — |
+| 4 m | $366.150 | $380.185 | $409.890 | $426.140 |
+| 5 m | $394.520 | $408.560 | $438.290 | $454.520 |
+
+**Cambios técnicos**:
+
+- Nuevo `tipo: 'toldo'` en TELAS.
+- `qaTelaChange` ahora maneja el setup del form (dropdowns en lugar de inputs numéricos).
+- `qaCalcPrecio` y `qaAgregar` calculan precio desde la tabla con la regla de combinaciones inválidas.
+- El item se guarda con `ancho` y `alto` en mm (`2000`, `1600`) para mantener compatibilidad con la tabla de items.
+- El `color` del item lleva la descripción humana: `"Ancho 2m · Saliente 1.60m · 2 brazos"`.
+- Agregado a `TELA_LABELS` como `'Toldo Brazos Invisibles'`.
+
+**Pendiente**:
+
+- Cálculo de m² de tela para confección del toldo (siguiente etapa).
+- Más modelos / variantes de toldo (otros tipos de brazos, motorizado, etc.).
+
 ## V281 — 2026-05-07
 
 ### Nuevo archivo: `PROJECT_CONTEXT.md`
