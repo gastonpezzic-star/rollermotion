@@ -1,5 +1,34 @@
 # Changelog
 
+## V287.4 — 2026-05-15
+
+### Toldos: descripción más limpia + resaltado de Brazos y Tela
+
+**Lo que se sacó**:
+
+- ❌ `(sistema 4m)` — el ancho estándar interno ya no aparece. La línea muestra solo el ancho real (ej. `Ancho 3850mm`).
+- ❌ `150cm (2 tramos cosidos)` / `120cm` — los detalles técnicos del rollo (ancho del rollo + modo cosido/rotado) quedan en el panel azul de selección de tela, no en la descripción.
+- ❌ `· incl. MO confección` — la mano de obra ya está integrada al precio, no hace falta repetirlo en la descripción.
+
+**Lo que queda**:
+
+```
+Toldo Brazos Invisibles Punta a Punta
+**Brazos italianos Helix SP** · Ancho 3850mm · Saliente 2.10m · **Tela acrílica Dickson ®**
+```
+
+**Resaltado**:
+
+- La marca de los brazos (cualquier valor configurado en `TELAS[x].brazosMarca`, hoy `Brazos italianos Helix SP`) se renderiza en negrita verde oscuro.
+- La marca de tela elegida (match contra `TELAS_TOLDO_GRUPOS`) también se renderiza en negrita.
+- El resto (Ancho · Saliente · brazos extra · extras Barracuadra) en gris normal.
+
+**Cómo funciona**:
+
+- `item.color` se persiste como **texto plano** (ej. para CSV, planilla, etc., sigue funcionando).
+- El bold se aplica solo en el render del items list, vía `formatToldoColor()`, que detecta partes que arrancan con `Brazos` o que coinciden exactamente con una marca de `TELAS_TOLDO_GRUPOS`.
+- El preview en el cotizador (antes de agregar) ya muestra el bold via `subD.innerHTML`.
+
 ## V287.3 — 2026-05-15
 
 ### Reordenamiento: Toldos en el dropdown + marcas de tela del toldo

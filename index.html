@@ -4155,23 +4155,19 @@ function qaCalcPrecio(){
     const cantB = (telaInfo.brazosPorAncho && telaInfo.brazosPorAncho[anchoSel]) || telaInfo.cantidadBrazos || 2;
     const extras = (telaInfo.extrasPorAncho && telaInfo.extrasPorAncho[anchoSel]) || '';
     subD.style.display='block';
-    const telaTxt = telaInfoSel ? `Tela ${telaInfoSel.brand.replace(/Tela (acrílica|vinílica|Microperforada) /,'').replace(/ ®/,'')} ${(telaInfoSel.anchoRollo/10).toFixed(0)}cm (${telaInfoSel.linearM.toFixed(2)}m)` : '';
+    // V287.4: preview simplificada — Marca de brazos (bold) · Ancho · Saliente · Tela marca (bold)
+    const telaPart = telaInfoSel ? telaInfoSel.brand : '';
     const extrasTxt = extras ? ` · ${extras}` : '';
-    // Mostrar redondeo si el ancho real difiere del estándar cobrado
-    const anchoCotMm = Math.round(parseFloat(anchoSel)*1000);
-    const realTxt = (anchoRealMm > 0 && anchoRealMm < anchoCotMm)
-      ? `${anchoRealMm}mm (sistema ${anchoSel}m)`
-      : `${anchoSel}m`;
-    // V287.2: preview = Marca de brazos · Ancho · Saliente · Tela
+    const anchoRealTxt = `${anchoRealMm}mm`;
     const brazosMarcaPv = telaInfo.brazosMarca || '';
     const brazosCountTxt = (cantB && cantB !== 2) ? ` · ${cantB} brazos` : '';
-    const moTxt = costoMOToldo > 0 ? ' · incl. MO' : '';
     const partesPv = [];
-    if(brazosMarcaPv) partesPv.push(brazosMarcaPv);
-    partesPv.push(`Ancho ${realTxt}`);
+    if(brazosMarcaPv) partesPv.push(`<strong style="color:#0b3d2e">${brazosMarcaPv}</strong>`);
+    partesPv.push(`Ancho ${anchoRealTxt}`);
     partesPv.push(`Saliente ${salienteSel}m`);
-    if(telaTxt) partesPv.push(telaTxt);
-    subD.textContent = partesPv.join(' · ') + brazosCountTxt + extrasTxt + moTxt + (cant>1?` · ${cant} und. = ${fmtM(pu*cant)}`:'');
+    if(telaPart) partesPv.push(`<strong style="color:#0b3d2e">${telaPart}</strong>`);
+    const cantTxt = cant>1 ? ` · ${cant} und. = ${fmtM(pu*cant)}` : '';
+    subD.innerHTML = partesPv.join(' · ') + brazosCountTxt + extrasTxt + cantTxt;
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4304,6 +4300,23 @@ function usarTelaModal(){
   if(btnBuscar) btnBuscar.style.display='none';
   cerrarModalTela();
   qaCalcPrecio();
+}
+
+// V287.4: formatea la descripción de un toldo aplicando bold a la marca de
+// brazos y a la marca de tela. Se llama desde addRow para items tipo toldo.
+// El item.color queda como texto plano; el HTML se aplica solo en el render.
+function formatToldoColor(colorStr){
+  if(!colorStr) return '';
+  const brands = (typeof TELAS_TOLDO_GRUPOS !== 'undefined')
+    ? TELAS_TOLDO_GRUPOS.map(g => g.brand) : [];
+  const parts = String(colorStr).split(' · ');
+  return parts.map(p => {
+    // Resaltar la marca de brazos (cualquier descripción que arranque con "Brazos")
+    if(/^Brazos /i.test(p)) return `<strong style="color:#0b3d2e">${p}</strong>`;
+    // Resaltar marcas de tela conocidas (match exacto contra TELAS_TOLDO_GRUPOS)
+    if(brands.some(b => p === b)) return `<strong style="color:#0b3d2e">${p}</strong>`;
+    return p;
+  }).join(' · ');
 }
 
 function restaurarColorSelect(){
@@ -4683,27 +4696,21 @@ function qaAgregar(){
     precio = Math.round(precioLista * getFV() * cant);
     const cantB  = (telaObjA.brazosPorAncho && telaObjA.brazosPorAncho[anchoSel]) || telaObjA.cantidadBrazos || 2;
     const extras = (telaObjA.extrasPorAncho && telaObjA.extrasPorAncho[anchoSel]) || '';
-    let descTela = '';
-    if(telaInfoSel){
-      const modoTxt = telaInfoSel.modo === 'A' ? `${telaInfoSel.strips} tramos` : 'rotada';
-      descTela = ` · ${telaInfoSel.brand} ${(telaInfoSel.anchoRollo/10).toFixed(0)}cm (${modoTxt})`;
-    }
+    // V287.4: descripción simplificada — solo marca de tela (sin ancho rollo ni tramos)
+    const telaPart = telaInfoSel ? telaInfoSel.brand : '';
     const extrasTxt = extras ? ` · ${extras}` : '';
-    // Si el ancho real difiere del estándar, mencionar ambos en la descripción
-    const anchoDesc = (anchoRealMm < anchoCotMm)
-      ? `${anchoRealMm}mm (sistema ${anchoSel}m)`
-      : `${anchoSel}m`;
-    // V287.2: línea descriptiva = Marca de brazos · Ancho · Saliente · Tela
-    // (la cantidad de brazos y extras del Barracuadra se anexan al final)
+    // V287.4: usar SIEMPRE el ancho real (sin paréntesis "(sistema Xm)")
+    const anchoDesc = `${anchoRealMm}mm`;
+    // V287.2/4: línea descriptiva = Marca de brazos · Ancho · Saliente · Tela [· cant. brazos extras]
+    // Resaltado se aplica en el render del item (addRow) sobre Brazos y Tela.
     const brazosMarca = telaObjA.brazosMarca || '';
     const brazosCountTxt = (cantB && cantB !== 2) ? ` · ${cantB} brazos` : '';
-    const moTxtA = costoMOToldoA > 0 ? ' · incl. MO confección' : '';
     const partes = [];
     if(brazosMarca) partes.push(brazosMarca);
     partes.push(`Ancho ${anchoDesc}`);
     partes.push(`Saliente ${salienteSel}m`);
-    if(descTela) partes.push(descTela.replace(/^ · /, ''));
-    color = partes.join(' · ') + brazosCountTxt + extrasTxt + moTxtA;
+    if(telaPart) partes.push(telaPart);
+    color = partes.join(' · ') + brazosCountTxt + extrasTxt;
     confData = Object.assign(confData||{}, telaInfoSel ? {
       toldoTelaRollo: telaInfoSel.rolloId,
       toldoTelaMarca: telaInfoSel.brand,
@@ -4804,13 +4811,16 @@ function addRow(item){
   const cenefaHint = _cLower.includes('cenefa curva slim') ? 'Para cortinas de 800 a 2200 de ancho'
                   : _cLower.includes('cenefa curva maxi') ? 'Para cortinas de 2200 a 3700 de ancho'
                   : '';
+  // V287.4: para toldos, resaltar (bold) la marca de brazos y la marca de tela en la descripción
+  const isToldoItem = (item.tela||'').startsWith('toldo_');
+  const colorDisplay = isToldoItem ? formatToldoColor(item.color) : (item.color || '');
   tr.innerHTML = `
     <td style="padding:10px 10px;color:var(--muted);font-weight:700;font-size:12px">${String(n).padStart(2,'0')}</td>
     <td style="padding:10px 10px" ${esLibreItem ? 'colspan="3"' : ''}>
       ${esLibreItem
         ? `<span style="font-weight:600">${item.color||'Producto personalizado'}</span>`
         : `<span style="font-weight:600">${getTelaLabel(item.tela)}</span>
-           <span style="color:var(--muted);font-size:12px"> · ${item.color}</span>`
+           <span style="color:var(--muted);font-size:12px"> · ${colorDisplay}</span>`
       }
       ${cenefaHint?`<div style="font-size:10.5px;color:var(--muted);font-style:italic;margin-top:3px">💡 ${cenefaHint}</div>`:''}
     </td>
