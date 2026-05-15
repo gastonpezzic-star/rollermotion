@@ -1,5 +1,40 @@
 # Changelog
 
+## V287.3 — 2026-05-15
+
+### Reordenamiento: Toldos en el dropdown + marcas de tela del toldo
+
+**Cambio 1 — Orden de grupos en el selector "Sistema"**
+
+Antes el dropdown mostraba Toldos al final. Ahora **Toldos aparece entre Cortinas y Cambio de tela**.
+
+Se agregó un orden explícito `GRUPOS_ORDER` en `qaInit` para que el orden de los optgroups sea predecible y no dependa del orden de inserción en `TELAS`:
+
+```js
+const GRUPOS_ORDER = [
+  'Cortinas', 'Toldos', 'Cambio de tela',
+  'Rieles', 'Motores', 'Motores Rieles',
+  'Accesorios generales', 'Accesorios en aluminio', 'Otro'
+];
+```
+
+Grupos no listados quedan al final preservando su orden original.
+
+**Cambio 2 — Orden de marcas en el panel de tela del toldo**
+
+`_calcToldoOpcionesTela` antes ordenaba alfabéticamente por marca, lo que dejaba las microperforadas arriba. Ahora preserva el orden de `TELAS_TOLDO_GRUPOS`:
+
+1. Tela acrílica Dickson ® *(default)*
+2. Tela acrílica Sauleda ®
+3. Tela vinílica Plavinil ®
+4. Microperforada Sunworker by Dickson ®
+5. Microperforada Soltis 96 ®
+6. Microperforada SunPro ®
+
+Dentro de cada marca sigue ordenando por costo (rollo más conveniente primero).
+
+Como el selector de marca usa `marcas[0]` cuando no hay selección manual, **Dickson queda como default** al cotizar un toldo nuevo.
+
 ## V287.2 — 2026-05-15
 
 ### Toldos: descripción del item con marca de brazos
