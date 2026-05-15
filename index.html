@@ -2098,15 +2098,43 @@ const TELAS = {
     tipo:'toldo',
     colorLabel:'Ancho',
     cantidadBrazos: 2,
-    multiplicador: 2,    // precio_lista = tabla × 2
+    multiplicador: 2,    // precio_lista = tabla × 2 (revisar si necesita × 1.21 también)
     anchos: ['2','3','4','5'],
     salientes: ['1.60','2.10','2.60','3.10'],
-    incluyeTela: true,   // habilita selector de tela en el cotizador
+    incluyeTela: true,
     tabla: {
       '2': { '1.60': 309400 },
       '3': { '1.60': 337835, '2.10': 351775, '2.60': 381505 },
       '4': { '1.60': 366150, '2.10': 380185, '2.60': 409890, '3.10': 426140 },
       '5': { '1.60': 394520, '2.10': 408560, '2.60': 438290, '3.10': 454520 },
+    },
+  },
+  'toldo_brazos_invisibles_barracuadra': {
+    label:'Toldo Brazos Invisibles c/Barracuadra 40×40',
+    grupo:'Toldos',
+    tipo:'toldo',
+    colorLabel:'Ancho',
+    cantidadBrazos: 2,           // default — se sobreescribe vía brazosPorAncho
+    multiplicador: 1.21 * 2,     // = 2.42 — precio_lista = tabla × 1.21 × 2
+    anchos: ['2','3','4','5','6','7','8'],
+    salientes: ['1.60','2.10','2.60','3.10'],
+    incluyeTela: true,
+    tabla: {
+      '2': { '1.60': 421190 },
+      '3': { '1.60': 461980, '2.10': 476005, '2.60': 505720 },
+      '4': { '1.60': 502775, '2.10': 516795, '2.60': 546525, '3.10': 562775 },
+      '5': { '1.60': 543560, '2.10': 557585, '2.60': 587315, '3.10': 603565 },
+      '6': { '1.60': 696030, '2.10': 710065, '2.60': 736560, '3.10': 756035 },
+      '7': { '1.60': 960075, '2.10': 981130, '2.60': 1025710, '3.10': 1050100 },
+      '8': { '1.60':1168755, '2.10':1196815, '2.60':1256265, '3.10':1288750 },
+    },
+    // Cantidad de brazos por ancho (algunos vienen con + brazos por tamaño)
+    brazosPorAncho: { '2':2, '3':2, '4':2, '5':2, '6':2, '7':3, '8':4 },
+    // Componentes adicionales que ya vienen incluidos en el precio según el ancho
+    extrasPorAncho: {
+      '6': 'C/Compensador',
+      '7': 'C/Compensador · Tubo 80 · TS2',
+      '8': 'C/Compensador · Tubo 80 · TS2',
     },
   },
 
@@ -3990,10 +4018,12 @@ function qaCalcPrecio(){
     const pu = Math.round(precioLista * getFV());
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
-    const cantB = telaInfo.cantidadBrazos || 2;
+    const cantB = (telaInfo.brazosPorAncho && telaInfo.brazosPorAncho[anchoSel]) || telaInfo.cantidadBrazos || 2;
+    const extras = (telaInfo.extrasPorAncho && telaInfo.extrasPorAncho[anchoSel]) || '';
     subD.style.display='block';
     const telaTxt = telaInfoSel ? ` + tela ${(telaInfoSel.linearM).toFixed(2)}m` : '';
-    subD.textContent = `${anchoSel}m × ${salienteSel}m · ${cantB} brazos${telaTxt}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
+    const extrasTxt = extras ? ` · ${extras}` : '';
+    subD.textContent = `${anchoSel}m × ${salienteSel}m · ${cantB} brazos${extrasTxt}${telaTxt}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4498,13 +4528,15 @@ function qaAgregar(){
     }
     const precioLista = costoSistemaLista + costoTelaLista;
     precio = Math.round(precioLista * getFV() * cant);
-    const cantB = telaObjA.cantidadBrazos || 2;
+    const cantB  = (telaObjA.brazosPorAncho && telaObjA.brazosPorAncho[anchoSel]) || telaObjA.cantidadBrazos || 2;
+    const extras = (telaObjA.extrasPorAncho && telaObjA.extrasPorAncho[anchoSel]) || '';
     let descTela = '';
     if(telaInfoSel){
       const modoTxt = telaInfoSel.modo === 'A' ? `${telaInfoSel.strips} tramos` : 'rotada';
       descTela = ` · ${telaInfoSel.brand} ${(telaInfoSel.anchoRollo/10).toFixed(0)}cm (${modoTxt})`;
     }
-    color = `Ancho ${anchoSel}m · Saliente ${salienteSel}m · ${cantB} brazos${descTela}`;
+    const extrasTxt = extras ? ` · ${extras}` : '';
+    color = `Ancho ${anchoSel}m · Saliente ${salienteSel}m · ${cantB} brazos${extrasTxt}${descTela}`;
     // Guardar info de tela elegida para fábrica/trazabilidad
     confData = Object.assign(confData||{}, telaInfoSel ? {
       toldoTelaRollo: telaInfoSel.rolloId,
@@ -7356,6 +7388,7 @@ async function renderPreciosTelas(){
     'cambiotela_bv':    'Cambio de tela Bandas Verticales',
     'cenefas':          'Cenefa curva',
     'toldo_brazos_invisibles': 'Toldo Brazos Invisibles',
+    'toldo_brazos_invisibles_barracuadra': 'Toldo Brazos Invisibles c/Barracuadra',
   };
   function getTelaLabel(tela){ return TELA_LABELS[tela] || tela; }
 

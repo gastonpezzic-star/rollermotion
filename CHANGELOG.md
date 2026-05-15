@@ -1,5 +1,49 @@
 # Changelog
 
+## V284 — 2026-05-07
+
+### Nuevo producto: Toldo Brazos Invisibles con Barracuadra 40×40
+
+Segundo modelo de toldo, especialmente para anchos grandes (hasta 8 m). Comparte la lógica de cálculo de tela con el modelo Punta a Punta (V282-V283) — reutiliza el panel de "🪡 Tela del toldo".
+
+**Diferencias con Punta a Punta**:
+
+- **Anchos disponibles**: 2, 3, 4, 5, 6, 7, 8 m (vs. 2-5 m del Punta a Punta).
+- **Multiplicador**: `× 1.21 × 2 = 2.42` (incluye IVA + margen). El Punta a Punta sigue con `× 2` (ver nota abajo).
+- **Cantidad de brazos variable** según ancho:
+  - 2 a 6 m → 2 brazos
+  - 7 m → 3 brazos
+  - 8 m → 4 brazos
+- **Extras incluidos** según ancho:
+  - 6 m → C/Compensador
+  - 7 m y 8 m → C/Compensador + Tubo 80 + TS2
+
+**Tabla cargada** (precios base antes de × 1.21 × 2 y FV):
+
+| Ancho \ Saliente | 1.60 | 2.10 | 2.60 | 3.10 |
+|---|---|---|---|---|
+| 2 m | $421.190 | — | — | — |
+| 3 m | $461.980 | $476.005 | $505.720 | — |
+| 4 m | $502.775 | $516.795 | $546.525 | $562.775 |
+| 5 m | $543.560 | $557.585 | $587.315 | $603.565 |
+| 6 m | $696.030 | $710.065 | $736.560 | $756.035 |
+| 7 m | $960.075 | $981.130 | $1.025.710 | $1.050.100 |
+| 8 m | $1.168.755 | $1.196.815 | $1.256.265 | $1.288.750 |
+
+**Cambios técnicos**:
+
+- Nuevo TELA `toldo_brazos_invisibles_barracuadra` con la tabla y multiplicador correspondientes.
+- Nuevos campos opcionales en TELAs de tipo `toldo`:
+  - `brazosPorAncho`: mapping ancho → cantidad de brazos
+  - `extrasPorAncho`: mapping ancho → texto de componentes extra (Compensador, etc.)
+- `qaCalcPrecio` y `qaAgregar` actualizados para leer estos campos.
+- El item guardado describe los extras: ej. `"Ancho 7m · Saliente 2.60m · 3 brazos · C/Compensador · Tubo 80 · TS2 · Tela acrílica Sauleda ® 150cm (5 tramos)"`.
+- Agregado a `TELA_LABELS`.
+
+### Pendiente: confirmar multiplicador del Punta a Punta
+
+El Barracuadra usa `× 1.21 × 2` (IVA + margen). El Punta a Punta sigue con `× 2` solo, según las instrucciones originales. **Si el Punta a Punta también debe llevar el `× 1.21` del IVA**, cambiar 1 línea en TELAS para uniformar.
+
 ## V283 — 2026-05-07
 
 ### Telas para toldos: catálogo + selector con cálculo automático
