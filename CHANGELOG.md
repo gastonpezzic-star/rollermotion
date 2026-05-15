@@ -1,5 +1,36 @@
 # Changelog
 
+## V286 — 2026-05-15
+
+### Persistencia completa en Supabase: ya no se pierden datos al sincronizar
+
+Antes, los campos nuevos agregados en chats anteriores (planilla confección, riel Celtic, motor Somfy, tela toldo, flags de tracking mixto) vivían **solo en localStorage**. Esto significaba que al cambiar de dispositivo o si el realtime de Supabase refrescaba el doc, esos datos se perdían y la planilla los recalculaba con valores genéricos.
+
+El usuario ya corrió el SQL que agrega las columnas faltantes. Este commit actualiza el código para usarlas.
+
+**Columnas nuevas en `documentos`**:
+- `conf_recibida` (boolean) — V266
+- `roller_terminado` (boolean) — V266
+- `instal_manual_qty` / `instal_motor_qty` (integer) — V250
+- `fecha_inicio_fab` / `fecha_finalizado` (timestamptz)
+
+**Columnas nuevas en `items`**:
+- **Planilla confección**: `cabezal`, `metros_tela`, `ancho_rollo`, `frunce_solicitado`, `pedazos`, `nombre_tela`, `con_riel`
+- **Riel Celtic**: `celtic_tramos`, `celtic_ancho_m`
+- **Motor Somfy**: `motor_id`, `motor_label`
+- **Tela Toldo**: `toldo_tela_rollo`, `toldo_tela_marca`, `toldo_tela_ancho_rollo`, `toldo_tela_modo`, `toldo_tela_strips`, `toldo_tela_linear_m`
+
+**Cambios en el código**:
+
+- `saveDocToSupabase`: ahora envía todas las columnas nuevas al insertar/actualizar.
+- `normalizeDoc`: lee `conf_recibida`, `roller_terminado`, `fecha_inicio_fab`, `fecha_finalizado` desde Supabase.
+- `normalizeItem`: lee todas las columnas de planilla, Celtic, Motor Somfy y Tela Toldo.
+- `applyLocalFlagsToDoc`: ahora trata Supabase como fuente de verdad. localStorage solo se aplica como fallback cuando Supabase no tiene el valor (típico de docs creados antes de V286).
+
+**Resultado**:
+
+Todos los datos viajan automáticamente entre dispositivos via Supabase realtime. Lo que cargues en el iPad va a aparecer correctamente en la PC y viceversa, sin perder ningún detalle de la planilla, configuración de Celtic, motor elegido, ni info de tela del toldo.
+
 ## V285 — 2026-05-07
 
 ### Toldos: multiplicador uniforme + ancho real con redondeo automático al estándar

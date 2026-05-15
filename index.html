@@ -2528,10 +2528,12 @@ function setLocalDocFlag(id, key, val){
 }
 function applyLocalFlagsToDoc(doc){
   if(!doc) return doc;
+  // Supabase tiene prioridad (V286+). localStorage solo se aplica como fallback
+  // cuando Supabase no tiene el valor seteado (típicamente docs viejos pre-V286).
   const flags = getLocalDocFlags()[doc.id];
   if(flags){
-    if('conf_recibida' in flags)   doc.conf_recibida   = flags.conf_recibida;
-    if('roller_terminado' in flags) doc.roller_terminado = flags.roller_terminado;
+    if(!doc.conf_recibida    && flags.conf_recibida)    doc.conf_recibida    = true;
+    if(!doc.roller_terminado && flags.roller_terminado) doc.roller_terminado = true;
   }
   return doc;
 }
@@ -2718,6 +2720,11 @@ function normalizeDoc(d){
     corporativo:      d.corporativo||false,
     descuento:        d.descuento||{activo:false,pct:0,concepto:'',monto:0},
     cotizacionOrigen: d.cotizacion_origen||'',
+    // Flags de tracking mixto (roller + confección) — ahora persistidos en Supabase
+    conf_recibida:    d.conf_recibida === true,
+    roller_terminado: d.roller_terminado === true,
+    fecha_inicio_fab: d.fecha_inicio_fab || null,
+    fecha_finalizado: d.fecha_finalizado || null,
     items:            (d.items||[]).sort((a,b)=>a.orden-b.orden).map(normalizeItem),
   };
 }
@@ -2745,11 +2752,32 @@ function normalizeItem(it){
     ctela:        it.corte_tela_a,
     ctelah:       it.corte_tela_h,
     frunce:       it.frunce||null,
-    frunceReal:   it.frunce!=null ? parseFloat(it.frunce) : null, // restaurar como frunceReal para la planilla
+    frunceReal:   it.frunce!=null ? parseFloat(it.frunce) : null,
     dobladillo:   it.dobladillo||null,
     arrastre:     it.arrastre||null,
     accionamiento:it.accionamiento||'',
     insumoId:     it.insumo_id||'',
+    // Planilla de confección
+    cabezal:           it.cabezal||'',
+    metrosTela:        it.metros_tela != null ? parseFloat(it.metros_tela) : null,
+    anchoRollo:        it.ancho_rollo != null ? parseInt(it.ancho_rollo) : null,
+    frunceSolicitado:  it.frunce_solicitado != null ? parseFloat(it.frunce_solicitado) : null,
+    pedazos:           it.pedazos != null ? parseInt(it.pedazos) : null,
+    nombreTela:        it.nombre_tela||'',
+    conRiel:           it.con_riel === true,
+    // Riel Celtic
+    celticTramos:      it.celtic_tramos||'',
+    celticAnchoM:      it.celtic_ancho_m != null ? parseFloat(it.celtic_ancho_m) : null,
+    // Motor de Riel Somfy
+    motorId:           it.motor_id||'',
+    motorLabel:        it.motor_label||'',
+    // Tela de Toldo
+    toldoTelaRollo:       it.toldo_tela_rollo||'',
+    toldoTelaMarca:       it.toldo_tela_marca||'',
+    toldoTelaAnchoRollo:  it.toldo_tela_ancho_rollo != null ? parseInt(it.toldo_tela_ancho_rollo) : null,
+    toldoTelaModo:        it.toldo_tela_modo||'',
+    toldoTelaStrips:      it.toldo_tela_strips != null ? parseInt(it.toldo_tela_strips) : null,
+    toldoTelaLinearM:     it.toldo_tela_linear_m != null ? parseFloat(it.toldo_tela_linear_m) : null,
   };
 }
 
@@ -2782,9 +2810,14 @@ async function saveDocToSupabase(doc){
       total:            doc.total||0,
       instalacion:      doc.instalacion||0,
       instalacion_units: doc.instalacion_units||0,
+      instal_manual_qty: doc.instal_manual_qty != null ? parseInt(doc.instal_manual_qty) : null,
+      instal_motor_qty:  doc.instal_motor_qty  != null ? parseInt(doc.instal_motor_qty)  : null,
       corporativo:      doc.corporativo||false,
       descuento:        doc.descuento||null,
       cotizacion_origen: n(doc.cotizacionOrigen),
+      // Flags de tracking mixto (roller + confección)
+      conf_recibida:    !!doc.conf_recibida,
+      roller_terminado: !!doc.roller_terminado,
     }, { onConflict: 'id' });
   if(docErr) {
     console.error('❌ Error Supabase documentos:', JSON.stringify(docErr));
@@ -2824,6 +2857,27 @@ async function saveDocToSupabase(doc){
       arrastre:        it.arrastre!=null ? parseFloat(it.arrastre) : null,
       accionamiento:   n(it.accionamiento),
       insumo_id:       n(it.insumoId),
+      // Planilla de confección
+      cabezal:           n(it.cabezal),
+      metros_tela:       it.metrosTela != null ? parseFloat(it.metrosTela) : null,
+      ancho_rollo:       it.anchoRollo != null ? parseInt(it.anchoRollo) : null,
+      frunce_solicitado: it.frunceSolicitado != null ? parseFloat(it.frunceSolicitado) : null,
+      pedazos:           it.pedazos != null ? parseInt(it.pedazos) : null,
+      nombre_tela:       n(it.nombreTela),
+      con_riel:          it.conRiel != null ? !!it.conRiel : null,
+      // Riel Celtic
+      celtic_tramos:     n(it.celticTramos),
+      celtic_ancho_m:    it.celticAnchoM != null ? parseFloat(it.celticAnchoM) : null,
+      // Motor de Riel Somfy
+      motor_id:          n(it.motorId),
+      motor_label:       n(it.motorLabel),
+      // Tela de Toldo
+      toldo_tela_rollo:       n(it.toldoTelaRollo),
+      toldo_tela_marca:       n(it.toldoTelaMarca),
+      toldo_tela_ancho_rollo: it.toldoTelaAnchoRollo != null ? parseInt(it.toldoTelaAnchoRollo) : null,
+      toldo_tela_modo:        n(it.toldoTelaModo),
+      toldo_tela_strips:      it.toldoTelaStrips != null ? parseInt(it.toldoTelaStrips) : null,
+      toldo_tela_linear_m:    it.toldoTelaLinearM != null ? parseFloat(it.toldoTelaLinearM) : null,
     }));
     const { error: itemsErr } = await _sb.from('items').insert(rows);
     if(itemsErr) {
