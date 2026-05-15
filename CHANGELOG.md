@@ -1,5 +1,39 @@
 # Changelog
 
+## V288.3 — 2026-05-15
+
+### Accesorios de Toldos + toggle Chapón cubre toldos
+
+**Nuevo grupo "Accesorios de Toldos"** en el dropdown del cotizador, entre Toldos y Cambio de tela. Contiene 4 items vendibles independientes:
+
+| Ítem | Unidad | Precio | Insumo |
+|---|---|---|---|
+| Calotas para eje de 70mm (par) | unidad | $18.200 | `calotas_eje70_par` *(nuevo)* |
+| Zócalo Caduta (por metro) | ml | $25.500 | `zocalo_caduta` *(reusa)* |
+| Tapas con ojal (par) | unidad | $9.000 | `tapa_zocalo_caduta_par` *(reusa — mismo precio que tapas tensor)* |
+| Chapón cubre toldos (cada uno cubre 2m) | unidad | $56.800 | `chapon_cubre_toldos` *(nuevo)* |
+
+Todos editables desde la pantalla de Insumos (categoría `Toldos · Accesorios`).
+
+**Toggle "🛡 Incluir Chapón cubre toldos"** en el form de cotización del toldo (brazos y vertical). Cuando se activa:
+
+- Calcula automáticamente `Math.ceil(anchoM / 2)` chapones según el ancho real del toldo.
+- Suma `qty × $56.800` al precio lista del toldo, antes del FV.
+- El detalle del toggle muestra en vivo: *"— 2 chapones × 2m (incluido en precio)"*.
+- La descripción del item agrega: `· + 2 chapones cubre toldos`.
+
+**Ejemplos**:
+
+| Ancho del toldo | Chapones |
+|---|---|
+| 1.8 m | 1 |
+| 2.0 m | 1 |
+| 2.1 m | 2 |
+| 4.0 m | 2 |
+| 4.5 m | 3 |
+
+**Persistencia**: el costo del chapón queda dentro de `item.precio` y la mención en `item.color`, así que se preserva al guardar/recargar sin necesidad de columna nueva en Supabase. El flag `chaponCubre` y `chaponQty` quedan en `confData` para futura referencia, en memoria.
+
 ## V288.2 — 2026-05-15
 
 ### Instalación de toldos (brazos + vertical) con adicional de motorización

@@ -1067,11 +1067,16 @@ body{
           <!-- ── ADVERTENCIAS INTERNAS — solo visible al cotizar, NO sale en PDF ── -->
           <div id="qa-recomendacion" style="margin-top:8px;display:none"></div>
           <div id="qa-pano-options" style="margin-top:8px;display:none"></div>
-          <div id="qa-toldo-motor" style="margin-top:8px;display:none">
-            <label style="display:inline-flex;align-items:center;gap:10px;background:#fff7ed;border:1px solid #fcd9a8;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#7c4a1e;cursor:pointer;user-select:none;font-family:'DM Sans',sans-serif">
+          <div id="qa-toldo-extras" style="margin-top:8px;display:none;flex-wrap:wrap;gap:8px">
+            <label id="qa-toldo-motor" style="display:inline-flex;align-items:center;gap:10px;background:#fff7ed;border:1px solid #fcd9a8;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#7c4a1e;cursor:pointer;user-select:none;font-family:'DM Sans',sans-serif">
               <input type="checkbox" id="qa-toldo-motor-chk" onchange="qaToggleToldoMotor()" style="width:16px;height:16px;cursor:pointer;accent-color:#d4820e">
               <span>⚡ Toldo motorizado</span>
               <span style="font-size:10.5px;color:#a87742;font-weight:500;font-style:italic">— adiciona $26.700 a la instalación</span>
+            </label>
+            <label id="qa-toldo-chapon" style="display:inline-flex;align-items:center;gap:10px;background:#eef7f2;border:1px solid #aaddc0;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#1f6e45;cursor:pointer;user-select:none;font-family:'DM Sans',sans-serif">
+              <input type="checkbox" id="qa-toldo-chapon-chk" onchange="qaToggleToldoChapon()" style="width:16px;height:16px;cursor:pointer;accent-color:#1f6e45">
+              <span>🛡 Incluir Chapón cubre toldos</span>
+              <span id="qa-toldo-chapon-detail" style="font-size:10.5px;color:#5a8e6e;font-weight:500;font-style:italic">— calcula automáticamente según el ancho</span>
             </label>
           </div>
           <div id="qa-toldo-tela" style="margin-top:8px;display:none"></div>
@@ -2014,6 +2019,15 @@ const TELAS = {
   },
 
   // ── ACCESORIOS ──
+  // V288.3 — Accesorios específicos de toldos (a la venta independiente)
+  'accesorios_toldos': { label:'Accesorios de toldos', grupo:'Accesorios de Toldos', tipo:'accesorio', colorLabel:'Ítem',
+    items:[
+      { insumoId:'calotas_eje70_par',      nombre:'Calotas para eje de 70mm (par)', unidad:'u'  },
+      { insumoId:'zocalo_caduta',          nombre:'Zócalo Caduta (por metro)',      unidad:'ml' },
+      { insumoId:'tapa_zocalo_caduta_par', nombre:'Tapas con ojal (par)',           unidad:'u'  },
+      { insumoId:'chapon_cubre_toldos',    nombre:'Chapón cubre toldos (cada uno cubre 2m de ancho)', unidad:'u' },
+    ]},
+
   // Accesorios generales: cadenas, soportes, controles, cargadores (sin cenefas, que pasaron a Accesorios en aluminio)
   'accesorios': { label:'Accesorios generales', grupo:'Accesorios generales', tipo:'accesorio', colorLabel:'Ítem',
     items:[
@@ -2216,6 +2230,9 @@ const INSUMOS_DEFAULT = [
   { id:'calota_toldo_vert',      cat:'Toldos', subcat:'Toldo Vertical', nombre:'Calota Toldo Vertical (unidad)',             precio:9100,  unidad:'u',   en_cotizador:false, cat_cotizador:'', unidad_venta:'u'   },
   { id:'maquina_polifuncional',  cat:'Toldos', subcat:'Toldo Vertical', nombre:'Máquina polifuncional italiana',             precio:55800, unidad:'u',   en_cotizador:false, cat_cotizador:'', unidad_venta:'u'   },
   { id:'tapa_zocalo_caduta_par', cat:'Toldos', subcat:'Toldo Vertical', nombre:'Tapas para zócalo Caduta para tensor (par)', precio:9000,  unidad:'par', en_cotizador:false, cat_cotizador:'', unidad_venta:'par' },
+  // V288.3 — Accesorios de toldos (a la venta)
+  { id:'calotas_eje70_par',      cat:'Toldos', subcat:'Accesorios',     nombre:'Calotas para eje de 70mm (par)',             precio:18200, unidad:'par', en_cotizador:false, cat_cotizador:'', unidad_venta:'par' },
+  { id:'chapon_cubre_toldos',    cat:'Toldos', subcat:'Accesorios',     nombre:'Chapón cubre toldos (cada uno cubre 2m)',    precio:56800, unidad:'u',   en_cotizador:false, cat_cotizador:'', unidad_venta:'u'   },
   // MOTORES
   { id:'motor_2n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 2N',           precio:298200, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
   { id:'motor_6n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 6N',           precio:390500, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
@@ -3177,9 +3194,9 @@ function qaInit(){
     if(!grupos[g]) grupos[g] = [];
     grupos[g].push(k);
   });
-  // V287.3: orden explícito de grupos en el dropdown
-  // (Toldos va entre Cortinas y Cambio de tela)
-  const GRUPOS_ORDER = ['Cortinas','Toldos','Cambio de tela','Rieles','Motores','Motores Rieles','Accesorios generales','Accesorios en aluminio','Otro'];
+  // V287.3 / V288.3: orden explícito de grupos en el dropdown
+  // (Toldos va entre Cortinas y Cambio de tela · Accesorios de Toldos va justo después de Toldos)
+  const GRUPOS_ORDER = ['Cortinas','Toldos','Accesorios de Toldos','Cambio de tela','Rieles','Motores','Motores Rieles','Accesorios generales','Accesorios en aluminio','Otro'];
   const ordered = [
     ...GRUPOS_ORDER.filter(g => grupos[g]).map(g => [g, grupos[g]]),
     ...Object.entries(grupos).filter(([g]) => !GRUPOS_ORDER.includes(g)),
@@ -3308,12 +3325,15 @@ function qaTelaChange(){
   window._panoOverride = null; // limpiar elección manual de paños (confección)
   window._toldoTelaOverride = null; // limpiar elección manual de tela toldo
   window._toldoMarcaSel = null;
-  // V288.2: reset motorización del toldo
+  // V288.2/3: reset extras del toldo (motorización + chapón)
   window._toldoMotorizado = false;
+  window._toldoChaponCubre = false;
   const _motorChk = document.getElementById('qa-toldo-motor-chk');
   if(_motorChk) _motorChk.checked = false;
-  const _motorBox = document.getElementById('qa-toldo-motor');
-  if(_motorBox) _motorBox.style.display = 'none';
+  const _chaponChk = document.getElementById('qa-toldo-chapon-chk');
+  if(_chaponChk) _chaponChk.checked = false;
+  const _extrasBox = document.getElementById('qa-toldo-extras');
+  if(_extrasBox) _extrasBox.style.display = 'none';
   // Restaurar handlers que pudieron ser sobreescritos por tipos específicos (ej. toldo)
   const _anchoElDef = document.getElementById('qa-ancho');
   if(_anchoElDef){
@@ -3571,9 +3591,9 @@ function qaTelaChange(){
     const medidaWrapEl = document.getElementById('qa-medida-wrap');
     if(altoWrapEl)   altoWrapEl.style.display   = 'none';
     if(medidaWrapEl) medidaWrapEl.style.display = 'none';
-    // V288.2: mostrar toggle de motorización
-    const _motorBoxBrazos = document.getElementById('qa-toldo-motor');
-    if(_motorBoxBrazos) _motorBoxBrazos.style.display = 'block';
+    // V288.2/3: mostrar toggles de extras (motor + chapón)
+    const _extrasBoxBrazos = document.getElementById('qa-toldo-extras');
+    if(_extrasBoxBrazos) _extrasBoxBrazos.style.display = 'flex';
     const addBtn = document.getElementById('qa-add-btn');
     addBtn.disabled = false; addBtn.style.opacity = '1';
     setTimeout(qaCalcPrecio, 50);
@@ -3596,9 +3616,9 @@ function qaTelaChange(){
     const altoLblEl  = altoWrapEl?.querySelector('label');
     if(anchoLblEl) anchoLblEl.textContent = 'Ancho (mm)';
     if(altoLblEl)  altoLblEl.textContent  = 'Alto (mm)';
-    // V288.2: mostrar toggle de motorización
-    const _motorBoxVert = document.getElementById('qa-toldo-motor');
-    if(_motorBoxVert) _motorBoxVert.style.display = 'block';
+    // V288.2/3: mostrar toggles de extras (motor + chapón)
+    const _extrasBoxVert = document.getElementById('qa-toldo-extras');
+    if(_extrasBoxVert) _extrasBoxVert.style.display = 'flex';
     const addBtn = document.getElementById('qa-add-btn');
     addBtn.disabled = false; addBtn.style.opacity = '1';
     setTimeout(qaCalcPrecio, 50);
@@ -3733,6 +3753,24 @@ function qaSelectToldoMarca(marca){
 function qaToggleToldoMotor(){
   const chk = document.getElementById('qa-toldo-motor-chk');
   window._toldoMotorizado = !!chk?.checked;
+}
+
+// V288.3: toggle de Chapón cubre toldos — se calcula según ancho actual.
+function qaToggleToldoChapon(){
+  const chk = document.getElementById('qa-toldo-chapon-chk');
+  window._toldoChaponCubre = !!chk?.checked;
+  qaCalcPrecio();
+}
+
+// V288.3: helper — calcula cantidad y costo lista de chapones cubre toldos.
+// Cada chapón cubre 2m de ancho. Para anchos > 2m hace ceil(ancho/2).
+// Retorna { qty, costoLista, precioUnitLista }.
+function calcChaponCubre(anchoMm){
+  const anchoM = (parseInt(anchoMm) || 0) / 1000;
+  if(anchoM <= 0) return { qty: 0, costoLista: 0, precioUnitLista: 0 };
+  const qty = Math.ceil(anchoM / 2);
+  const precioUnitLista = getPrecio('chapon_cubre_toldos') || 0;
+  return { qty, costoLista: qty * precioUnitLista, precioUnitLista };
 }
 
 // Renderiza el panel de opciones de tela del toldo en #qa-toldo-tela.
@@ -4224,8 +4262,17 @@ function qaCalcPrecio(){
 
     // V287: Mano de obra confección toldo (insumo editable)
     const costoMOToldo = getPrecio('mo_toldo') || 0;
-    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldo;
+    // V288.3: Chapón cubre toldos (opcional, según ancho real)
+    const chaponInfo = window._toldoChaponCubre ? calcChaponCubre(anchoRealMm) : { qty:0, costoLista:0 };
+    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldo + chaponInfo.costoLista;
     const pu = Math.round(precioLista * getFV());
+    // Detalle del chapón en el toggle
+    const chaponDetail = document.getElementById('qa-toldo-chapon-detail');
+    if(chaponDetail){
+      chaponDetail.textContent = chaponInfo.qty > 0
+        ? `— ${chaponInfo.qty} chapón${chaponInfo.qty>1?'es':''} × 2m (incluido en precio)`
+        : '— calcula automáticamente según el ancho';
+    }
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
     const cantB = (telaInfo.brazosPorAncho && telaInfo.brazosPorAncho[anchoSel]) || telaInfo.cantidadBrazos || 2;
@@ -4242,8 +4289,10 @@ function qaCalcPrecio(){
     partesPv.push(`Ancho ${anchoRealTxt}`);
     partesPv.push(`Saliente ${salienteSel}m`);
     if(telaPart) partesPv.push(`<strong style="color:#0b3d2e">${telaPart}</strong>`);
+    // V288.3: mencionar chapón si se incluye
+    const chaponTxtPv = chaponInfo.qty > 0 ? ` · + ${chaponInfo.qty} chapón${chaponInfo.qty>1?'es':''} cubre toldos` : '';
     const cantTxt = cant>1 ? ` · ${cant} und. = ${fmtM(pu*cant)}` : '';
-    subD.innerHTML = partesPv.join(' · ') + brazosCountTxt + extrasTxt + cantTxt;
+    subD.innerHTML = partesPv.join(' · ') + brazosCountTxt + extrasTxt + chaponTxtPv + cantTxt;
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4282,20 +4331,31 @@ function qaCalcPrecio(){
       if(telaInfoSelV) costoTelaLista = telaInfoSelV.costoLista;
     } else if(panelTela){ panelTela.style.display='none'; }
 
-    const precioLista = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaLista;
+    // V288.3: Chapón cubre toldos
+    const chaponInfoV = window._toldoChaponCubre ? calcChaponCubre(anchoMm) : { qty:0, costoLista:0 };
+    const precioLista = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaLista + chaponInfoV.costoLista;
     const pu = Math.round(precioLista * getFV());
+
+    // Detalle del chapón en el toggle
+    const chaponDetailV = document.getElementById('qa-toldo-chapon-detail');
+    if(chaponDetailV){
+      chaponDetailV.textContent = chaponInfoV.qty > 0
+        ? `— ${chaponInfoV.qty} chapón${chaponInfoV.qty>1?'es':''} × 2m (incluido en precio)`
+        : '— calcula automáticamente según el ancho';
+    }
 
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
     subD.style.display='block';
     const telaTxtV = telaInfoSelV ? `<strong style="color:#0b3d2e">${telaInfoSelV.brand}</strong>` : '';
     const cantTxtV = cant>1 ? ` · ${cant} und. = ${fmtM(pu*cant)}` : '';
+    const chaponTxtVp = chaponInfoV.qty > 0 ? ` · + ${chaponInfoV.qty} chapón${chaponInfoV.qty>1?'es':''} cubre toldos` : '';
     const partesV = [];
     partesV.push(`Ancho ${anchoMm}mm`);
     partesV.push(`Alto ${altoMm}mm`);
     if(telaTxtV) partesV.push(telaTxtV);
     partesV.push(`Eje 70 · Caduta ${anchoCadM}m · 2 calotas · máq. polifuncional`);
-    subD.innerHTML = partesV.join(' · ') + cantTxtV;
+    subD.innerHTML = partesV.join(' · ') + chaponTxtVp + cantTxtV;
 
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
@@ -4821,7 +4881,9 @@ function qaAgregar(){
     }
     // V287: Mano de obra confección toldo (insumo editable mo_toldo)
     const costoMOToldoA = getPrecio('mo_toldo') || 0;
-    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldoA;
+    // V288.3: Chapón cubre toldos (opcional)
+    const chaponInfoA = window._toldoChaponCubre ? calcChaponCubre(anchoRealMm) : { qty:0, costoLista:0 };
+    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldoA + chaponInfoA.costoLista;
     precio = Math.round(precioLista * getFV() * cant);
     const cantB  = (telaObjA.brazosPorAncho && telaObjA.brazosPorAncho[anchoSel]) || telaObjA.cantidadBrazos || 2;
     const extras = (telaObjA.extrasPorAncho && telaObjA.extrasPorAncho[anchoSel]) || '';
@@ -4834,12 +4896,13 @@ function qaAgregar(){
     // Resaltado se aplica en el render del item (addRow) sobre Brazos y Tela.
     const brazosMarca = telaObjA.brazosMarca || '';
     const brazosCountTxt = (cantB && cantB !== 2) ? ` · ${cantB} brazos` : '';
+    const chaponTxtA = chaponInfoA.qty > 0 ? ` · + ${chaponInfoA.qty} chapón${chaponInfoA.qty>1?'es':''} cubre toldos` : '';
     const partes = [];
     if(brazosMarca) partes.push(brazosMarca);
     partes.push(`Ancho ${anchoDesc}`);
     partes.push(`Saliente ${salienteSel}m`);
     if(telaPart) partes.push(telaPart);
-    color = partes.join(' · ') + brazosCountTxt + extrasTxt;
+    color = partes.join(' · ') + brazosCountTxt + extrasTxt + chaponTxtA;
     confData = Object.assign(confData||{}, telaInfoSel ? {
       toldoTelaRollo: telaInfoSel.rolloId,
       toldoTelaMarca: telaInfoSel.brand,
@@ -4847,7 +4910,11 @@ function qaAgregar(){
       toldoTelaModo: telaInfoSel.modo,
       toldoTelaStrips: telaInfoSel.strips,
       toldoTelaLinearM: telaInfoSel.linearM,
-    } : {}, { motorizado: !!window._toldoMotorizado });
+    } : {}, {
+      motorizado: !!window._toldoMotorizado,
+      chaponCubre: !!window._toldoChaponCubre,
+      chaponQty: chaponInfoA.qty,
+    });
     // Guardar ancho REAL del toldo (lo que se confecciona) + saliente como alto
     ancho = String(anchoRealMm);
     alto  = String(Math.round(parseFloat(salienteSel) * 1000));
@@ -4875,16 +4942,19 @@ function qaAgregar(){
       telaInfoSelV = _renderToldoTelaPanel(anchoMmV, altoMmV);
       if(telaInfoSelV) costoTelaListaV = telaInfoSelV.costoLista;
     }
-    const precioListaV = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaListaV;
+    // V288.3: Chapón cubre toldos (opcional)
+    const chaponInfoVa = window._toldoChaponCubre ? calcChaponCubre(anchoMmV) : { qty:0, costoLista:0 };
+    const precioListaV = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaListaV + chaponInfoVa.costoLista;
     precio = Math.round(precioListaV * getFV() * cant);
 
     const telaPartV = telaInfoSelV ? telaInfoSelV.brand : '';
+    const chaponTxtVa = chaponInfoVa.qty > 0 ? ` · + ${chaponInfoVa.qty} chapón${chaponInfoVa.qty>1?'es':''} cubre toldos` : '';
     const partesV = [];
     partesV.push(`Ancho ${anchoMmV}mm`);
     partesV.push(`Alto ${altoMmV}mm`);
     if(telaPartV) partesV.push(telaPartV);
     partesV.push(`Eje 70 · Caduta ${anchoCadM}m · 2 calotas · máq. polifuncional · tapas tensor`);
-    color = partesV.join(' · ');
+    color = partesV.join(' · ') + chaponTxtVa;
 
     confData = Object.assign(confData||{}, telaInfoSelV ? {
       toldoTelaRollo: telaInfoSelV.rolloId,
@@ -4893,7 +4963,11 @@ function qaAgregar(){
       toldoTelaModo: telaInfoSelV.modo,
       toldoTelaStrips: telaInfoSelV.strips,
       toldoTelaLinearM: telaInfoSelV.linearM,
-    } : {}, { motorizado: !!window._toldoMotorizado });
+    } : {}, {
+      motorizado: !!window._toldoMotorizado,
+      chaponCubre: !!window._toldoChaponCubre,
+      chaponQty: chaponInfoVa.qty,
+    });
 
   } else if(telaObjA?.tipo === 'veneciana'){
     // qa-color = clave del subtipo, qa-variante = color elegido
