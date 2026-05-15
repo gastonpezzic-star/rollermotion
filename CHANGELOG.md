@@ -1,5 +1,42 @@
 # Changelog
 
+## V287.2 — 2026-05-15
+
+### Toldos: descripción del item con marca de brazos
+
+La línea descriptiva de la cotización (debajo del título del producto) ahora arranca con la **marca de los brazos** y sigue con **Ancho · Saliente · Tela**.
+
+**Nueva propiedad en `TELAS`**:
+
+```js
+'toldo_brazos_invisibles': {
+  ...,
+  brazosMarca: 'Brazos italianos Helix SP',
+},
+'toldo_brazos_invisibles_barracuadra': {
+  ...,
+  brazosMarca: 'Brazos italianos Helix SP',
+},
+```
+
+**Formato anterior**:
+```
+Ancho 2300mm (sistema 3m) · Saliente 1.60m · 2 brazos · Tela acrílica Dickson ® 150cm (2 tramos cosidos)
+```
+
+**Formato nuevo**:
+```
+Brazos italianos Helix SP · Ancho 2300mm (sistema 3m) · Saliente 1.60m · Dickson 150cm (2 tramos cosidos)
+```
+
+Reglas adicionales:
+
+- La **cantidad de brazos** solo se menciona si es distinta del default (2). Útil para Barracuadra grandes donde vienen con 3 ó 4 brazos.
+- Los **extras del Barracuadra** (compensador, tubo 80, TS2) se anexan al final cuando aplican.
+- La **MO confección** queda al final como `· incl. MO confección`.
+
+Se aplica tanto a la vista previa del cotizador (línea gris debajo del precio) como a la descripción persistente del item (la que aparece en el PDF y en la planilla).
+
 ## V287.1 — 2026-05-15
 
 ### Hotfix toldos: precio no aparecía + label + orden Ancho→Saliente

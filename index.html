@@ -2098,6 +2098,7 @@ const TELAS = {
     tipo:'toldo',
     colorLabel:'Ancho',
     cantidadBrazos: 2,
+    brazosMarca: 'Brazos italianos Helix SP',
     multiplicador: 1.21 * 2,    // = 2.42 (IVA + margen) — mismo que Barracuadra
     anchos: ['2','3','4','5'],
     salientes: ['1.60','2.10','2.60','3.10'],
@@ -2115,6 +2116,7 @@ const TELAS = {
     tipo:'toldo',
     colorLabel:'Ancho',
     cantidadBrazos: 2,           // default — se sobreescribe vía brazosPorAncho
+    brazosMarca: 'Brazos italianos Helix SP',
     multiplicador: 1.21 * 2,     // = 2.42 — precio_lista = tabla × 1.21 × 2
     anchos: ['2','3','4','5','6','7','8'],
     salientes: ['1.60','2.10','2.60','3.10'],
@@ -4146,15 +4148,23 @@ function qaCalcPrecio(){
     const cantB = (telaInfo.brazosPorAncho && telaInfo.brazosPorAncho[anchoSel]) || telaInfo.cantidadBrazos || 2;
     const extras = (telaInfo.extrasPorAncho && telaInfo.extrasPorAncho[anchoSel]) || '';
     subD.style.display='block';
-    const telaTxt = telaInfoSel ? ` + tela ${(telaInfoSel.linearM).toFixed(2)}m` : '';
+    const telaTxt = telaInfoSel ? `Tela ${telaInfoSel.brand.replace(/Tela (acrílica|vinílica|Microperforada) /,'').replace(/ ®/,'')} ${(telaInfoSel.anchoRollo/10).toFixed(0)}cm (${telaInfoSel.linearM.toFixed(2)}m)` : '';
     const extrasTxt = extras ? ` · ${extras}` : '';
     // Mostrar redondeo si el ancho real difiere del estándar cobrado
     const anchoCotMm = Math.round(parseFloat(anchoSel)*1000);
     const realTxt = (anchoRealMm > 0 && anchoRealMm < anchoCotMm)
-      ? `${anchoRealMm}mm real → cotiza ${anchoSel}m`
+      ? `${anchoRealMm}mm (sistema ${anchoSel}m)`
       : `${anchoSel}m`;
-    const moTxt = costoMOToldo > 0 ? ' + MO confección' : '';
-    subD.textContent = `${realTxt} × ${salienteSel}m · ${cantB} brazos${extrasTxt}${telaTxt}${moTxt}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
+    // V287.2: preview = Marca de brazos · Ancho · Saliente · Tela
+    const brazosMarcaPv = telaInfo.brazosMarca || '';
+    const brazosCountTxt = (cantB && cantB !== 2) ? ` · ${cantB} brazos` : '';
+    const moTxt = costoMOToldo > 0 ? ' · incl. MO' : '';
+    const partesPv = [];
+    if(brazosMarcaPv) partesPv.push(brazosMarcaPv);
+    partesPv.push(`Ancho ${realTxt}`);
+    partesPv.push(`Saliente ${salienteSel}m`);
+    if(telaTxt) partesPv.push(telaTxt);
+    subD.textContent = partesPv.join(' · ') + brazosCountTxt + extrasTxt + moTxt + (cant>1?` · ${cant} und. = ${fmtM(pu*cant)}`:'');
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4676,8 +4686,17 @@ function qaAgregar(){
     const anchoDesc = (anchoRealMm < anchoCotMm)
       ? `${anchoRealMm}mm (sistema ${anchoSel}m)`
       : `${anchoSel}m`;
+    // V287.2: línea descriptiva = Marca de brazos · Ancho · Saliente · Tela
+    // (la cantidad de brazos y extras del Barracuadra se anexan al final)
+    const brazosMarca = telaObjA.brazosMarca || '';
+    const brazosCountTxt = (cantB && cantB !== 2) ? ` · ${cantB} brazos` : '';
     const moTxtA = costoMOToldoA > 0 ? ' · incl. MO confección' : '';
-    color = `Ancho ${anchoDesc} · Saliente ${salienteSel}m · ${cantB} brazos${extrasTxt}${descTela}${moTxtA}`;
+    const partes = [];
+    if(brazosMarca) partes.push(brazosMarca);
+    partes.push(`Ancho ${anchoDesc}`);
+    partes.push(`Saliente ${salienteSel}m`);
+    if(descTela) partes.push(descTela.replace(/^ · /, ''));
+    color = partes.join(' · ') + brazosCountTxt + extrasTxt + moTxtA;
     confData = Object.assign(confData||{}, telaInfoSel ? {
       toldoTelaRollo: telaInfoSel.rolloId,
       toldoTelaMarca: telaInfoSel.brand,
