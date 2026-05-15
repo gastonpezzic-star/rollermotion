@@ -2098,7 +2098,7 @@ const TELAS = {
     tipo:'toldo',
     colorLabel:'Ancho',
     cantidadBrazos: 2,
-    multiplicador: 2,    // precio_lista = tabla × 2 (revisar si necesita × 1.21 también)
+    multiplicador: 1.21 * 2,    // = 2.42 (IVA + margen) — mismo que Barracuadra
     anchos: ['2','3','4','5'],
     salientes: ['1.60','2.10','2.60','3.10'],
     incluyeTela: true,
@@ -3212,6 +3212,14 @@ function qaTelaChange(){
   window._panoOverride = null; // limpiar elección manual de paños (confección)
   window._toldoTelaOverride = null; // limpiar elección manual de tela toldo
   window._toldoMarcaSel = null;
+  // Restaurar handlers que pudieron ser sobreescritos por tipos específicos (ej. toldo)
+  const _anchoElDef = document.getElementById('qa-ancho');
+  if(_anchoElDef){
+    _anchoElDef.oninput = function(){ qaCalcPrecio(); };
+    const _anchoLblDef = _anchoElDef.closest('.f')?.querySelector('label');
+    if(_anchoLblDef) _anchoLblDef.textContent = 'Ancho (mm)';
+    _anchoElDef.placeholder = 'Ancho';
+  }
   // Ocultar paneles condicionales
   const panoBox = document.getElementById('qa-pano-options');
   if(panoBox) panoBox.style.display = 'none';
@@ -3388,17 +3396,21 @@ function qaTelaChange(){
     setTimeout(qaCalcPrecio, 50);
 
   } else if(telaObj.tipo === 'toldo'){
-    // Toldo: qa-color = Ancho (selector), qa-variante = Saliente (selector filtrado)
+    // Toldo:
+    //   - qa-ancho: INPUT NUMÉRICO con el ancho REAL del toldo en mm
+    //   - qa-color: SELECT del ancho ESTÁNDAR usado (auto-bumped del real)
+    //   - qa-variante: SELECT de saliente (filtrado según el ancho estándar)
     const anchos = telaObj.anchos || [];
-    colorSel.innerHTML = anchos.map(a => `<option value="${a}">${a} m</option>`).join('');
+    const sortedAnchos = [...anchos].sort((a,b) => parseFloat(a) - parseFloat(b));
+    colorSel.innerHTML = sortedAnchos.map(a => `<option value="${a}">${a} m</option>`).join('');
     const colorLblEl = document.getElementById('qa-color-lbl');
-    if(colorLblEl) colorLblEl.textContent = 'Ancho';
+    if(colorLblEl) colorLblEl.textContent = 'Ancho estándar';
     const varianteWrap = document.getElementById('qa-variante-wrap');
     const varianteSel  = document.getElementById('qa-variante');
     const varianteLbl  = document.getElementById('qa-variante-lbl');
     if(varianteLbl) varianteLbl.textContent = 'Saliente';
     if(varianteWrap) varianteWrap.style.display = 'flex';
-    // Poblar salientes según el ancho seleccionado (filtrar las combinaciones válidas en la tabla)
+
     function _refreshSalientes(){
       const anchoSel = colorSel.value;
       const valid = telaObj.tabla?.[anchoSel] || {};
@@ -3408,12 +3420,35 @@ function qaTelaChange(){
       }
     }
     _refreshSalientes();
+
     colorSel.onchange = function(){ _refreshSalientes(); qaCalcPrecio(); };
-    // Toldos no usan ancho/alto numéricos ni medida
+
+    // qa-ancho como input numérico para el ancho real (mm)
     const anchoWrapEl  = document.getElementById('qa-ancho-wrap');
+    const anchoInputEl = document.getElementById('qa-ancho');
+    if(anchoWrapEl) anchoWrapEl.style.display = 'flex';
+    // Cambiar el label del input a "Ancho real (mm)"
+    const anchoLblEl = anchoWrapEl ? anchoWrapEl.querySelector('label') : null;
+    if(anchoLblEl) anchoLblEl.textContent = 'Ancho real (mm)';
+    if(anchoInputEl){
+      anchoInputEl.placeholder = 'Ej. 2300';
+      // Hook custom: redondea al estándar inmediato superior y recalcula
+      anchoInputEl.oninput = function(){
+        const mm = parseInt(this.value) || 0;
+        if(mm > 0){
+          const m = mm / 1000;
+          const sup = sortedAnchos.find(a => parseFloat(a) >= m);
+          if(sup && sup !== colorSel.value){
+            colorSel.value = sup;
+            _refreshSalientes();
+          }
+        }
+        qaCalcPrecio();
+      };
+    }
+
     const altoWrapEl   = document.getElementById('qa-alto-wrap');
     const medidaWrapEl = document.getElementById('qa-medida-wrap');
-    if(anchoWrapEl)  anchoWrapEl.style.display  = 'none';
     if(altoWrapEl)   altoWrapEl.style.display   = 'none';
     if(medidaWrapEl) medidaWrapEl.style.display = 'none';
     const addBtn = document.getElementById('qa-add-btn');
@@ -3993,6 +4028,7 @@ function qaCalcPrecio(){
 
   if(telaInfo?.tipo === 'toldo'){
     // Toldo: sistema (eje + brazos + zócalo) + tela.
+    // Ancho estándar (para tabla del sistema) y ancho real (para tela).
     const anchoSel    = document.getElementById('qa-color')?.value || '';
     const salienteSel = document.getElementById('qa-variante')?.value || '';
     const baseSist    = telaInfo.tabla?.[anchoSel]?.[salienteSel];
@@ -4004,13 +4040,15 @@ function qaCalcPrecio(){
     }
     const costoSistemaLista = baseSist * (telaInfo.multiplicador || 1);
 
-    // Tela: render panel + obtener opción activa
+    // Ancho real desde qa-ancho (input mm) — si está vacío, usar el estándar
+    const anchoRealMm = parseInt(document.getElementById('qa-ancho')?.value) || Math.round(parseFloat(anchoSel)*1000);
+
+    // Tela: render panel + obtener opción activa. Usar ANCHO REAL.
     let costoTelaLista = 0;
     let telaInfoSel = null;
     if(telaInfo.incluyeTela){
-      const A = Math.round(parseFloat(anchoSel) * 1000);
       const S = Math.round(parseFloat(salienteSel) * 1000);
-      telaInfoSel = _renderToldoTelaPanel(A, S);
+      telaInfoSel = _renderToldoTelaPanel(anchoRealMm, S);
       if(telaInfoSel) costoTelaLista = telaInfoSel.costoLista;
     } else if(panelTela){ panelTela.style.display='none'; }
 
@@ -4023,7 +4061,12 @@ function qaCalcPrecio(){
     subD.style.display='block';
     const telaTxt = telaInfoSel ? ` + tela ${(telaInfoSel.linearM).toFixed(2)}m` : '';
     const extrasTxt = extras ? ` · ${extras}` : '';
-    subD.textContent = `${anchoSel}m × ${salienteSel}m · ${cantB} brazos${extrasTxt}${telaTxt}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
+    // Mostrar redondeo si el ancho real difiere del estándar cobrado
+    const anchoCotMm = Math.round(parseFloat(anchoSel)*1000);
+    const realTxt = (anchoRealMm > 0 && anchoRealMm < anchoCotMm)
+      ? `${anchoRealMm}mm real → cotiza ${anchoSel}m`
+      : `${anchoSel}m`;
+    subD.textContent = `${realTxt} × ${salienteSel}m · ${cantB} brazos${extrasTxt}${telaTxt}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4510,20 +4553,23 @@ function qaAgregar(){
     tela = 'libre';
 
   } else if(telaObjA?.tipo === 'toldo'){
-    // qa-color = ancho, qa-variante = saliente.
-    // Precio: tabla[ancho][saliente] × multiplicador (sistema) + tela elegida.
+    // qa-color = ancho ESTÁNDAR (para tabla), qa-ancho = ancho REAL en mm (para tela)
+    // qa-variante = saliente
     const anchoSel    = document.getElementById('qa-color')?.value || '';
     const salienteSel = document.getElementById('qa-variante')?.value || '';
     const baseSist = telaObjA.tabla?.[anchoSel]?.[salienteSel];
     if(!baseSist){ toast('⚠ Esa combinación de ancho/saliente no está disponible','err'); return; }
     const costoSistemaLista = baseSist * (telaObjA.multiplicador || 1);
 
+    // Ancho real del toldo (mm) — el que se confecciona físicamente
+    const anchoRealMm = parseInt(document.getElementById('qa-ancho')?.value) || Math.round(parseFloat(anchoSel)*1000);
+    const anchoCotMm  = Math.round(parseFloat(anchoSel)*1000);
+
     let costoTelaLista = 0;
     let telaInfoSel = null;
     if(telaObjA.incluyeTela){
-      const A = Math.round(parseFloat(anchoSel) * 1000);
       const S = Math.round(parseFloat(salienteSel) * 1000);
-      telaInfoSel = _renderToldoTelaPanel(A, S);
+      telaInfoSel = _renderToldoTelaPanel(anchoRealMm, S);
       if(telaInfoSel) costoTelaLista = telaInfoSel.costoLista;
     }
     const precioLista = costoSistemaLista + costoTelaLista;
@@ -4536,8 +4582,11 @@ function qaAgregar(){
       descTela = ` · ${telaInfoSel.brand} ${(telaInfoSel.anchoRollo/10).toFixed(0)}cm (${modoTxt})`;
     }
     const extrasTxt = extras ? ` · ${extras}` : '';
-    color = `Ancho ${anchoSel}m · Saliente ${salienteSel}m · ${cantB} brazos${extrasTxt}${descTela}`;
-    // Guardar info de tela elegida para fábrica/trazabilidad
+    // Si el ancho real difiere del estándar, mencionar ambos en la descripción
+    const anchoDesc = (anchoRealMm < anchoCotMm)
+      ? `${anchoRealMm}mm (sistema ${anchoSel}m)`
+      : `${anchoSel}m`;
+    color = `Ancho ${anchoDesc} · Saliente ${salienteSel}m · ${cantB} brazos${extrasTxt}${descTela}`;
     confData = Object.assign(confData||{}, telaInfoSel ? {
       toldoTelaRollo: telaInfoSel.rolloId,
       toldoTelaMarca: telaInfoSel.brand,
@@ -4546,9 +4595,9 @@ function qaAgregar(){
       toldoTelaStrips: telaInfoSel.strips,
       toldoTelaLinearM: telaInfoSel.linearM,
     } : {});
-    // Convertir a mm para que la tabla de items lo muestre como ancho × saliente
-    ancho = String(parseInt(parseFloat(anchoSel) * 1000));
-    alto  = String(parseInt(parseFloat(salienteSel) * 1000));
+    // Guardar ancho REAL del toldo (lo que se confecciona) + saliente como alto
+    ancho = String(anchoRealMm);
+    alto  = String(Math.round(parseFloat(salienteSel) * 1000));
 
   } else if(telaObjA?.tipo === 'veneciana'){
     // qa-color = clave del subtipo, qa-variante = color elegido

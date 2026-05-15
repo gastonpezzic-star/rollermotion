@@ -1,5 +1,59 @@
 # Changelog
 
+## V285 — 2026-05-07
+
+### Toldos: multiplicador uniforme + ancho real con redondeo automático al estándar
+
+**Cambio 1: Punta a Punta ahora también `× 1.21 × 2`**
+
+El usuario confirmó: la tabla de Punta a Punta también es **precio neto sin IVA**. Para obtener lista hay que multiplicar por 1.21 (IVA) × 2 (margen) — igual que Barracuadra.
+
+```diff
+- multiplicador: 2
++ multiplicador: 1.21 * 2  // = 2.42
+```
+
+**Cambio 2: Ingreso del ancho real + redondeo automático**
+
+Cuando un cliente pide un ancho intermedio (ej. 2.30 m, 5.50 m), el sistema cobra el ancho estándar inmediato superior. Antes el cotizador tenía que hacer ese redondeo mental — ahora el sistema lo hace automáticamente.
+
+**Cómo funciona ahora**:
+
+- El form de toldo tiene un input numérico **"Ancho real (mm)"** (en lugar del dropdown solo).
+- El cotizador tipea el ancho que pidió el cliente (ej. `2300`).
+- El sistema **autoselecciona** el ancho estándar inmediato superior (en este caso `3 m`) en el dropdown "Ancho estándar".
+- El **precio del sistema** se cobra con el estándar.
+- La **tela** se calcula con el ancho real (más exacto en costo de tela).
+- Si el ancho real coincide con un estándar (ej. `3000`), no hay diferencia.
+
+**Ejemplos**:
+
+| Cliente pide | Ancho estándar cobrado | Tela calculada con |
+|---|---|---|
+| 2300 mm | 3 m | 2300 mm |
+| 4200 mm | 5 m | 4200 mm |
+| 4700 mm | 5 m | 4700 mm |
+| 5500 mm | 6 m (Barracuadra) | 5500 mm |
+| 3000 mm | 3 m | 3000 mm |
+
+**Vista previa al cotizar**:
+
+- Sin redondeo: `"3m × 2.10m · 2 brazos + tela 5.00m"`
+- Con redondeo: `"2300mm real → cotiza 3m × 2.10m · 2 brazos + tela 4.40m"`
+
+**Item guardado**:
+
+- `ancho` = ancho real (ej. `2300`)
+- `alto` = saliente (ej. `2100`)
+- `color` incluye descripción del redondeo si aplica: `"Ancho 2300mm (sistema 3m) · Saliente 2.10m · 2 brazos · Tela..."`
+
+### Notas técnicas
+
+- `qaTelaChange` para `tipo:'toldo'` ahora configura `qa-ancho` como input numérico con `oninput` custom que auto-bumpea el dropdown del estándar.
+- Al cambiar a otra tela, `qaTelaChange` restaura el `oninput` default y el label de `qa-ancho`.
+- `qaCalcPrecio` y `qaAgregar` leen `qa-ancho` (real) y `qa-color` (estándar) por separado.
+- La tela usa el ancho real → resulta en menos metros lineales si el ancho real es menor al estándar → costo de tela más bajo y más preciso.
+
 ## V284 — 2026-05-07
 
 ### Nuevo producto: Toldo Brazos Invisibles con Barracuadra 40×40
