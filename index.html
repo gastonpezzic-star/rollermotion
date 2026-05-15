@@ -1067,6 +1067,13 @@ body{
           <!-- ── ADVERTENCIAS INTERNAS — solo visible al cotizar, NO sale en PDF ── -->
           <div id="qa-recomendacion" style="margin-top:8px;display:none"></div>
           <div id="qa-pano-options" style="margin-top:8px;display:none"></div>
+          <div id="qa-toldo-motor" style="margin-top:8px;display:none">
+            <label style="display:inline-flex;align-items:center;gap:10px;background:#fff7ed;border:1px solid #fcd9a8;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#7c4a1e;cursor:pointer;user-select:none;font-family:'DM Sans',sans-serif">
+              <input type="checkbox" id="qa-toldo-motor-chk" onchange="qaToggleToldoMotor()" style="width:16px;height:16px;cursor:pointer;accent-color:#d4820e">
+              <span>⚡ Toldo motorizado</span>
+              <span style="font-size:10.5px;color:#a87742;font-weight:500;font-style:italic">— adiciona $26.700 a la instalación</span>
+            </label>
+          </div>
           <div id="qa-toldo-tela" style="margin-top:8px;display:none"></div>
           <div id="qa-warnings" style="margin-top:10px"></div>
 
@@ -2186,8 +2193,12 @@ const INSUMOS_DEFAULT = [
   { id:'contrapeso',       cat:'Cadenas',     subcat:'',          nombre:'Contrapeso cadena',           precio:2130,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   // CONSUMIBLES
   { id:'bifa_3m',          cat:'Consumibles', subcat:'',          nombre:'Bifa 3M GPT (rollo 50ml)',    precio:113600, unidad:'rollo',en_cotizador:false, cat_cotizador:'',           unidad_venta:'rollo' },
-  { id:'instal_normal',    cat:'Servicios',   subcat:'',          nombre:'Instalación cortina estándar', precio:30000,  unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
-  { id:'instal_motor',     cat:'Servicios',   subcat:'',          nombre:'Instalación cortina motorizada',precio:53000,  unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
+  { id:'instal_normal',          cat:'Servicios', subcat:'',       nombre:'Instalación cortina estándar',            precio:30000,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'instal_motor',           cat:'Servicios', subcat:'',       nombre:'Instalación cortina motorizada',          precio:53000,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  // V288.2 — Instalación toldos
+  { id:'instal_toldo_brazos',    cat:'Servicios', subcat:'Toldos', nombre:'Instalación toldo brazos invisibles',     precio:100750, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'instal_toldo_vertical',  cat:'Servicios', subcat:'Toldos', nombre:'Instalación toldo vertical',              precio:75600,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'instal_motor_toldo',     cat:'Servicios', subcat:'Toldos', nombre:'Adicional instalación toldo motorizado',  precio:26700,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   // TOLDOS — TELAS (precio por metro lineal del ancho del rollo indicado)
   { id:'tela_toldo_dickson_150',  cat:'Toldos', subcat:'Telas',   nombre:'Tela acrílica Dickson ® 150cm (ml)',         precio:91350,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
   { id:'tela_toldo_dickson_120',  cat:'Toldos', subcat:'Telas',   nombre:'Tela acrílica Dickson ® 120cm (ml)',         precio:63800,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
@@ -2798,6 +2809,8 @@ function normalizeItem(it){
     toldoTelaModo:        it.toldo_tela_modo||'',
     toldoTelaStrips:      it.toldo_tela_strips != null ? parseInt(it.toldo_tela_strips) : null,
     toldoTelaLinearM:     it.toldo_tela_linear_m != null ? parseFloat(it.toldo_tela_linear_m) : null,
+    // V288.2 — Toldo motorizado
+    motorizado:           it.motorizado != null ? !!it.motorizado : false,
   };
 }
 
@@ -2898,6 +2911,8 @@ async function saveDocToSupabase(doc){
       toldo_tela_modo:        n(it.toldoTelaModo),
       toldo_tela_strips:      it.toldoTelaStrips != null ? parseInt(it.toldoTelaStrips) : null,
       toldo_tela_linear_m:    it.toldoTelaLinearM != null ? parseFloat(it.toldoTelaLinearM) : null,
+      // V288.2 — Toldo motorizado (para adicional de instalación)
+      motorizado:             it.motorizado != null ? !!it.motorizado : null,
     }));
     const { error: itemsErr } = await _sb.from('items').insert(rows);
     if(itemsErr) {
@@ -3293,6 +3308,12 @@ function qaTelaChange(){
   window._panoOverride = null; // limpiar elección manual de paños (confección)
   window._toldoTelaOverride = null; // limpiar elección manual de tela toldo
   window._toldoMarcaSel = null;
+  // V288.2: reset motorización del toldo
+  window._toldoMotorizado = false;
+  const _motorChk = document.getElementById('qa-toldo-motor-chk');
+  if(_motorChk) _motorChk.checked = false;
+  const _motorBox = document.getElementById('qa-toldo-motor');
+  if(_motorBox) _motorBox.style.display = 'none';
   // Restaurar handlers que pudieron ser sobreescritos por tipos específicos (ej. toldo)
   const _anchoElDef = document.getElementById('qa-ancho');
   if(_anchoElDef){
@@ -3550,6 +3571,9 @@ function qaTelaChange(){
     const medidaWrapEl = document.getElementById('qa-medida-wrap');
     if(altoWrapEl)   altoWrapEl.style.display   = 'none';
     if(medidaWrapEl) medidaWrapEl.style.display = 'none';
+    // V288.2: mostrar toggle de motorización
+    const _motorBoxBrazos = document.getElementById('qa-toldo-motor');
+    if(_motorBoxBrazos) _motorBoxBrazos.style.display = 'block';
     const addBtn = document.getElementById('qa-add-btn');
     addBtn.disabled = false; addBtn.style.opacity = '1';
     setTimeout(qaCalcPrecio, 50);
@@ -3572,6 +3596,9 @@ function qaTelaChange(){
     const altoLblEl  = altoWrapEl?.querySelector('label');
     if(anchoLblEl) anchoLblEl.textContent = 'Ancho (mm)';
     if(altoLblEl)  altoLblEl.textContent  = 'Alto (mm)';
+    // V288.2: mostrar toggle de motorización
+    const _motorBoxVert = document.getElementById('qa-toldo-motor');
+    if(_motorBoxVert) _motorBoxVert.style.display = 'block';
     const addBtn = document.getElementById('qa-add-btn');
     addBtn.disabled = false; addBtn.style.opacity = '1';
     setTimeout(qaCalcPrecio, 50);
@@ -3700,6 +3727,12 @@ function qaSelectToldoMarca(marca){
   window._toldoMarcaSel = marca;
   window._toldoTelaOverride = null;
   qaCalcPrecio();
+}
+
+// V288.2: toggle de motorización del toldo (para adicional de instalación)
+function qaToggleToldoMotor(){
+  const chk = document.getElementById('qa-toldo-motor-chk');
+  window._toldoMotorizado = !!chk?.checked;
 }
 
 // Renderiza el panel de opciones de tela del toldo en #qa-toldo-tela.
@@ -4814,7 +4847,7 @@ function qaAgregar(){
       toldoTelaModo: telaInfoSel.modo,
       toldoTelaStrips: telaInfoSel.strips,
       toldoTelaLinearM: telaInfoSel.linearM,
-    } : {});
+    } : {}, { motorizado: !!window._toldoMotorizado });
     // Guardar ancho REAL del toldo (lo que se confecciona) + saliente como alto
     ancho = String(anchoRealMm);
     alto  = String(Math.round(parseFloat(salienteSel) * 1000));
@@ -4860,7 +4893,7 @@ function qaAgregar(){
       toldoTelaModo: telaInfoSelV.modo,
       toldoTelaStrips: telaInfoSelV.strips,
       toldoTelaLinearM: telaInfoSelV.linearM,
-    } : {});
+    } : {}, { motorizado: !!window._toldoMotorizado });
 
   } else if(telaObjA?.tipo === 'veneciana'){
     // qa-color = clave del subtipo, qa-variante = color elegido
@@ -5249,7 +5282,14 @@ function calcInstalacion(){
   const puMotor  = getInstalPrecioUnit(true);
   const subManual = puManual * manualQty;
   const subMotor  = puMotor  * motorQty;
-  const total = subManual + subMotor;
+  // V288.2: subtotales de instalación de toldos (no editables manualmente, vienen de los items)
+  const puBrazos    = Math.round((getPrecio('instal_toldo_brazos')   || 0) * getFV());
+  const puVertical  = Math.round((getPrecio('instal_toldo_vertical') || 0) * getFV());
+  const puAdMotorT  = Math.round((getPrecio('instal_motor_toldo')    || 0) * getFV());
+  const subBrazos   = puBrazos   * (auto.toldoBrazosManual   + auto.toldoBrazosMotor);
+  const subVertical = puVertical * (auto.toldoVerticalManual + auto.toldoVerticalMotor);
+  const subAdMotorT = puAdMotorT * (auto.toldoBrazosMotor    + auto.toldoVerticalMotor);
+  const total = subManual + subMotor + subBrazos + subVertical + subAdMotorT;
 
   // Sincronizar inputs (sin disparar onInstalQtyInput)
   const inpM = document.getElementById('instal-manual-qty');
@@ -5277,11 +5317,17 @@ function calcInstalacion(){
 
   // Resumen y total
   if(mont){
-    if(total === 0) mont.textContent = 'Agregá cortinas o motores para calcular';
+    if(total === 0) mont.textContent = 'Agregá cortinas, toldos o motores para calcular';
     else {
       const parts = [];
       if(manualQty) parts.push(`${manualQty} manual${manualQty>1?'es':''}`);
       if(motorQty)  parts.push(`${motorQty} motor${motorQty>1?'izadas':'izada'}`);
+      const totToldoBrazos   = auto.toldoBrazosManual   + auto.toldoBrazosMotor;
+      const totToldoVertical = auto.toldoVerticalManual + auto.toldoVerticalMotor;
+      const totMotToldos     = auto.toldoBrazosMotor    + auto.toldoVerticalMotor;
+      if(totToldoBrazos)   parts.push(`${totToldoBrazos} toldo${totToldoBrazos>1?'s':''} brazos`);
+      if(totToldoVertical) parts.push(`${totToldoVertical} toldo${totToldoVertical>1?'s':''} vert.`);
+      if(totMotToldos)     parts.push(`+${totMotToldos} motor toldo`);
       mont.textContent = parts.join(' + ');
     }
   }
@@ -5308,10 +5354,18 @@ const TIPOS_CON_INSTALACION = [
   'riel_motorizado',
   'riel_motorizado_celtic',
   'motores',
+  // V288.2 — Toldos
+  'toldo_brazos_invisibles',
+  'toldo_brazos_invisibles_barracuadra',
+  'toldo_vertical',
 ];
 
 // Tipos que se consideran "motorizados" (cuentan como instalación motorizada)
 const TIPOS_MOTORIZADOS = ['motores','riel_motorizado','riel_motorizado_celtic'];
+
+// V288.2 — Tipos de toldo agrupados para precios de instalación diferenciados
+const TIPOS_TOLDO_BRAZOS   = ['toldo_brazos_invisibles','toldo_brazos_invisibles_barracuadra'];
+const TIPOS_TOLDO_VERTICAL = ['toldo_vertical'];
 
 // Tipos que son cortinas Roller (todos los porcentajes de Sunscreen + Blackout)
 const TIPOS_ROLLER = ['blackout','sunscreen5','sunscreen3','sunscreen1','rollerdoble','doble'];
@@ -5431,10 +5485,13 @@ function esItemMotorizado(item){
 // según los items en la cotización.
 // Regla: cada motor "consume" una instalación manual y la convierte en motorizada.
 // Riel Motorizado (Somfy) cuenta como motorizada directamente.
+// V288.2: agrega conteo separado para toldos (brazos y vertical, manuales y motorizados).
 function getInstalAutoCounts(){
   let cortinaManualUnits = 0; // cortinas que no son riel motorizado ni motor
   let rielMotorizadoUnits = 0;
   let motorUnits = 0;
+  let toldoBrazosManual = 0, toldoBrazosMotor = 0;
+  let toldoVerticalManual = 0, toldoVerticalMotor = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     try{
       const item = JSON.parse(tr.dataset.item||'{}');
@@ -5442,6 +5499,15 @@ function getInstalAutoCounts(){
       const cantInput = tr.querySelector('input[type=number]');
       const cant = parseInt(cantInput?.value)||parseInt(item.cant)||1;
       const tela = (item.tela||'').toLowerCase();
+      // Toldos (V288.2) — instalación con precio diferenciado, motorización por flag del item
+      if(TIPOS_TOLDO_BRAZOS.includes(tela)){
+        if(item.motorizado) toldoBrazosMotor   += cant; else toldoBrazosManual   += cant;
+        return;
+      }
+      if(TIPOS_TOLDO_VERTICAL.includes(tela)){
+        if(item.motorizado) toldoVerticalMotor += cant; else toldoVerticalManual += cant;
+        return;
+      }
       if(tela === 'motores')           motorUnits += cant;
       else if(tela === 'riel_motorizado' || tela === 'riel_motorizado_celtic') rielMotorizadoUnits += cant;
       else                              cortinaManualUnits += cant;
@@ -5452,6 +5518,8 @@ function getInstalAutoCounts(){
   return {
     manualUnits: cortinaManualUnits - conversiones,
     motorUnits:  rielMotorizadoUnits + conversiones,
+    toldoBrazosManual, toldoBrazosMotor,
+    toldoVerticalManual, toldoVerticalMotor,
   };
 }
 
@@ -5481,7 +5549,16 @@ function getInstalTotal(){
   if(!_instalacionActiva) return 0;
   const manualQty = _instalManualQty||0;
   const motorQty  = _instalMotorQty||0;
-  return getInstalPrecioUnit(false)*manualQty + getInstalPrecioUnit(true)*motorQty;
+  let total = getInstalPrecioUnit(false)*manualQty + getInstalPrecioUnit(true)*motorQty;
+  // V288.2: toldos (no editables manualmente, salen del auto-count)
+  const auto = getInstalAutoCounts();
+  const puBrazos    = Math.round((getPrecio('instal_toldo_brazos')   || 0) * getFV());
+  const puVertical  = Math.round((getPrecio('instal_toldo_vertical') || 0) * getFV());
+  const puAdMotorT  = Math.round((getPrecio('instal_motor_toldo')    || 0) * getFV());
+  total += puBrazos   * (auto.toldoBrazosManual   + auto.toldoBrazosMotor);
+  total += puVertical * (auto.toldoVerticalManual + auto.toldoVerticalMotor);
+  total += puAdMotorT * (auto.toldoBrazosMotor    + auto.toldoVerticalMotor);
+  return total;
 }
 
 function recalcTotalConInstal(){
@@ -7865,12 +7942,23 @@ function openDoc(d, fromForm){
       </div>
     </div>`) : '';
 
-  // ── FILAS DE INSTALACIÓN (manual + motorizada) ──
+  // ── FILAS DE INSTALACIÓN (manual + motorizada + toldos) ──
   const _instalManQty   = parseInt(d.instal_manual_qty);
   const _instalMotQty   = parseInt(d.instal_motor_qty);
   const _hasBreakdown   = !isNaN(_instalManQty) || !isNaN(_instalMotQty);
   const _puManual       = Math.round(getPrecio('instal_normal') * getFV());
   const _puMotor        = Math.round(getPrecio('instal_motor')  * getFV());
+  // V288.2 — precios e instalaciones para toldos (siempre calculados de los items)
+  const _puBrazos       = Math.round((getPrecio('instal_toldo_brazos')   || 0) * getFV());
+  const _puVertical     = Math.round((getPrecio('instal_toldo_vertical') || 0) * getFV());
+  const _puAdMotorTold  = Math.round((getPrecio('instal_motor_toldo')    || 0) * getFV());
+  let _toldoBrazosQty = 0, _toldoVertQty = 0, _toldoMotorAdd = 0;
+  (items||[]).forEach(it => {
+    const t = (it.tela||'').toLowerCase();
+    const c = parseInt(it.cant)||1;
+    if(TIPOS_TOLDO_BRAZOS.includes(t))   { _toldoBrazosQty += c; if(it.motorizado) _toldoMotorAdd += c; }
+    if(TIPOS_TOLDO_VERTICAL.includes(t)) { _toldoVertQty   += c; if(it.motorizado) _toldoMotorAdd += c; }
+  });
   let _instalRows = '';
   if(_hasBreakdown){
     const mq = _instalManQty||0, tq = _instalMotQty||0;
@@ -7900,7 +7988,48 @@ function openDoc(d, fromForm){
         <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:'Manrope',sans-serif;white-space:nowrap">${fmtM(sub)}</td>
       </tr>`;
     }
-  } else if(d.instalacion){
+  }
+  // V288.2 — Filas de instalación para toldos (independientes del breakdown manual/motor de cortinas)
+  if(_toldoBrazosQty > 0){
+    const sub = _puBrazos * _toldoBrazosQty;
+    _instalRows += `<tr style="border-bottom:1px solid #e0e0de">
+      <td style="padding:7px 10px;color:#888;text-align:center">🌞</td>
+      <td colspan="5" style="padding:7px 10px;white-space:nowrap">
+        <span style="font-weight:700;font-size:11.5px;color:#141414">Instalación toldo brazos invisibles</span>
+        <span style="font-size:9.5px;color:#aaa;margin-left:8px">+ Anclajes + nivelación + prueba</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-weight:600;color:#444">${_toldoBrazosQty}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap">${fmtM(_puBrazos)}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:'Manrope',sans-serif;white-space:nowrap">${fmtM(sub)}</td>
+    </tr>`;
+  }
+  if(_toldoVertQty > 0){
+    const sub = _puVertical * _toldoVertQty;
+    _instalRows += `<tr style="border-bottom:1px solid #e0e0de">
+      <td style="padding:7px 10px;color:#888;text-align:center">🪟</td>
+      <td colspan="5" style="padding:7px 10px;white-space:nowrap">
+        <span style="font-weight:700;font-size:11.5px;color:#141414">Instalación toldo vertical</span>
+        <span style="font-size:9.5px;color:#aaa;margin-left:8px">+ Anclajes superiores + caduta</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-weight:600;color:#444">${_toldoVertQty}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap">${fmtM(_puVertical)}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:'Manrope',sans-serif;white-space:nowrap">${fmtM(sub)}</td>
+    </tr>`;
+  }
+  if(_toldoMotorAdd > 0){
+    const sub = _puAdMotorTold * _toldoMotorAdd;
+    _instalRows += `<tr style="border-bottom:1px solid #e0e0de">
+      <td style="padding:7px 10px;color:#888;text-align:center">⚡</td>
+      <td colspan="5" style="padding:7px 10px;white-space:nowrap">
+        <span style="font-weight:700;font-size:11.5px;color:#141414">Adicional instalación toldo motorizado</span>
+        <span style="font-size:9.5px;color:#aaa;margin-left:8px">+ Conexión eléctrica + programación</span>
+      </td>
+      <td style="padding:7px 10px;text-align:center;font-weight:600;color:#444">${_toldoMotorAdd}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap">${fmtM(_puAdMotorTold)}</td>
+      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:'Manrope',sans-serif;white-space:nowrap">${fmtM(sub)}</td>
+    </tr>`;
+  }
+  if(!_hasBreakdown && !_instalRows && d.instalacion){
     // Backward compat: docs viejos sin breakdown — una sola fila como antes
     _instalRows = `<tr style="border-bottom:1px solid #e0e0de">
       <td style="padding:7px 10px;color:#888;text-align:center">🔧</td>

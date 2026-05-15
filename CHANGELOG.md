@@ -1,5 +1,53 @@
 # Changelog
 
+## V288.2 — 2026-05-15
+
+### Instalación de toldos (brazos + vertical) con adicional de motorización
+
+Antes la cotización tenía 2 precios de instalación globales (cortina manual / cortina motorizada). Los toldos no participaban del cálculo de instalación — pasaba el costo de instalación de cortina aunque fuera un toldo, lo cual estaba mal.
+
+**Nuevos precios de lista**:
+
+| Concepto | Precio |
+|---|---|
+| Instalación toldo brazos invisibles (Punta a Punta y Barracuadra) | $100.750 |
+| Instalación toldo vertical | $75.600 |
+| Adicional por motorización (cualquier toldo) | $26.700 |
+
+**Insumos nuevos en `INSUMOS_DEFAULT`** (categoría `Servicios · Toldos`, todos editables):
+
+- `instal_toldo_brazos`
+- `instal_toldo_vertical`
+- `instal_motor_toldo`
+
+**Cómo marcar un toldo como motorizado**:
+
+En el form de cotización del toldo (brazos o vertical) aparece un toggle naranja **⚡ Toldo motorizado — adiciona $26.700 a la instalación**. Lo marcás antes de agregar el item y se persiste en el item con `motorizado: true`. Si después agregás otro toldo, el toggle se reinicia.
+
+**Filas en el PDF**:
+
+La cotización ahora puede mostrar hasta 5 filas de instalación según corresponda:
+
+1. Servicio de instalación (cortinas manuales)
+2. Servicio de instalación motorizada (cortinas motor)
+3. **Instalación toldo brazos invisibles** *(nuevo)*
+4. **Instalación toldo vertical** *(nuevo)*
+5. **Adicional instalación toldo motorizado** *(nuevo)* — una unidad por cada toldo motorizado
+
+Cada fila trae el detalle con cantidad, precio unitario y subtotal.
+
+**Detección automática**:
+
+El conteo es 100% automático. `getInstalAutoCounts` ahora también devuelve `toldoBrazosManual`, `toldoBrazosMotor`, `toldoVerticalManual`, `toldoVerticalMotor` leyendo de los items y su flag `motorizado`. La sección de instalación del panel resume la cantidad detectada.
+
+### ⚠ SQL pendiente en Supabase
+
+Hay que correr una sentencia para agregar la columna `motorizado` a la tabla `items`. Si no se corre, las cotizaciones nuevas guardan bien todo lo demás pero el flag de motorización solo persiste en localStorage:
+
+```sql
+ALTER TABLE items ADD COLUMN motorizado BOOLEAN;
+```
+
 ## V288 — 2026-05-15
 
 ### Nuevo producto: Toldo Vertical (sistema Caduta)
