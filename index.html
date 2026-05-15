@@ -2139,6 +2139,17 @@ const TELAS = {
       '8': 'C/Compensador · Tubo 80 · TS2',
     },
   },
+  // V288: Toldo Vertical — sistema Caduta. Cotización por ancho × alto (como cortinas).
+  // Telas: las mismas que los toldos de brazos (TELAS_TOLDO_GRUPOS).
+  // Componentes: Eje 70 (por ml de ancho) + Zócalo Caduta (por metro de ancho, redondeado hacia arriba)
+  //              + 2 Calotas + 1 Máquina polifuncional italiana + 1 par tapas zócalo Caduta.
+  'toldo_vertical': {
+    label:'Toldo Vertical',
+    grupo:'Toldos',
+    tipo:'toldovertical',
+    colorLabel:'',
+    incluyeTela:true,
+  },
 
 };
 
@@ -2189,6 +2200,11 @@ const INSUMOS_DEFAULT = [
   { id:'tela_toldo_sunpro_250',   cat:'Toldos', subcat:'Telas',   nombre:'Tela microperforada SunPro ® 250cm (ml)',    precio:45000,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
   // TOLDOS — SERVICIOS
   { id:'mo_toldo', cat:'Toldos', subcat:'Servicios', nombre:'Mano de obra confección toldo (por unidad)', precio:50000, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  // TOLDOS — TOLDO VERTICAL (componentes específicos del sistema Caduta)
+  { id:'zocalo_caduta',          cat:'Toldos', subcat:'Toldo Vertical', nombre:'Zócalo Caduta (por metro de ancho)',         precio:25500, unidad:'ml',  en_cotizador:false, cat_cotizador:'', unidad_venta:'ml'  },
+  { id:'calota_toldo_vert',      cat:'Toldos', subcat:'Toldo Vertical', nombre:'Calota Toldo Vertical (unidad)',             precio:9100,  unidad:'u',   en_cotizador:false, cat_cotizador:'', unidad_venta:'u'   },
+  { id:'maquina_polifuncional',  cat:'Toldos', subcat:'Toldo Vertical', nombre:'Máquina polifuncional italiana',             precio:55800, unidad:'u',   en_cotizador:false, cat_cotizador:'', unidad_venta:'u'   },
+  { id:'tapa_zocalo_caduta_par', cat:'Toldos', subcat:'Toldo Vertical', nombre:'Tapas para zócalo Caduta para tensor (par)', precio:9000,  unidad:'par', en_cotizador:false, cat_cotizador:'', unidad_venta:'par' },
   // MOTORES
   { id:'motor_2n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 2N',           precio:298200, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
   { id:'motor_6n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 6N',           precio:390500, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
@@ -3538,6 +3554,28 @@ function qaTelaChange(){
     addBtn.disabled = false; addBtn.style.opacity = '1';
     setTimeout(qaCalcPrecio, 50);
 
+  } else if(telaObj.tipo === 'toldovertical'){
+    // V288: Toldo Vertical (sistema Caduta) — cotización por ancho × alto (como cortinas).
+    // Telas iguales a las del toldo brazos. Sin color/variante.
+    const colorWrapEl = colorSel.closest('.f');
+    if(colorWrapEl) colorWrapEl.style.display = 'none';
+    const varianteWrap = document.getElementById('qa-variante-wrap');
+    if(varianteWrap) varianteWrap.style.display = 'none';
+    // Mostrar ancho y alto, ocultar medida
+    const anchoWrapEl  = document.getElementById('qa-ancho-wrap');
+    const altoWrapEl   = document.getElementById('qa-alto-wrap');
+    const medidaWrapEl = document.getElementById('qa-medida-wrap');
+    if(anchoWrapEl){ anchoWrapEl.style.display = 'flex'; anchoWrapEl.style.order = ''; }
+    if(altoWrapEl){  altoWrapEl.style.display  = 'flex'; altoWrapEl.style.order  = ''; }
+    if(medidaWrapEl) medidaWrapEl.style.display = 'none';
+    const anchoLblEl = anchoWrapEl?.querySelector('label');
+    const altoLblEl  = altoWrapEl?.querySelector('label');
+    if(anchoLblEl) anchoLblEl.textContent = 'Ancho (mm)';
+    if(altoLblEl)  altoLblEl.textContent  = 'Alto (mm)';
+    const addBtn = document.getElementById('qa-add-btn');
+    addBtn.disabled = false; addBtn.style.opacity = '1';
+    setTimeout(qaCalcPrecio, 50);
+
   } else if(telaObj.tipo === 'veneciana'){
     // qa-color = Tipo de veneciana, qa-variante = Color específico
     const subtipos = telaObj.subtipos || {};
@@ -4174,6 +4212,59 @@ function qaCalcPrecio(){
     return;
   }
 
+  // V288: TOLDO VERTICAL (sistema Caduta) — ancho × alto + eje 70 + caduta + calotas + máquina + tapas + tela
+  if(telaInfo?.tipo === 'toldovertical'){
+    const panelTela = document.getElementById('qa-toldo-tela');
+    if(!ancho || !alto){
+      disp.textContent='—'; disp.style.color='var(--muted)';
+      subD.style.display='none';
+      btn.disabled=true; btn.style.opacity='.4';
+      cutsEl.style.display='none';
+      if(panelTela) panelTela.style.display='none';
+      return;
+    }
+    const anchoMm = parseInt(ancho);
+    const altoMm  = parseInt(alto);
+    const anchoM  = anchoMm / 1000;
+    const altoM   = altoMm  / 1000;
+    const anchoCadM = Math.ceil(anchoM); // Zócalo Caduta: escala de 1m
+
+    // Componentes
+    const costoEje     = anchoM     * (getPrecio('eje_70') || 0);
+    const costoZocalo  = anchoCadM  * (getPrecio('zocalo_caduta') || 0);
+    const costoCalotas = 2          * (getPrecio('calota_toldo_vert') || 0);
+    const costoMaquina =              (getPrecio('maquina_polifuncional') || 0);
+    const costoTapas   =              (getPrecio('tapa_zocalo_caduta_par') || 0);
+
+    // Tela del toldo (mismo panel que toldo brazos: A = ancho, S = alto)
+    let costoTelaLista = 0;
+    let telaInfoSelV = null;
+    if(telaInfo.incluyeTela){
+      telaInfoSelV = _renderToldoTelaPanel(anchoMm, altoMm);
+      if(telaInfoSelV) costoTelaLista = telaInfoSelV.costoLista;
+    } else if(panelTela){ panelTela.style.display='none'; }
+
+    const precioLista = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaLista;
+    const pu = Math.round(precioLista * getFV());
+
+    disp.textContent = fmtM(pu);
+    disp.style.color = 'var(--brand)';
+    subD.style.display='block';
+    const telaTxtV = telaInfoSelV ? `<strong style="color:#0b3d2e">${telaInfoSelV.brand}</strong>` : '';
+    const cantTxtV = cant>1 ? ` · ${cant} und. = ${fmtM(pu*cant)}` : '';
+    const partesV = [];
+    partesV.push(`Ancho ${anchoMm}mm`);
+    partesV.push(`Alto ${altoMm}mm`);
+    if(telaTxtV) partesV.push(telaTxtV);
+    partesV.push(`Eje 70 · Caduta ${anchoCadM}m · 2 calotas · máq. polifuncional`);
+    subD.innerHTML = partesV.join(' · ') + cantTxtV;
+
+    btn.disabled=false; btn.style.opacity='1';
+    cutsEl.style.display='none';
+    const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
+    return;
+  }
+
   if(telaInfo?.tipo === 'veneciana'){
     if(!ancho || !alto){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; return; }
     // Subtipo elegido en qa-color (que ahora es el selector de Tipo)
@@ -4722,6 +4813,49 @@ function qaAgregar(){
     // Guardar ancho REAL del toldo (lo que se confecciona) + saliente como alto
     ancho = String(anchoRealMm);
     alto  = String(Math.round(parseFloat(salienteSel) * 1000));
+
+  } else if(telaObjA?.tipo === 'toldovertical'){
+    // V288: Toldo Vertical (sistema Caduta) — ancho × alto.
+    // Componentes: Eje 70 (por ml del ancho) + Zócalo Caduta (por metro de ancho, ceil) +
+    //              2 calotas + 1 máquina polifuncional + 1 par tapas zócalo + tela.
+    const anchoMmV = parseInt(ancho);
+    const altoMmV  = parseInt(alto);
+    if(!anchoMmV || !altoMmV){ toast('⚠ Ingresá ancho y alto del toldo vertical','err'); return; }
+    const anchoMv  = anchoMmV / 1000;
+    const altoMv   = altoMmV  / 1000;
+    const anchoCadM = Math.ceil(anchoMv);
+
+    const costoEje     = anchoMv  * (getPrecio('eje_70') || 0);
+    const costoZocalo  = anchoCadM * (getPrecio('zocalo_caduta') || 0);
+    const costoCalotas = 2 * (getPrecio('calota_toldo_vert') || 0);
+    const costoMaquina = getPrecio('maquina_polifuncional') || 0;
+    const costoTapas   = getPrecio('tapa_zocalo_caduta_par') || 0;
+
+    let costoTelaListaV = 0;
+    let telaInfoSelV = null;
+    if(telaObjA.incluyeTela){
+      telaInfoSelV = _renderToldoTelaPanel(anchoMmV, altoMmV);
+      if(telaInfoSelV) costoTelaListaV = telaInfoSelV.costoLista;
+    }
+    const precioListaV = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaListaV;
+    precio = Math.round(precioListaV * getFV() * cant);
+
+    const telaPartV = telaInfoSelV ? telaInfoSelV.brand : '';
+    const partesV = [];
+    partesV.push(`Ancho ${anchoMmV}mm`);
+    partesV.push(`Alto ${altoMmV}mm`);
+    if(telaPartV) partesV.push(telaPartV);
+    partesV.push(`Eje 70 · Caduta ${anchoCadM}m · 2 calotas · máq. polifuncional · tapas tensor`);
+    color = partesV.join(' · ');
+
+    confData = Object.assign(confData||{}, telaInfoSelV ? {
+      toldoTelaRollo: telaInfoSelV.rolloId,
+      toldoTelaMarca: telaInfoSelV.brand,
+      toldoTelaAnchoRollo: telaInfoSelV.anchoRollo,
+      toldoTelaModo: telaInfoSelV.modo,
+      toldoTelaStrips: telaInfoSelV.strips,
+      toldoTelaLinearM: telaInfoSelV.linearM,
+    } : {});
 
   } else if(telaObjA?.tipo === 'veneciana'){
     // qa-color = clave del subtipo, qa-variante = color elegido
@@ -7571,6 +7705,7 @@ async function renderPreciosTelas(){
     'cenefas':          'Cenefa curva',
     'toldo_brazos_invisibles': 'Toldo Brazos Invisibles',
     'toldo_brazos_invisibles_barracuadra': 'Toldo Brazos Invisibles c/Barracuadra',
+    'toldo_vertical': 'Toldo Vertical',
   };
   function getTelaLabel(tela){ return TELA_LABELS[tela] || tela; }
 

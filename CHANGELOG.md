@@ -1,5 +1,62 @@
 # Changelog
 
+## V288 — 2026-05-15
+
+### Nuevo producto: Toldo Vertical (sistema Caduta)
+
+Tercer producto del grupo Toldos. Se cotiza **por ancho × alto** (como cortinas), no por tabla anchos/salientes como los toldos de brazos. Comparte el catálogo de telas con los toldos de brazos.
+
+**Fórmula de cotización**:
+
+```
+precio_lista =
+    Eje 70 (por ml del ancho) +
+    Zócalo Caduta (por metro de ancho, redondeado hacia arriba a 1m) +
+    2 × Calota Toldo Vertical +
+    1 × Máquina polifuncional italiana +
+    1 × Tapas para zócalo Caduta (par tensor) +
+    Tela (m² × precio_ml del rollo elegido, vía panel azul)
+
+precio_final = precio_lista × FV
+```
+
+**Insumos nuevos en INSUMOS_DEFAULT (categoría `Toldos · Toldo Vertical`)**:
+
+| ID | Nombre | Precio | Unidad |
+|---|---|---|---|
+| `zocalo_caduta` | Zócalo Caduta (por metro de ancho) | $25.500 | ml |
+| `calota_toldo_vert` | Calota Toldo Vertical (unidad) | $9.100 | u |
+| `maquina_polifuncional` | Máquina polifuncional italiana | $55.800 | u |
+| `tapa_zocalo_caduta_par` | Tapas para zócalo Caduta para tensor (par) | $9.000 | par |
+
+Todos editables desde la pantalla de insumos para actualizar a futuro.
+
+**Eje 70**: usa el insumo `eje_70` ya existente ($35.159/ml). Costo = `anchoM × 35159`.
+
+**Zócalo Caduta — escala de 1m**: aunque el ancho se cotiza en mm, el zócalo se factura en saltos de 1 metro. Por ejemplo:
+
+| Ancho real | Caduta facturada |
+|---|---|
+| 1800 mm | 2 m → $51.000 |
+| 2300 mm | 3 m → $76.500 |
+| 3000 mm | 3 m → $76.500 |
+| 4200 mm | 5 m → $127.500 |
+
+Implementado con `Math.ceil(anchoM) × precio_caduta`.
+
+**Tela del toldo vertical**: usa exactamente el mismo panel azul que el toldo de brazos (`_renderToldoTelaPanel`), con la misma lista de marcas y modos cosido/rotado. La función recibe `A = ancho` y `S = alto` — para verticales el alto juega el rol del saliente.
+
+**Descripción del item**:
+
+```
+Toldo Vertical
+Ancho 2300mm · Alto 1800mm · Tela acrílica Dickson ® · Eje 70 · Caduta 3m · 2 calotas · máq. polifuncional · tapas tensor
+```
+
+La marca de tela queda en negrita verde (mismo formato que los otros toldos vía `formatToldoColor`). No hay marca de brazos porque verticales no usan brazos.
+
+**Selector "Sistema"**: aparece dentro del grupo `Toldos`, después de los dos toldos de brazos.
+
 ## V287.4 — 2026-05-15
 
 ### Toldos: descripción más limpia + resaltado de Brazos y Tela
