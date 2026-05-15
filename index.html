@@ -1067,6 +1067,7 @@ body{
           <!-- ── ADVERTENCIAS INTERNAS — solo visible al cotizar, NO sale en PDF ── -->
           <div id="qa-recomendacion" style="margin-top:8px;display:none"></div>
           <div id="qa-pano-options" style="margin-top:8px;display:none"></div>
+          <div id="qa-toldo-tela" style="margin-top:8px;display:none"></div>
           <div id="qa-warnings" style="margin-top:10px"></div>
 
           <!-- DEPRECADO V251: este bloque ya no se usa — los detalles técnicos se piden en el overlay de confirmación -->
@@ -2100,6 +2101,7 @@ const TELAS = {
     multiplicador: 2,    // precio_lista = tabla × 2
     anchos: ['2','3','4','5'],
     salientes: ['1.60','2.10','2.60','3.10'],
+    incluyeTela: true,   // habilita selector de tela en el cotizador
     tabla: {
       '2': { '1.60': 309400 },
       '3': { '1.60': 337835, '2.10': 351775, '2.60': 381505 },
@@ -2145,6 +2147,16 @@ const INSUMOS_DEFAULT = [
   { id:'bifa_3m',          cat:'Consumibles', subcat:'',          nombre:'Bifa 3M GPT (rollo 50ml)',    precio:113600, unidad:'rollo',en_cotizador:false, cat_cotizador:'',           unidad_venta:'rollo' },
   { id:'instal_normal',    cat:'Servicios',   subcat:'',          nombre:'Instalación cortina estándar', precio:30000,  unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
   { id:'instal_motor',     cat:'Servicios',   subcat:'',          nombre:'Instalación cortina motorizada',precio:53000,  unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
+  // TOLDOS — TELAS (precio por metro lineal del ancho del rollo indicado)
+  { id:'tela_toldo_dickson_150',  cat:'Toldos', subcat:'Telas',   nombre:'Tela acrílica Dickson ® 150cm (ml)',         precio:91350,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  { id:'tela_toldo_dickson_120',  cat:'Toldos', subcat:'Telas',   nombre:'Tela acrílica Dickson ® 120cm (ml)',         precio:63800,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  { id:'tela_toldo_sauleda_150',  cat:'Toldos', subcat:'Telas',   nombre:'Tela acrílica Sauleda ® 150cm (ml)',         precio:66400,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  { id:'tela_toldo_sauleda_120',  cat:'Toldos', subcat:'Telas',   nombre:'Tela acrílica Sauleda ® 120cm (ml)',         precio:53240,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  { id:'tela_toldo_plavinil_110', cat:'Toldos', subcat:'Telas',   nombre:'Tela vinílica Plavinil ® 110cm (ml)',        precio:43000,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  { id:'tela_toldo_sunworker_300',cat:'Toldos', subcat:'Telas',   nombre:'Tela microperforada Sunworker by Dickson ® 300cm (ml)', precio:259660, unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  { id:'tela_toldo_soltis96_267', cat:'Toldos', subcat:'Telas',   nombre:'Tela microperforada Soltis 96 ® 267cm (ml)', precio:170000, unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  { id:'tela_toldo_sunpro_320',   cat:'Toldos', subcat:'Telas',   nombre:'Tela microperforada SunPro ® 320cm (ml)',    precio:65000,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  { id:'tela_toldo_sunpro_250',   cat:'Toldos', subcat:'Telas',   nombre:'Tela microperforada SunPro ® 250cm (ml)',    precio:45000,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
   // MOTORES
   { id:'motor_2n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 2N',           precio:298200, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
   { id:'motor_6n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 6N',           precio:390500, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
@@ -3170,9 +3182,13 @@ function onAccesorioChange(){
 function qaTelaChange(){
   window._telaSelData = null; // limpiar tela por código al cambiar sistema
   window._panoOverride = null; // limpiar elección manual de paños (confección)
-  // Ocultar panel de opciones de paños hasta que aplique
+  window._toldoTelaOverride = null; // limpiar elección manual de tela toldo
+  window._toldoMarcaSel = null;
+  // Ocultar paneles condicionales
   const panoBox = document.getElementById('qa-pano-options');
   if(panoBox) panoBox.style.display = 'none';
+  const toldoTelaBox = document.getElementById('qa-toldo-tela');
+  if(toldoTelaBox) toldoTelaBox.style.display = 'none';
   restaurarColorSelect(); // restaurar select si había input libre
   const tela    = document.getElementById('qa-tela').value;
   const telaObj = TELAS[tela]||TELAS['blackout'];
@@ -3486,6 +3502,81 @@ function qaTelaChange(){
 function qaSelectPano(p){
   window._panoOverride = p;
   qaCalcPrecio();
+}
+
+// Handler global para el selector de tela de toldo. Guarda la opción elegida
+// (rolloId + modo) y re-calcula. Se llama desde el panel qa-toldo-tela.
+function qaSelectToldoTela(rolloId, modo){
+  window._toldoTelaOverride = { rolloId, modo };
+  qaCalcPrecio();
+}
+// Cambia la marca seleccionada (limpia la elección manual de rollo/modo
+// para que el panel use el auto-mejor de la marca nueva).
+function qaSelectToldoMarca(marca){
+  window._toldoMarcaSel = marca;
+  window._toldoTelaOverride = null;
+  qaCalcPrecio();
+}
+
+// Renderiza el panel de opciones de tela del toldo en #qa-toldo-tela.
+// Recibe el ancho A y saliente S en mm. Devuelve la opción seleccionada
+// (la activa) para que qaCalcPrecio la use en el costo.
+function _renderToldoTelaPanel(A, S){
+  const box = document.getElementById('qa-toldo-tela');
+  if(!box) return null;
+  const opciones = _calcToldoOpcionesTela(A, S);
+  if(!opciones.length){ box.style.display='none'; return null; }
+
+  // Marcas disponibles
+  const marcas = [...new Set(opciones.map(o => o.brand))];
+  const marcaSel = window._toldoMarcaSel || marcas[0];
+
+  // Opciones de la marca elegida
+  const opsMarca = opciones.filter(o => o.brand === marcaSel);
+  // Auto-elegida: la más barata de la marca
+  const autoOp = opsMarca.reduce((a,b)=> (a.costoLista <= b.costoLista ? a : b));
+  // Aplicar override si está y pertenece a la marca actual
+  const override = window._toldoTelaOverride;
+  const opActiva = (override && opsMarca.find(o => o.rolloId===override.rolloId && o.modo===override.modo))
+                  ? opsMarca.find(o => o.rolloId===override.rolloId && o.modo===override.modo)
+                  : autoOp;
+
+  // HTML
+  const marcaSelHtml = marcas.map(m => `<option value="${m}"${m===marcaSel?' selected':''}>${m}</option>`).join('');
+  const opsHtml = opsMarca.map(o => {
+    const isActive = (o.rolloId === opActiva.rolloId && o.modo === opActiva.modo);
+    const isAuto   = (o.rolloId === autoOp.rolloId && o.modo === autoOp.modo);
+    const modoDesc = o.modo === 'A'
+      ? `${o.strips} tramo${o.strips>1?'s':''} cosido${o.strips>1?'s':''}`
+      : `1 paño rotado (sin uniones)`;
+    const tagAuto = isAuto ? ' <span style="color:#1a4a2a;background:#dcfce7;padding:1px 6px;border-radius:3px;font-size:10px;font-weight:700;margin-left:4px">MÁS CONVENIENTE</span>' : '';
+    return `<button type="button" onclick="qaSelectToldoTela('${o.rolloId}','${o.modo}')"
+      style="display:flex;align-items:center;justify-content:space-between;gap:10px;
+        background:${isActive?'#fef0c7':'#fff'};
+        border:${isActive?'2px':'1px'} solid ${isActive?'#d4820e':'#dfe2e0'};
+        border-radius:6px;padding:8px 10px;cursor:pointer;font-family:inherit;text-align:left;width:100%;margin-top:4px">
+      <span style="display:flex;align-items:center;gap:8px">
+        <span style="display:inline-block;width:14px;height:14px;border-radius:50%;border:2px solid ${isActive?'#d4820e':'#bbb'};background:${isActive?'#d4820e':'#fff'};flex-shrink:0"></span>
+        <span style="font-size:12.5px;font-weight:700;color:#1a4a2a">Rollo ${(o.anchoRollo/10).toFixed(0)}cm</span>
+        <span style="font-size:11.5px;color:#666">· ${modoDesc}</span>${tagAuto}
+      </span>
+      <span style="display:flex;align-items:center;gap:12px;font-size:11.5px;color:#666">
+        <span><strong style="color:#141414">${o.linearM.toFixed(2)}m</strong> tela</span>
+        <span style="font-family:'Manrope',sans-serif;font-weight:800;color:#1a4a2a">${fmtM(Math.round(o.costoLista * getFV()))}</span>
+      </span>
+    </button>`;
+  }).join('');
+
+  box.style.display = 'block';
+  box.innerHTML = `<div style="background:#f0f9ff;border:1px solid #bae0fc;border-radius:8px;padding:10px 12px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+      <div style="font-size:11px;font-weight:700;color:#075985;text-transform:uppercase;letter-spacing:.06em">🪡 Tela del toldo</div>
+      <select onchange="qaSelectToldoMarca(this.value)" style="flex:1;padding:5px 8px;border:1px solid #bae0fc;border-radius:5px;font-size:12px;font-family:inherit;background:#fff">${marcaSelHtml}</select>
+    </div>
+    <div>${opsHtml}</div>
+    <div style="font-size:10px;color:#075985;margin-top:6px;font-style:italic">Las soldaduras de unión son perpendiculares al eje. Se agregan ${(_calcToldoOpcionesTela.EXTRA||400)}mm en el saliente para el enrollamiento.</div>
+  </div>`;
+  return opActiva;
 }
 
 function qaCalcPrecio(){
@@ -3873,18 +3964,36 @@ function qaCalcPrecio(){
   }
 
   if(telaInfo?.tipo === 'toldo'){
-    // Toldo: lookup en la tabla [ancho][saliente]. tabla × multiplicador × FV × cant.
+    // Toldo: sistema (eje + brazos + zócalo) + tela.
     const anchoSel    = document.getElementById('qa-color')?.value || '';
     const salienteSel = document.getElementById('qa-variante')?.value || '';
-    const base = telaInfo.tabla?.[anchoSel]?.[salienteSel];
-    if(!base){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; cutsEl.style.display='none'; return; }
-    const precioLista = base * (telaInfo.multiplicador || 1);
+    const baseSist    = telaInfo.tabla?.[anchoSel]?.[salienteSel];
+    const panelTela   = document.getElementById('qa-toldo-tela');
+    if(!baseSist){
+      disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; cutsEl.style.display='none';
+      if(panelTela) panelTela.style.display='none';
+      return;
+    }
+    const costoSistemaLista = baseSist * (telaInfo.multiplicador || 1);
+
+    // Tela: render panel + obtener opción activa
+    let costoTelaLista = 0;
+    let telaInfoSel = null;
+    if(telaInfo.incluyeTela){
+      const A = Math.round(parseFloat(anchoSel) * 1000);
+      const S = Math.round(parseFloat(salienteSel) * 1000);
+      telaInfoSel = _renderToldoTelaPanel(A, S);
+      if(telaInfoSel) costoTelaLista = telaInfoSel.costoLista;
+    } else if(panelTela){ panelTela.style.display='none'; }
+
+    const precioLista = costoSistemaLista + costoTelaLista;
     const pu = Math.round(precioLista * getFV());
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
     const cantB = telaInfo.cantidadBrazos || 2;
     subD.style.display='block';
-    subD.textContent = `${anchoSel}m × ${salienteSel}m · ${cantB} brazos${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
+    const telaTxt = telaInfoSel ? ` + tela ${(telaInfoSel.linearM).toFixed(2)}m` : '';
+    subD.textContent = `${anchoSel}m × ${salienteSel}m · ${cantB} brazos${telaTxt}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4371,15 +4480,40 @@ function qaAgregar(){
     tela = 'libre';
 
   } else if(telaObjA?.tipo === 'toldo'){
-    // qa-color = ancho, qa-variante = saliente. Precio desde tabla × multiplicador × FV
+    // qa-color = ancho, qa-variante = saliente.
+    // Precio: tabla[ancho][saliente] × multiplicador (sistema) + tela elegida.
     const anchoSel    = document.getElementById('qa-color')?.value || '';
     const salienteSel = document.getElementById('qa-variante')?.value || '';
-    const base = telaObjA.tabla?.[anchoSel]?.[salienteSel];
-    if(!base){ toast('⚠ Esa combinación de ancho/saliente no está disponible','err'); return; }
-    const precioLista = base * (telaObjA.multiplicador || 1);
+    const baseSist = telaObjA.tabla?.[anchoSel]?.[salienteSel];
+    if(!baseSist){ toast('⚠ Esa combinación de ancho/saliente no está disponible','err'); return; }
+    const costoSistemaLista = baseSist * (telaObjA.multiplicador || 1);
+
+    let costoTelaLista = 0;
+    let telaInfoSel = null;
+    if(telaObjA.incluyeTela){
+      const A = Math.round(parseFloat(anchoSel) * 1000);
+      const S = Math.round(parseFloat(salienteSel) * 1000);
+      telaInfoSel = _renderToldoTelaPanel(A, S);
+      if(telaInfoSel) costoTelaLista = telaInfoSel.costoLista;
+    }
+    const precioLista = costoSistemaLista + costoTelaLista;
     precio = Math.round(precioLista * getFV() * cant);
     const cantB = telaObjA.cantidadBrazos || 2;
-    color = `Ancho ${anchoSel}m · Saliente ${salienteSel}m · ${cantB} brazos`;
+    let descTela = '';
+    if(telaInfoSel){
+      const modoTxt = telaInfoSel.modo === 'A' ? `${telaInfoSel.strips} tramos` : 'rotada';
+      descTela = ` · ${telaInfoSel.brand} ${(telaInfoSel.anchoRollo/10).toFixed(0)}cm (${modoTxt})`;
+    }
+    color = `Ancho ${anchoSel}m · Saliente ${salienteSel}m · ${cantB} brazos${descTela}`;
+    // Guardar info de tela elegida para fábrica/trazabilidad
+    confData = Object.assign(confData||{}, telaInfoSel ? {
+      toldoTelaRollo: telaInfoSel.rolloId,
+      toldoTelaMarca: telaInfoSel.brand,
+      toldoTelaAnchoRollo: telaInfoSel.anchoRollo,
+      toldoTelaModo: telaInfoSel.modo,
+      toldoTelaStrips: telaInfoSel.strips,
+      toldoTelaLinearM: telaInfoSel.linearM,
+    } : {});
     // Convertir a mm para que la tabla de items lo muestre como ancho × saliente
     ancho = String(parseInt(parseFloat(anchoSel) * 1000));
     alto  = String(parseInt(parseFloat(salienteSel) * 1000));
@@ -4410,6 +4544,11 @@ function qaAgregar(){
   const panoBox = document.getElementById('qa-pano-options');
   if(panoBox) panoBox.style.display = 'none';
   window._panoOverride = null;
+  // Limpiar panel de tela de toldo y su override
+  const toldoTelaBox = document.getElementById('qa-toldo-tela');
+  if(toldoTelaBox) toldoTelaBox.style.display = 'none';
+  window._toldoTelaOverride = null;
+  window._toldoMarcaSel = null;
   if(esLibre){
     const li = document.getElementById('qa-color-libre');
     if(li) li.value = '';
@@ -4523,6 +4662,13 @@ function addRow(item){
     // Motor seleccionado para Riel Motorizado Somfy (id de insumo + label legible)
     motorId:       item.motorId,
     motorLabel:    item.motorLabel,
+    // Datos de tela de toldo (rolloId, marca, ancho, modo, strips, linearM)
+    toldoTelaRollo:      item.toldoTelaRollo,
+    toldoTelaMarca:      item.toldoTelaMarca,
+    toldoTelaAnchoRollo: item.toldoTelaAnchoRollo,
+    toldoTelaModo:       item.toldoTelaModo,
+    toldoTelaStrips:     item.toldoTelaStrips,
+    toldoTelaLinearM:    item.toldoTelaLinearM,
   });
 
   // Hacer la fila arrastrable
@@ -4822,6 +4968,73 @@ const TIPOS_MOTORIZADOS = ['motores','riel_motorizado','riel_motorizado_celtic']
 
 // Tipos que son cortinas Roller (todos los porcentajes de Sunscreen + Blackout)
 const TIPOS_ROLLER = ['blackout','sunscreen5','sunscreen3','sunscreen1','rollerdoble','doble'];
+
+// ── TELAS PARA TOLDOS ──
+// Catálogo de telas usadas en toldos. Agrupadas por marca: una misma marca puede
+// tener varios anchos de rollo. El precio es POR METRO LINEAL del ancho indicado.
+// El ancho real del rollo se usa para calcular cuántos tramos/qué orientación
+// se usan para confeccionar el toldo.
+const TELAS_TOLDO_GRUPOS = [
+  { brand:'Tela acrílica Dickson ®',          rollos: [
+      { id:'tela_toldo_dickson_150',  ancho:1500 },
+      { id:'tela_toldo_dickson_120',  ancho:1200 },
+  ] },
+  { brand:'Tela acrílica Sauleda ®',          rollos: [
+      { id:'tela_toldo_sauleda_150',  ancho:1500 },
+      { id:'tela_toldo_sauleda_120',  ancho:1200 },
+  ] },
+  { brand:'Tela vinílica Plavinil ®',         rollos: [
+      { id:'tela_toldo_plavinil_110', ancho:1100 },
+  ] },
+  { brand:'Microperforada Sunworker by Dickson ®', rollos: [
+      { id:'tela_toldo_sunworker_300', ancho:3000 },
+  ] },
+  { brand:'Microperforada Soltis 96 ®',       rollos: [
+      { id:'tela_toldo_soltis96_267', ancho:2670 },
+  ] },
+  { brand:'Microperforada SunPro ®',          rollos: [
+      { id:'tela_toldo_sunpro_320',   ancho:3200 },
+      { id:'tela_toldo_sunpro_250',   ancho:2500 },
+  ] },
+];
+
+// Calcula opciones de uso de tela para un toldo (ancho A × saliente S, en mm).
+// Modo A: tramos paralelos al saliente (cosidos perpendiculares al eje).
+//   strips = ceil(A / Wrollo)   ·   linear_total = strips × (S + EXTRA)
+// Modo B: tela rotada 90° (rollo a lo largo del ancho). Solo viable si Wrollo ≥ S+EXTRA.
+//   linear_total = A
+// Devuelve array de opciones { rolloId, marca, anchoRollo, modo, strips, linearM, precioMl, costoLista }
+function _calcToldoOpcionesTela(A, S){
+  const EXTRA = 400; // mm extra para enrollamiento del eje
+  const Sext = S + EXTRA;
+  const ops = [];
+  TELAS_TOLDO_GRUPOS.forEach(grupo => {
+    grupo.rollos.forEach(rollo => {
+      const W = rollo.ancho;
+      const pml = getPrecio(rollo.id) || 0;
+      // Modo A: tramos paralelos al saliente
+      const stripsA = Math.ceil(A / W);
+      const linearA = (stripsA * Sext) / 1000; // m
+      ops.push({
+        rolloId: rollo.id, brand: grupo.brand, anchoRollo: W,
+        modo: 'A', strips: stripsA, linearM: +linearA.toFixed(2),
+        precioMl: pml, costoLista: +(linearA * pml).toFixed(0),
+      });
+      // Modo B: rotada (solo si rollo cubre el saliente+extra)
+      if(W >= Sext){
+        const linearB = A / 1000;
+        ops.push({
+          rolloId: rollo.id, brand: grupo.brand, anchoRollo: W,
+          modo: 'B', strips: 1, linearM: +linearB.toFixed(2),
+          precioMl: pml, costoLista: +(linearB * pml).toFixed(0),
+        });
+      }
+    });
+  });
+  // Ordenar: por marca, luego por costo (más barato primero por marca)
+  ops.sort((x,y) => x.brand.localeCompare(y.brand) || x.costoLista - y.costoLista);
+  return ops;
+}
 function isRollerTela(t){ return TIPOS_ROLLER.includes((t||'').toLowerCase()); }
 function isRollerDoble(t){ const k=(t||'').toLowerCase(); return k==='rollerdoble' || k==='doble'; }
 

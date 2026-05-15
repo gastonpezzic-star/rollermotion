@@ -1,5 +1,85 @@
 # Changelog
 
+## V283 — 2026-05-07
+
+### Telas para toldos: catálogo + selector con cálculo automático
+
+Continúa V282 (toldos brazos invisibles). Ahora el cotizador incluye la **tela** del toldo, eligiendo automáticamente la combinación más conveniente entre las telas disponibles.
+
+#### Catálogo de telas para toldos
+
+Agregadas 9 entradas al catálogo de Insumos (subcategoría "Toldos · Telas"). Precio por metro lineal del ancho de rollo indicado:
+
+| Tela | Ancho rollo | Precio/ml |
+|---|---|---|
+| Acrílica Dickson ® | 150 cm | $91.350 |
+| Acrílica Dickson ® | 120 cm | $63.800 |
+| Acrílica Sauleda ® | 150 cm | $66.400 |
+| Acrílica Sauleda ® | 120 cm | $53.240 |
+| Vinílica Plavinil ® | 110 cm | $43.000 |
+| Microperforada Sunworker by Dickson ® | 300 cm | $259.660 |
+| Microperforada Soltis 96 ® | 267 cm | $170.000 |
+| Microperforada SunPro ® | 320 cm | $65.000 |
+| Microperforada SunPro ® | 250 cm | $45.000 |
+
+Editables desde el panel de Insumos.
+
+#### Selector de tela en el cotizador
+
+Al cotizar un toldo (después de elegir ancho y saliente), aparece un panel azul "🪡 Tela del toldo":
+
+- **Dropdown de marca**: Dickson / Sauleda / Plavinil / Sunworker / Soltis / SunPro.
+- **Opciones por marca**: si la marca tiene varios anchos de rollo, se muestran todas las combinaciones posibles con su precio.
+- La opción más económica está marcada como **"MÁS CONVENIENTE"** (auto-elegida).
+- El cotizador puede tocar otra opción para fijarla manualmente (como el panel de paños en confección).
+
+#### Cálculo de tela (Modo A vs Modo B)
+
+Para cada rollo se calculan dos modos posibles:
+
+- **Modo A** (tramos paralelos al saliente, soldaduras perpendiculares al eje):
+  - Tramos = ⌈ancho / rollo⌉
+  - Metros lineales = tramos × (saliente + 40 cm)
+  - Aplica siempre.
+- **Modo B** (rotada, sin uniones — solo si el rollo ≥ saliente + 40 cm):
+  - Metros lineales = ancho del toldo
+  - Mucho más económico cuando el rollo es ancho (ej. Sunworker 300cm).
+
+Ejemplos del enunciado:
+
+| Toldo (mm) | Modo más conveniente |
+|---|---|
+| 3000 × 2100 (Sauleda 150cm) | Modo A: 2 tramos × 2.5m = 5.0m lineal |
+| 3500 × 2600 (Sunworker 300cm) | Modo B: 1 paño rotado de 3.5m lineal |
+| 4500 × 2600 (Sunworker 300cm) | Modo B: 1 paño rotado de 4.5m lineal (mejor que Modo A con 2 tramos de 3m) |
+
+(El sistema autoelige Modo B cuando es viable y conviene.)
+
+#### Datos guardados en el item
+
+Para trazabilidad/fabricación, el item del toldo guarda:
+
+- `toldoTelaRollo` (id del insumo, ej. `tela_toldo_dickson_150`)
+- `toldoTelaMarca` (ej. "Tela acrílica Dickson ®")
+- `toldoTelaAnchoRollo` (mm)
+- `toldoTelaModo` (`'A'` o `'B'`)
+- `toldoTelaStrips` (cantidad de tramos)
+- `toldoTelaLinearM` (metros lineales totales)
+
+El `color` del item se enriquece para incluir la tela: ej. `"Ancho 3m · Saliente 2.60m · 2 brazos · Tela acrílica Dickson ® 150cm (2 tramos)"`.
+
+#### Precio final
+
+```
+precio_lista_total = (tabla_sistema × multiplicador) + (rollo_metros × precio/ml)
+precio_venta = precio_lista_total × FV × cantidad
+```
+
+### Pendiente — V284 (próximo)
+
+- Cuando me pases la tabla, agregar **Toldo Brazos Invisibles con Barracuadra** como segundo modelo. La lógica de tela se reutiliza.
+- A futuro: cambiar el default de "más barato" a "más caro" para "cubrir costos".
+
 ## V282 — 2026-05-07
 
 ### Nuevo producto: Toldo Brazos Invisibles Punta a Punta
