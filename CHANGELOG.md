@@ -1,5 +1,35 @@
 # Changelog
 
+## V287.1 — 2026-05-15
+
+### Hotfix toldos: precio no aparecía + label + orden Ancho→Saliente
+
+**Bug 1 — Precio no se calculaba**
+
+`qaCalcPrecio` tenía una guarda al principio: si `!ancho || !alto` y el tipo no era `unitario`/`accesorio`/`riel`, devolvía `'—'` y `return`. Como en toldos el `alto` está oculto (la saliente viene del dropdown), `qa-alto` siempre estaba vacío → la guarda hacía short-circuit y nunca llegaba a la rama de cálculo del toldo.
+
+Fix: agregar `toldo` al whitelist de tipos que no necesitan `alto`. Si falta `ancho`, sí mostrar `'—'` (es lo esperado mientras el usuario no tipea nada).
+
+```js
+const isToldo = telaInfoTypeCheck === 'toldo';
+if(!ancho || !alto){
+  if(... && !isRielType && !isToldo){ return '—'; }
+  if(isToldo && !ancho){ return '—'; }
+}
+```
+
+**Bug 2 — Label "Ancho real (mm)"**
+
+El usuario no necesita "real" — ya está claro que es el ancho que va a confeccionar. Quedó solo `Ancho (mm)`.
+
+**Bug 3 — Orden visual: Ancho debe ir primero**
+
+Antes el form pedía Saliente → Ancho. Ahora con CSS `order` se reordena para mostrar **Ancho → Saliente** (el usuario primero elige cuán ancho quiere el toldo, después la saliente).
+
+**Tela del toldo**
+
+El panel `🪡 Tela del toldo` ya existía (se renderiza en `#qa-toldo-tela` con selector de marca y lista de rollos). Por el bug anterior nunca se mostraba porque la función retornaba temprano. Con el fix, ahora aparece automáticamente apenas se ingresa el ancho, con la opción más conveniente marcada como `MÁS CONVENIENTE` y permitiendo elegir cualquier otra (marca + rollo + modo cosido/rotado).
+
 ## V287 — 2026-05-15
 
 ### Toldos: UX simplificado (solo Ancho + Saliente) + Mano de Obra editable

@@ -3285,6 +3285,11 @@ function qaTelaChange(){
   // V287: restaurar visibilidad del wrapper de qa-color (toldos lo oculta)
   const _colorWrapDef = document.getElementById('qa-color')?.closest('.f');
   if(_colorWrapDef) _colorWrapDef.style.display = '';
+  // V287: resetear orden visual (toldos lo modifica para mostrar Ancho antes que Saliente)
+  ['qa-ancho-wrap','qa-variante-wrap','qa-alto-wrap','qa-medida-wrap'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.style.order = '';
+  });
   const tela    = document.getElementById('qa-tela').value;
   const telaObj = TELAS[tela]||TELAS['blackout'];
   const esUnitario = telaObj.tipo === 'unitario';
@@ -3456,9 +3461,9 @@ function qaTelaChange(){
 
   } else if(telaObj.tipo === 'toldo'){
     // Toldo:
-    //   - qa-ancho: INPUT NUMÉRICO con el ancho REAL del toldo en mm (único visible para el ancho)
-    //   - qa-color: SELECT del ancho ESTÁNDAR usado — OCULTO, se calcula internamente (auto-bumped del real)
-    //   - qa-variante: SELECT de saliente (filtrado según el ancho estándar)
+    //   - qa-ancho: INPUT NUMÉRICO con el ancho del toldo en mm (visible primero)
+    //   - qa-color: SELECT del ancho ESTÁNDAR — OCULTO, se calcula internamente (auto-bumped del real)
+    //   - qa-variante: SELECT de saliente (filtrado según el ancho estándar) — visible después del ancho
     const anchos = telaObj.anchos || [];
     const sortedAnchos = [...anchos].sort((a,b) => parseFloat(a) - parseFloat(b));
     colorSel.innerHTML = sortedAnchos.map(a => `<option value="${a}">${a} m</option>`).join('');
@@ -3471,7 +3476,11 @@ function qaTelaChange(){
     const varianteSel  = document.getElementById('qa-variante');
     const varianteLbl  = document.getElementById('qa-variante-lbl');
     if(varianteLbl) varianteLbl.textContent = 'Saliente';
-    if(varianteWrap) varianteWrap.style.display = 'flex';
+    if(varianteWrap){
+      varianteWrap.style.display = 'flex';
+      // V287: orden visual — Ancho primero, Saliente después
+      varianteWrap.style.order = '2';
+    }
 
     function _refreshSalientes(){
       const anchoSel = colorSel.value;
@@ -3485,13 +3494,16 @@ function qaTelaChange(){
 
     colorSel.onchange = function(){ _refreshSalientes(); qaCalcPrecio(); };
 
-    // qa-ancho como input numérico para el ancho real (mm)
+    // qa-ancho como input numérico para el ancho del toldo (mm) — visible primero
     const anchoWrapEl  = document.getElementById('qa-ancho-wrap');
     const anchoInputEl = document.getElementById('qa-ancho');
-    if(anchoWrapEl) anchoWrapEl.style.display = 'flex';
-    // Cambiar el label del input a "Ancho real (mm)"
+    if(anchoWrapEl){
+      anchoWrapEl.style.display = 'flex';
+      // V287: orden visual — Ancho aparece antes que Saliente
+      anchoWrapEl.style.order = '1';
+    }
     const anchoLblEl = anchoWrapEl ? anchoWrapEl.querySelector('label') : null;
-    if(anchoLblEl) anchoLblEl.textContent = 'Ancho real (mm)';
+    if(anchoLblEl) anchoLblEl.textContent = 'Ancho (mm)';
     if(anchoInputEl){
       anchoInputEl.placeholder = 'Ej. 2300';
       // Hook custom: redondea al estándar inmediato superior y recalcula
@@ -3716,12 +3728,14 @@ function qaCalcPrecio(){
 
   const telaInfoTypeCheck = TELAS[tela]?.tipo;
   const isAccesorio = telaInfoTypeCheck === 'accesorio' || telaInfoTypeCheck === 'cambiotela';
+  const isToldo     = telaInfoTypeCheck === 'toldo';
 
   if(!ancho || !alto){
-    // Para unitarios, accesorios y rieles no necesitamos ancho/alto (rieles solo ancho)
+    // Para unitarios, accesorios, rieles y toldos no necesitamos ancho+alto
+    // (rieles: solo ancho · toldos: solo ancho; alto/saliente vienen del dropdown)
     const telaInfoCheck = TELAS[tela];
     const isRielType = telaInfoTypeCheck === 'riel';
-    if(telaInfoTypeCheck !== 'unitario' && !isAccesorio && !isRielType){
+    if(telaInfoTypeCheck !== 'unitario' && !isAccesorio && !isRielType && !isToldo){
       disp.textContent = '—';
       disp.style.color = 'var(--muted)';
       subD.style.display = 'none';
@@ -3731,6 +3745,15 @@ function qaCalcPrecio(){
     }
     // Para riel, si no hay ancho aún → mostrar —
     if(isRielType && !ancho){
+      disp.textContent = '—';
+      disp.style.color = 'var(--muted)';
+      subD.style.display = 'none';
+      btn.disabled = true; btn.style.opacity = '.4';
+      cutsEl.style.display = 'none';
+      return;
+    }
+    // Para toldo, si no hay ancho aún → mostrar —
+    if(isToldo && !ancho){
       disp.textContent = '—';
       disp.style.color = 'var(--muted)';
       subD.style.display = 'none';
