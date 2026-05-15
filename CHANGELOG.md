@@ -1,5 +1,55 @@
 # Changelog
 
+## V287 — 2026-05-15
+
+### Toldos: UX simplificado (solo Ancho + Saliente) + Mano de Obra editable
+
+**Cambio 1 — UX: ocultar el dropdown "Ancho estándar"**
+
+Antes el form pedía dos campos para el ancho: el input numérico **"Ancho real (mm)"** y el dropdown **"Ancho estándar"**. El estándar se autoseleccionaba al tipear, pero seguía visible y confundía. El usuario solo necesita decidir el ancho que va a confeccionar y la saliente.
+
+Ahora el form pide únicamente:
+
+- **Ancho real (mm)** — input personalizable (ej. `2300`, `4700`, `5500`).
+- **Saliente** — dropdown de salientes estándar válidas (filtradas según el ancho).
+
+El **ancho estándar** sigue calculándose internamente (el select se mantiene en el DOM pero oculto con `display:none`) para:
+
+- Determinar qué fila de la tabla de precios usar (ej. `2300` → cobra `3 m`).
+- Filtrar las salientes válidas según el ancho.
+
+Al cambiar a otro producto, el wrapper se vuelve a mostrar (queda preparado para los otros tipos que sí lo usan: bandas, roller doble, etc).
+
+**Cambio 2 — Pricing: Mano de Obra confección toldo (\$50.000 editable)**
+
+El precio final del toldo ahora se compone de:
+
+```
+precio_lista = sistema (tabla × multiplicador) + tela (m² × precio_ml) + MO confección
+precio_final = precio_lista × FV
+```
+
+La MO se agregó a la lista de precios como insumo `mo_toldo` ($50.000) para poder actualizarla a futuro desde la pantalla de insumos.
+
+```js
+// INSUMOS_DEFAULT (sección Toldos — Servicios)
+{ id:'mo_toldo', cat:'Toldos', subcat:'Servicios',
+  nombre:'Mano de obra confección toldo (por unidad)',
+  precio:50000, unidad:'u', en_cotizador:false }
+```
+
+**Impacto en la vista previa**:
+
+- Antes: `"3m × 2.10m · 2 brazos + tela 5.00m"`
+- Ahora: `"3m × 2.10m · 2 brazos + tela 5.00m + MO confección"`
+
+**Descripción del item**:
+
+- Antes: `"Ancho 2300mm (sistema 3m) · Saliente 2.10m · 2 brazos · Tela..."`
+- Ahora: `"Ancho 2300mm (sistema 3m) · Saliente 2.10m · 2 brazos · Tela... · incl. MO confección"`
+
+**Editable a futuro**: cuando suba la mano de obra, se actualiza el insumo `mo_toldo` desde la lista de precios y todas las cotizaciones nuevas la toman automáticamente.
+
 ## V286 — 2026-05-15
 
 ### Persistencia completa en Supabase: ya no se pierden datos al sincronizar

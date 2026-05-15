@@ -2185,6 +2185,8 @@ const INSUMOS_DEFAULT = [
   { id:'tela_toldo_soltis96_267', cat:'Toldos', subcat:'Telas',   nombre:'Tela microperforada Soltis 96 ® 267cm (ml)', precio:170000, unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
   { id:'tela_toldo_sunpro_320',   cat:'Toldos', subcat:'Telas',   nombre:'Tela microperforada SunPro ® 320cm (ml)',    precio:65000,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
   { id:'tela_toldo_sunpro_250',   cat:'Toldos', subcat:'Telas',   nombre:'Tela microperforada SunPro ® 250cm (ml)',    precio:45000,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+  // TOLDOS — SERVICIOS
+  { id:'mo_toldo', cat:'Toldos', subcat:'Servicios', nombre:'Mano de obra confección toldo (por unidad)', precio:50000, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   // MOTORES
   { id:'motor_2n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 2N',           precio:298200, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
   { id:'motor_6n',         cat:'Motores',     subcat:'',          nombre:'Motor Vertilux 6N',           precio:390500, unidad:'u',   en_cotizador:false, cat_cotizador:'',           unidad_venta:'u' },
@@ -3280,6 +3282,9 @@ function qaTelaChange(){
   const toldoTelaBox = document.getElementById('qa-toldo-tela');
   if(toldoTelaBox) toldoTelaBox.style.display = 'none';
   restaurarColorSelect(); // restaurar select si había input libre
+  // V287: restaurar visibilidad del wrapper de qa-color (toldos lo oculta)
+  const _colorWrapDef = document.getElementById('qa-color')?.closest('.f');
+  if(_colorWrapDef) _colorWrapDef.style.display = '';
   const tela    = document.getElementById('qa-tela').value;
   const telaObj = TELAS[tela]||TELAS['blackout'];
   const esUnitario = telaObj.tipo === 'unitario';
@@ -3451,14 +3456,17 @@ function qaTelaChange(){
 
   } else if(telaObj.tipo === 'toldo'){
     // Toldo:
-    //   - qa-ancho: INPUT NUMÉRICO con el ancho REAL del toldo en mm
-    //   - qa-color: SELECT del ancho ESTÁNDAR usado (auto-bumped del real)
+    //   - qa-ancho: INPUT NUMÉRICO con el ancho REAL del toldo en mm (único visible para el ancho)
+    //   - qa-color: SELECT del ancho ESTÁNDAR usado — OCULTO, se calcula internamente (auto-bumped del real)
     //   - qa-variante: SELECT de saliente (filtrado según el ancho estándar)
     const anchos = telaObj.anchos || [];
     const sortedAnchos = [...anchos].sort((a,b) => parseFloat(a) - parseFloat(b));
     colorSel.innerHTML = sortedAnchos.map(a => `<option value="${a}">${a} m</option>`).join('');
     const colorLblEl = document.getElementById('qa-color-lbl');
     if(colorLblEl) colorLblEl.textContent = 'Ancho estándar';
+    // V287: Ocultar el wrapper de qa-color — el ancho estándar es interno
+    const colorWrapEl = colorSel.closest('.f');
+    if(colorWrapEl) colorWrapEl.style.display = 'none';
     const varianteWrap = document.getElementById('qa-variante-wrap');
     const varianteSel  = document.getElementById('qa-variante');
     const varianteLbl  = document.getElementById('qa-variante-lbl');
@@ -4106,7 +4114,9 @@ function qaCalcPrecio(){
       if(telaInfoSel) costoTelaLista = telaInfoSel.costoLista;
     } else if(panelTela){ panelTela.style.display='none'; }
 
-    const precioLista = costoSistemaLista + costoTelaLista;
+    // V287: Mano de obra confección toldo (insumo editable)
+    const costoMOToldo = getPrecio('mo_toldo') || 0;
+    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldo;
     const pu = Math.round(precioLista * getFV());
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
@@ -4120,7 +4130,8 @@ function qaCalcPrecio(){
     const realTxt = (anchoRealMm > 0 && anchoRealMm < anchoCotMm)
       ? `${anchoRealMm}mm real → cotiza ${anchoSel}m`
       : `${anchoSel}m`;
-    subD.textContent = `${realTxt} × ${salienteSel}m · ${cantB} brazos${extrasTxt}${telaTxt}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
+    const moTxt = costoMOToldo > 0 ? ' + MO confección' : '';
+    subD.textContent = `${realTxt} × ${salienteSel}m · ${cantB} brazos${extrasTxt}${telaTxt}${moTxt}${cant>1?' · '+cant+' und. = '+fmtM(pu*cant):''}`;
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4626,7 +4637,9 @@ function qaAgregar(){
       telaInfoSel = _renderToldoTelaPanel(anchoRealMm, S);
       if(telaInfoSel) costoTelaLista = telaInfoSel.costoLista;
     }
-    const precioLista = costoSistemaLista + costoTelaLista;
+    // V287: Mano de obra confección toldo (insumo editable mo_toldo)
+    const costoMOToldoA = getPrecio('mo_toldo') || 0;
+    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldoA;
     precio = Math.round(precioLista * getFV() * cant);
     const cantB  = (telaObjA.brazosPorAncho && telaObjA.brazosPorAncho[anchoSel]) || telaObjA.cantidadBrazos || 2;
     const extras = (telaObjA.extrasPorAncho && telaObjA.extrasPorAncho[anchoSel]) || '';
@@ -4640,7 +4653,8 @@ function qaAgregar(){
     const anchoDesc = (anchoRealMm < anchoCotMm)
       ? `${anchoRealMm}mm (sistema ${anchoSel}m)`
       : `${anchoSel}m`;
-    color = `Ancho ${anchoDesc} · Saliente ${salienteSel}m · ${cantB} brazos${extrasTxt}${descTela}`;
+    const moTxtA = costoMOToldoA > 0 ? ' · incl. MO confección' : '';
+    color = `Ancho ${anchoDesc} · Saliente ${salienteSel}m · ${cantB} brazos${extrasTxt}${descTela}${moTxtA}`;
     confData = Object.assign(confData||{}, telaInfoSel ? {
       toldoTelaRollo: telaInfoSel.rolloId,
       toldoTelaMarca: telaInfoSel.brand,
