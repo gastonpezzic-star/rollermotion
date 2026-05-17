@@ -1,5 +1,45 @@
 # Changelog
 
+## V290.1 — 2026-05-15
+
+### Toldos: medidas en columnas + chapón como 'Cobertor de toldo' + icono herramienta
+
+**Cambio 1 — Toldo brazos invisibles: medidas en columnas**
+
+Antes la descripción gris debajo del título del producto repetía `Ancho 3850mm · Saliente 2.10m` que ya estaba en las columnas Ancho/Alto de la fila. En una cotización combinada con cortinas, las medidas no aparecían en las columnas y se veía desprolijo.
+
+Ahora el ancho del toldo va en la **columna Ancho** y la saliente va en la **columna Alto** (en mm). La descripción gris queda limpia:
+
+**Antes**:
+```
+Toldo Brazos Invisibles Punta a Punta
+Brazos italianos Helix SP · Ancho 3850mm · Saliente 2.10m · Tela acrílica Dickson ®
+[Ancho: 3850]  [Alto: 2100]
+```
+
+**Ahora**:
+```
+Toldo Brazos Invisibles Punta a Punta
+Brazos italianos Helix SP · Tela acrílica Dickson ®
+[Ancho: 3850]  [Alto: 2100]
+```
+
+Mismo cambio aplicado al **Toldo Vertical** por consistencia (la descripción ya no repite `Ancho XXmm · Alto YYmm` — esos datos ya están en las columnas).
+
+**Cambio 2 — Chapón cubre toldos → "Cobertor de toldo"**
+
+Antes el chapón se agregaba como item con sistema `Accesorios de toldos · Chapón cubre toldos`. Ahora se muestra como:
+
+```
+Cobertor de toldo · Cada unidad cubre 2m de ancho
+```
+
+Aplica tanto cuando se agrega automáticamente desde el toggle del toldo, como cuando se selecciona manualmente desde el grupo `Accesorios de Toldos`. Se agregó `'cobertor_toldo'` a `TELA_LABELS` y override en la rama de accesorios cuando el insumoId es `chapon_cubre_toldos`.
+
+**Cambio 3 — Icono de instalación toldo brazos invisibles**
+
+`🌞 → 🔧` en la fila de instalación del PDF, consistente con cortinas.
+
 ## V290 — 2026-05-15
 
 ### Paneles Orientales + reorganización de la lista de precios
