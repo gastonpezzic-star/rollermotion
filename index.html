@@ -1071,7 +1071,7 @@ body{
             <label id="qa-toldo-motor" style="display:inline-flex;align-items:center;gap:10px;background:#fff7ed;border:1px solid #fcd9a8;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#7c4a1e;cursor:pointer;user-select:none;font-family:'DM Sans',sans-serif">
               <input type="checkbox" id="qa-toldo-motor-chk" onchange="qaToggleToldoMotor()" style="width:16px;height:16px;cursor:pointer;accent-color:#d4820e">
               <span>⚡ Toldo motorizado</span>
-              <span style="font-size:10.5px;color:#a87742;font-weight:500;font-style:italic">— adiciona $26.700 a la instalación</span>
+              <span style="font-size:10.5px;color:#a87742;font-weight:500;font-style:italic">— suma Motor Vertilux 50/12 como item + $26.700 instalación</span>
             </label>
             <label id="qa-toldo-chapon" style="display:inline-flex;align-items:center;gap:10px;background:#eef7f2;border:1px solid #aaddc0;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#1f6e45;cursor:pointer;user-select:none;font-family:'DM Sans',sans-serif">
               <input type="checkbox" id="qa-toldo-chapon-chk" onchange="qaToggleToldoChapon()" style="width:16px;height:16px;cursor:pointer;accent-color:#1f6e45">
@@ -1974,7 +1974,7 @@ const TELAS = {
       'Motor Vertilux RF 6N Control remoto':  { ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
       'Motor Vertilux WD Accionamiento tecla':{ ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
       'Motor Vertilux RF 12N Control remoto': { ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
-      'Motor Vertilux 50/12 RF':              { ideal:'Puede usarse para cortinas hasta 3700 × 3500 mm.', aviso:'Puede funcionar con medidas mayores con reducción de autonomía de batería o posibles arrugas en la tela.', color:'#1a5f8a' },
+      'Motor Vertilux 50/12 RF':              { ideal:'Motor con bajas revoluciones pero gran fuerza. Ideal para cortinas de más de 3700 mm de ancho.', aviso:'', color:'#7c4a1e' },
     }},
 
   // ── RIELES ──
@@ -2016,6 +2016,21 @@ const TELAS = {
     colors:['Motor Somfy Movelite 35 RTS'],
     precios:{ 'Motor Somfy Movelite 35 RTS': 540741 },
     aplicarSoloCoef: true,
+  },
+
+  // V289 — Riel de Bandas Verticales (sin tela)
+  'riel_bv_solo': {
+    label:'Riel de Bandas Verticales', grupo:'Rieles', tipo:'riel', colorLabel:'Color',
+    insumoId:'riel_bv',
+    colors:['Blanco','Negro','Anodizado natural'],
+    nota:'Solo riel · sin telas. Para fabricación se relevan medidas igual que pedido de bandas completas.',
+  },
+
+  // V289 — Riel Panel Oriental con 3/4/5 vías
+  'riel_panel_oriental': {
+    label:'Riel Panel Oriental', grupo:'Rieles', tipo:'riel', colorLabel:'Vías',
+    insumoId:'riel_panel_oriental',
+    colors:['Riel de 3 vías','Riel de 4 vías','Riel de 5 vías'],
   },
 
   // ── ACCESORIOS ──
@@ -2083,6 +2098,24 @@ const TELAS = {
       { insumoId:'eje_70',     nombre:'Eje 70mm',         unidad:'ml' },
       { insumoId:'zoc_bolsillo',nombre:'Zócalo bolsillo', unidad:'ml' },
     ]},
+
+  // V289 — SERVICIOS Y REPARACIONES
+  'servicios': {
+    label:'Servicios y reparaciones', grupo:'Servicios y reparaciones', tipo:'unitario', colorLabel:'Servicio',
+    colors:[
+      'Ajuste de cortina manual en ancho',
+      'Ajuste de cortina motorizada en ancho',
+      'Soldado de cortina roller',
+    ],
+    precios:{
+      'Ajuste de cortina manual en ancho':     36800,
+      'Ajuste de cortina motorizada en ancho': 48800,
+      'Soldado de cortina roller':             23000,
+    },
+    aplicarFV: true,  // precios son LISTA → venta = lista × FV
+    // Flag para futuro: al confirmar el pedido requerir medida final + comentarios
+    requiereMedidaPedido: true,
+  },
 
   // ── PRODUCTO LIBRE ──
   'libre': { label:'✏ Escribir producto...', grupo:'Otro', tipo:'libre', colorLabel:'Descripción' },
@@ -2304,6 +2337,14 @@ const INSUMOS_DEFAULT = [
   { id:'ven_alum25', cat:'Venecianas', subcat:'Aluminio',     nombre:'Veneciana Aluminio 25mm',     precio:82630,  unidad:'m2', en_cotizador:true, cat_cotizador:'Venecianas', unidad_venta:'m2' },
   { id:'ven_mad50',  cat:'Venecianas', subcat:'Madera',       nombre:'Veneciana Madera 50mm',      precio:297898, unidad:'m2', en_cotizador:true, cat_cotizador:'Venecianas', unidad_venta:'m2' },
   { id:'ven_sim50',  cat:'Venecianas', subcat:'Simil Madera', nombre:'Veneciana Simil Madera 50mm', precio:233728, unidad:'m2', en_cotizador:true, cat_cotizador:'Venecianas', unidad_venta:'m2' },
+
+  // ── V289 — RIEL PANEL ORIENTAL ──
+  { id:'riel_panel_oriental', cat:'Rieles', subcat:'Panel Oriental', nombre:'Riel Panel Oriental (precio por ml)', precio:80000, unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
+
+  // ── V289 — SERVICIOS Y REPARACIONES ──
+  { id:'srv_ajuste_manual',  cat:'Servicios', subcat:'Reparaciones', nombre:'Ajuste de cortina manual en ancho',     precio:36800, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'srv_ajuste_motor',   cat:'Servicios', subcat:'Reparaciones', nombre:'Ajuste de cortina motorizada en ancho', precio:48800, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'srv_soldado_roller', cat:'Servicios', subcat:'Reparaciones', nombre:'Soldado de cortina roller',             precio:23000, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
 ];
 function getInsumos(){
   const local = localStorage.getItem('rm_insumos');
@@ -3194,9 +3235,9 @@ function qaInit(){
     if(!grupos[g]) grupos[g] = [];
     grupos[g].push(k);
   });
-  // V287.3 / V288.3: orden explícito de grupos en el dropdown
-  // (Toldos va entre Cortinas y Cambio de tela · Accesorios de Toldos va justo después de Toldos)
-  const GRUPOS_ORDER = ['Cortinas','Toldos','Accesorios de Toldos','Cambio de tela','Rieles','Motores','Motores Rieles','Accesorios generales','Accesorios en aluminio','Otro'];
+  // V287.3 / V288.3 / V289: orden explícito de grupos en el dropdown
+  // Toldos entre Cortinas y Cambio de tela · Accesorios de Toldos junto a Toldos · Servicios cerca del final
+  const GRUPOS_ORDER = ['Cortinas','Toldos','Accesorios de Toldos','Cambio de tela','Rieles','Motores','Motores Rieles','Accesorios generales','Accesorios en aluminio','Servicios y reparaciones','Otro'];
   const ordered = [
     ...GRUPOS_ORDER.filter(g => grupos[g]).map(g => [g, grupos[g]]),
     ...Object.entries(grupos).filter(([g]) => !GRUPOS_ORDER.includes(g)),
@@ -3773,6 +3814,39 @@ function calcChaponCubre(anchoMm){
   return { qty, costoLista: qty * precioUnitLista, precioUnitLista };
 }
 
+// V289: helpers para auto-agregar items derivados del toldo (chapón + motor).
+// Se llaman desde qaAgregar después de agregar el toldo principal.
+function autoAddChaponItem(anchoMm){
+  const info = calcChaponCubre(anchoMm);
+  if(info.qty <= 0) return;
+  const precioUnitVenta = Math.round(info.precioUnitLista * getFV());
+  addRow({
+    tela: 'accesorios_toldos',
+    color: 'Chapón cubre toldos',
+    ancho: '',
+    alto:  '',
+    cant: info.qty,
+    precio: precioUnitVenta,
+    ref: `Para toldo de ${anchoMm}mm de ancho · cada uno cubre 2m`,
+  });
+}
+function autoAddMotorToldoItem(anchoMm){
+  const MODELO = 'Motor Vertilux 50/12 RF';
+  const precioLista = (TELAS.motores?.precios?.[MODELO]) || 0;
+  if(precioLista <= 0) return;
+  // motores usa aplicarSoloCoef (coef de cuotas, no FV completo con IVA)
+  const precioVenta = Math.round(precioLista * (typeof getCoefCuotas === 'function' ? getCoefCuotas() : getFV()));
+  addRow({
+    tela: 'motores',
+    color: MODELO,
+    ancho: '',
+    alto:  '',
+    cant: 1,
+    precio: precioVenta,
+    ref: `Para toldo motorizado de ${anchoMm}mm de ancho`,
+  });
+}
+
 // Renderiza el panel de opciones de tela del toldo en #qa-toldo-tela.
 // Recibe el ancho A y saliente S en mm. Devuelve la opción seleccionada
 // (la activa) para que qaCalcPrecio la use en el costo.
@@ -4262,16 +4336,18 @@ function qaCalcPrecio(){
 
     // V287: Mano de obra confección toldo (insumo editable)
     const costoMOToldo = getPrecio('mo_toldo') || 0;
-    // V288.3: Chapón cubre toldos (opcional, según ancho real)
+    // V289: el chapón y el motor se agregan como items SEPARADOS al confirmar
+    // (qaAgregar los inserta vía autoAddChaponItem / autoAddMotorToldoItem).
+    // Acá solo calculamos el chapón para mostrarlo en el detalle del toggle.
     const chaponInfo = window._toldoChaponCubre ? calcChaponCubre(anchoRealMm) : { qty:0, costoLista:0 };
-    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldo + chaponInfo.costoLista;
+    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldo;
     const pu = Math.round(precioLista * getFV());
-    // Detalle del chapón en el toggle
+    // Detalle del toggle chapón
     const chaponDetail = document.getElementById('qa-toldo-chapon-detail');
     if(chaponDetail){
       chaponDetail.textContent = chaponInfo.qty > 0
-        ? `— ${chaponInfo.qty} chapón${chaponInfo.qty>1?'es':''} × 2m (incluido en precio)`
-        : '— calcula automáticamente según el ancho';
+        ? `— se agregará ${chaponInfo.qty} chapón${chaponInfo.qty>1?'es':''} × 2m como item aparte`
+        : '— calcula automáticamente según el ancho · se agrega como item aparte';
     }
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
@@ -4289,10 +4365,9 @@ function qaCalcPrecio(){
     partesPv.push(`Ancho ${anchoRealTxt}`);
     partesPv.push(`Saliente ${salienteSel}m`);
     if(telaPart) partesPv.push(`<strong style="color:#0b3d2e">${telaPart}</strong>`);
-    // V288.3: mencionar chapón si se incluye
-    const chaponTxtPv = chaponInfo.qty > 0 ? ` · + ${chaponInfo.qty} chapón${chaponInfo.qty>1?'es':''} cubre toldos` : '';
+    // V289: chapón y motor van como items separados (no se mencionan en la descripción del toldo)
     const cantTxt = cant>1 ? ` · ${cant} und. = ${fmtM(pu*cant)}` : '';
-    subD.innerHTML = partesPv.join(' · ') + brazosCountTxt + extrasTxt + chaponTxtPv + cantTxt;
+    subD.innerHTML = partesPv.join(' · ') + brazosCountTxt + extrasTxt + cantTxt;
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
     const roundEl=document.getElementById('qa-round-notice'); if(roundEl) roundEl.style.display='none';
@@ -4331,17 +4406,17 @@ function qaCalcPrecio(){
       if(telaInfoSelV) costoTelaLista = telaInfoSelV.costoLista;
     } else if(panelTela){ panelTela.style.display='none'; }
 
-    // V288.3: Chapón cubre toldos
+    // V289: el chapón y el motor se agregan como items SEPARADOS al confirmar
     const chaponInfoV = window._toldoChaponCubre ? calcChaponCubre(anchoMm) : { qty:0, costoLista:0 };
-    const precioLista = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaLista + chaponInfoV.costoLista;
+    const precioLista = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaLista;
     const pu = Math.round(precioLista * getFV());
 
-    // Detalle del chapón en el toggle
+    // Detalle del toggle chapón
     const chaponDetailV = document.getElementById('qa-toldo-chapon-detail');
     if(chaponDetailV){
       chaponDetailV.textContent = chaponInfoV.qty > 0
-        ? `— ${chaponInfoV.qty} chapón${chaponInfoV.qty>1?'es':''} × 2m (incluido en precio)`
-        : '— calcula automáticamente según el ancho';
+        ? `— se agregará ${chaponInfoV.qty} chapón${chaponInfoV.qty>1?'es':''} × 2m como item aparte`
+        : '— calcula automáticamente según el ancho · se agrega como item aparte';
     }
 
     disp.textContent = fmtM(pu);
@@ -4349,13 +4424,12 @@ function qaCalcPrecio(){
     subD.style.display='block';
     const telaTxtV = telaInfoSelV ? `<strong style="color:#0b3d2e">${telaInfoSelV.brand}</strong>` : '';
     const cantTxtV = cant>1 ? ` · ${cant} und. = ${fmtM(pu*cant)}` : '';
-    const chaponTxtVp = chaponInfoV.qty > 0 ? ` · + ${chaponInfoV.qty} chapón${chaponInfoV.qty>1?'es':''} cubre toldos` : '';
     const partesV = [];
     partesV.push(`Ancho ${anchoMm}mm`);
     partesV.push(`Alto ${altoMm}mm`);
     if(telaTxtV) partesV.push(telaTxtV);
     partesV.push(`Eje 70 · Caduta ${anchoCadM}m · 2 calotas · máq. polifuncional`);
-    subD.innerHTML = partesV.join(' · ') + chaponTxtVp + cantTxtV;
+    subD.innerHTML = partesV.join(' · ') + cantTxtV;
 
     btn.disabled=false; btn.style.opacity='1';
     cutsEl.style.display='none';
@@ -4881,28 +4955,23 @@ function qaAgregar(){
     }
     // V287: Mano de obra confección toldo (insumo editable mo_toldo)
     const costoMOToldoA = getPrecio('mo_toldo') || 0;
-    // V288.3: Chapón cubre toldos (opcional)
-    const chaponInfoA = window._toldoChaponCubre ? calcChaponCubre(anchoRealMm) : { qty:0, costoLista:0 };
-    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldoA + chaponInfoA.costoLista;
+    // V289: chapón y motor van como items SEPARADOS (autoAdd al final).
+    // Acá no se suman al precio del toldo ni se mencionan en la descripción.
+    const precioLista = costoSistemaLista + costoTelaLista + costoMOToldoA;
     precio = Math.round(precioLista * getFV() * cant);
     const cantB  = (telaObjA.brazosPorAncho && telaObjA.brazosPorAncho[anchoSel]) || telaObjA.cantidadBrazos || 2;
     const extras = (telaObjA.extrasPorAncho && telaObjA.extrasPorAncho[anchoSel]) || '';
-    // V287.4: descripción simplificada — solo marca de tela (sin ancho rollo ni tramos)
     const telaPart = telaInfoSel ? telaInfoSel.brand : '';
     const extrasTxt = extras ? ` · ${extras}` : '';
-    // V287.4: usar SIEMPRE el ancho real (sin paréntesis "(sistema Xm)")
     const anchoDesc = `${anchoRealMm}mm`;
-    // V287.2/4: línea descriptiva = Marca de brazos · Ancho · Saliente · Tela [· cant. brazos extras]
-    // Resaltado se aplica en el render del item (addRow) sobre Brazos y Tela.
     const brazosMarca = telaObjA.brazosMarca || '';
     const brazosCountTxt = (cantB && cantB !== 2) ? ` · ${cantB} brazos` : '';
-    const chaponTxtA = chaponInfoA.qty > 0 ? ` · + ${chaponInfoA.qty} chapón${chaponInfoA.qty>1?'es':''} cubre toldos` : '';
     const partes = [];
     if(brazosMarca) partes.push(brazosMarca);
     partes.push(`Ancho ${anchoDesc}`);
     partes.push(`Saliente ${salienteSel}m`);
     if(telaPart) partes.push(telaPart);
-    color = partes.join(' · ') + brazosCountTxt + extrasTxt + chaponTxtA;
+    color = partes.join(' · ') + brazosCountTxt + extrasTxt;
     confData = Object.assign(confData||{}, telaInfoSel ? {
       toldoTelaRollo: telaInfoSel.rolloId,
       toldoTelaMarca: telaInfoSel.brand,
@@ -4912,9 +4981,10 @@ function qaAgregar(){
       toldoTelaLinearM: telaInfoSel.linearM,
     } : {}, {
       motorizado: !!window._toldoMotorizado,
-      chaponCubre: !!window._toldoChaponCubre,
-      chaponQty: chaponInfoA.qty,
     });
+    // V289: marcar para auto-agregar chapón y motor después del addRow principal
+    window._pendingChaponForToldo = window._toldoChaponCubre ? anchoRealMm : 0;
+    window._pendingMotorForToldo  = window._toldoMotorizado  ? anchoRealMm : 0;
     // Guardar ancho REAL del toldo (lo que se confecciona) + saliente como alto
     ancho = String(anchoRealMm);
     alto  = String(Math.round(parseFloat(salienteSel) * 1000));
@@ -4942,19 +5012,17 @@ function qaAgregar(){
       telaInfoSelV = _renderToldoTelaPanel(anchoMmV, altoMmV);
       if(telaInfoSelV) costoTelaListaV = telaInfoSelV.costoLista;
     }
-    // V288.3: Chapón cubre toldos (opcional)
-    const chaponInfoVa = window._toldoChaponCubre ? calcChaponCubre(anchoMmV) : { qty:0, costoLista:0 };
-    const precioListaV = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaListaV + chaponInfoVa.costoLista;
+    // V289: chapón y motor van como items SEPARADOS (autoAdd al final).
+    const precioListaV = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaListaV;
     precio = Math.round(precioListaV * getFV() * cant);
 
     const telaPartV = telaInfoSelV ? telaInfoSelV.brand : '';
-    const chaponTxtVa = chaponInfoVa.qty > 0 ? ` · + ${chaponInfoVa.qty} chapón${chaponInfoVa.qty>1?'es':''} cubre toldos` : '';
     const partesV = [];
     partesV.push(`Ancho ${anchoMmV}mm`);
     partesV.push(`Alto ${altoMmV}mm`);
     if(telaPartV) partesV.push(telaPartV);
     partesV.push(`Eje 70 · Caduta ${anchoCadM}m · 2 calotas · máq. polifuncional · tapas tensor`);
-    color = partesV.join(' · ') + chaponTxtVa;
+    color = partesV.join(' · ');
 
     confData = Object.assign(confData||{}, telaInfoSelV ? {
       toldoTelaRollo: telaInfoSelV.rolloId,
@@ -4965,9 +5033,10 @@ function qaAgregar(){
       toldoTelaLinearM: telaInfoSelV.linearM,
     } : {}, {
       motorizado: !!window._toldoMotorizado,
-      chaponCubre: !!window._toldoChaponCubre,
-      chaponQty: chaponInfoVa.qty,
     });
+    // V289: marcar para auto-agregar chapón y motor después del addRow principal
+    window._pendingChaponForToldo = window._toldoChaponCubre ? anchoMmV : 0;
+    window._pendingMotorForToldo  = window._toldoMotorizado  ? anchoMmV : 0;
 
   } else if(telaObjA?.tipo === 'veneciana'){
     // qa-color = clave del subtipo, qa-variante = color elegido
@@ -4985,6 +5054,16 @@ function qaAgregar(){
 
   addRow({ tela, color, ancho, alto, cant, ref, zoc, sent, sop, cad, cadColor, mecColor, adic, col, precio,
            accionamiento, dobladillo, arrastre, ...(confData||{}) });
+
+  // V289: si el toldo tenía chapón o motor, agregarlos como items separados
+  if(window._pendingChaponForToldo > 0){
+    autoAddChaponItem(window._pendingChaponForToldo);
+    window._pendingChaponForToldo = 0;
+  }
+  if(window._pendingMotorForToldo > 0){
+    autoAddMotorToldoItem(window._pendingMotorForToldo);
+    window._pendingMotorForToldo = 0;
+  }
 
   // Reset
   if(!esUnitario && !esAccesorio && !esCambioTela){

@@ -1,0 +1,621 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <title>Cotización COT-2026-0247 · RollerMotion</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&family=Raleway:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent }
+    :root{
+      --ink:#141414; --muted:#7a7775; --soft:#a8a5a0;
+      --bg:#f6f4ef; --surface:#ffffff; --border:#e8e5e0;
+      --brand:#f09620; --brand-2:#d2001e;
+      --accept:#1a4a2a; --accept-soft:#eef7f2;
+    }
+    html, body { margin:0; padding:0; background:var(--bg); color:var(--ink); font-family:'DM Sans',sans-serif; line-height:1.5; -webkit-font-smoothing:antialiased }
+    body { padding-bottom:60px }
+
+    /* ─────────────────────────── DEMO CONTROL BAR ─────────────────────────── */
+    .demo-bar{
+      position:sticky; top:0; z-index:50;
+      background:#141414; color:#fff; padding:10px 16px;
+      display:flex; align-items:center; gap:10px; flex-wrap:wrap;
+      font-size:11px; font-family:'DM Sans',sans-serif;
+      box-shadow:0 1px 0 rgba(0,0,0,.05);
+    }
+    .demo-bar .lbl{ font-weight:700; color:#fdd; letter-spacing:.05em; text-transform:uppercase; font-size:10px; margin-right:4px }
+    .demo-bar button{
+      font:inherit; background:rgba(255,255,255,.08); color:#fff;
+      border:1px solid rgba(255,255,255,.16);
+      padding:5px 11px; border-radius:5px; cursor:pointer;
+      font-size:11px; transition:all .15s;
+    }
+    .demo-bar button:hover{ background:rgba(255,255,255,.16) }
+    .demo-bar button.active{ background:var(--brand); border-color:var(--brand); font-weight:600 }
+    .demo-bar .admin-view{ margin-left:auto; opacity:.75; font-size:10px; cursor:pointer; display:inline-flex; align-items:center; gap:6px }
+    .demo-bar .admin-view input{ accent-color:var(--brand) }
+
+    /* ─────────────────────────── ADMIN VIEW PANEL ─────────────────────────── */
+    .admin-panel{
+      display:none; position:fixed; top:50px; right:16px; z-index:40;
+      background:#fff; border:1px solid var(--border); border-radius:12px;
+      padding:14px 16px; width:280px; box-shadow:0 8px 28px rgba(0,0,0,.12);
+      font-size:11.5px; line-height:1.55;
+    }
+    .admin-panel.visible{ display:block }
+    .admin-panel h4{ margin:0 0 6px; font-size:10px; text-transform:uppercase; letter-spacing:.14em; color:var(--brand); font-family:'Raleway',sans-serif }
+    .admin-panel .lab{ font-size:9.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--muted); font-weight:600; margin-top:8px }
+    .admin-panel .ev{ padding:4px 0; border-bottom:1px dashed var(--border); color:#333 }
+    .admin-panel .ev:last-child{ border-bottom:0 }
+
+    /* ─────────────────────────── HEADER ─────────────────────────── */
+    .page-wrap{ max-width:780px; margin:0 auto; padding:24px 16px }
+    @media(min-width:740px){ .page-wrap{ padding:36px 24px } }
+
+    .brand-bar{
+      display:flex; justify-content:space-between; align-items:center; gap:12px;
+      margin-bottom:24px;
+    }
+    .brand-bar .logo{
+      font-family:'Raleway',sans-serif; font-size:18px; font-weight:700;
+      letter-spacing:-.01em; color:var(--ink);
+    }
+    .brand-bar .logo small{ font-size:10px; font-weight:500; color:var(--muted); margin-left:3px }
+    .brand-bar .meta{ font-size:11px; color:var(--muted); text-align:right }
+    .brand-bar .meta strong{ display:block; font-family:'Manrope',sans-serif; font-weight:600; color:var(--brand); font-size:13px; letter-spacing:.04em }
+
+    /* ─────────────────────────── HERO ─────────────────────────── */
+    .hero{
+      background:#fff; border-radius:16px; padding:28px 24px;
+      box-shadow:0 1px 0 rgba(0,0,0,.02), 0 6px 26px rgba(0,0,0,.04);
+      margin-bottom:18px; position:relative; overflow:hidden;
+    }
+    .hero::before{
+      content:''; position:absolute; top:0; left:0; right:0; height:4px;
+      background:linear-gradient(90deg, var(--brand), var(--brand-2));
+    }
+    .hero h1{
+      font-family:'Raleway',sans-serif; font-size:24px; font-weight:600;
+      letter-spacing:-.02em; margin:0 0 6px; line-height:1.2;
+    }
+    @media(min-width:740px){ .hero h1{ font-size:30px } }
+    .hero .sub{ font-size:14px; color:var(--muted); margin:0 0 18px }
+    .hero-meta{ display:flex; flex-wrap:wrap; gap:18px 28px; font-size:11.5px; color:var(--muted) }
+    .hero-meta .k{ font-size:9.5px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--soft); display:block; margin-bottom:2px }
+    .hero-meta .v{ color:var(--ink); font-weight:500; font-size:13px }
+    .hero-meta .vendor{ display:inline-flex; align-items:center; gap:7px }
+    .hero-meta .vendor-pic{ width:24px; height:24px; border-radius:50%; background:linear-gradient(135deg,var(--brand),var(--brand-2)); color:#fff; display:inline-flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; font-family:'Manrope',sans-serif }
+
+    /* ─────────────────────────── STATUS BANNER (post-acceptance) ─────────────────────────── */
+    .status-banner{
+      display:none; background:linear-gradient(135deg, #eef7f2, #f5fbf7);
+      border:1px solid #cce5d5; border-radius:14px; padding:16px 20px;
+      margin-bottom:18px; align-items:center; gap:14px;
+    }
+    body.state-aceptada .status-banner,
+    body.state-fabricacion .status-banner,
+    body.state-listo .status-banner,
+    body.state-entregado .status-banner{ display:flex }
+    .status-banner .check{
+      width:34px; height:34px; border-radius:50%; background:var(--accept); color:#fff;
+      display:inline-flex; align-items:center; justify-content:center; font-size:18px;
+      flex-shrink:0;
+    }
+    .status-banner .txt strong{ display:block; color:var(--accept); font-family:'Raleway',sans-serif; font-size:14px; font-weight:600 }
+    .status-banner .txt span{ font-size:11.5px; color:#3d6b4e }
+
+    /* ─────────────────────────── TIMELINE ─────────────────────────── */
+    .timeline-card{
+      display:none; background:#fff; border-radius:16px; padding:24px 22px;
+      box-shadow:0 1px 0 rgba(0,0,0,.02), 0 6px 26px rgba(0,0,0,.04);
+      margin-bottom:18px;
+    }
+    body.state-aceptada .timeline-card,
+    body.state-fabricacion .timeline-card,
+    body.state-listo .timeline-card,
+    body.state-entregado .timeline-card{ display:block }
+    .timeline-card h3{ margin:0 0 16px; font-size:10px; text-transform:uppercase; letter-spacing:.14em; color:var(--soft); font-family:'Raleway',sans-serif; font-weight:600 }
+    .timeline{
+      display:flex; justify-content:space-between; align-items:flex-start;
+      position:relative; padding:0 0 4px;
+    }
+    .timeline::before{
+      content:''; position:absolute; top:11px; left:11px; right:11px; height:2px;
+      background:var(--border); z-index:0;
+    }
+    .timeline .step{ flex:1; text-align:center; position:relative; z-index:1 }
+    .timeline .dot{
+      width:24px; height:24px; border-radius:50%; background:var(--border); margin:0 auto 8px;
+      display:flex; align-items:center; justify-content:center; font-size:13px; color:transparent;
+      transition:all .3s;
+    }
+    .timeline .step.done .dot{ background:var(--accept); color:#fff }
+    .timeline .step.current .dot{ background:var(--brand); color:#fff; box-shadow:0 0 0 5px rgba(240,150,32,.18) }
+    .timeline .step .label{ font-size:10.5px; font-weight:600; color:var(--muted) }
+    .timeline .step.done .label,
+    .timeline .step.current .label{ color:var(--ink) }
+    .timeline .step .when{ font-size:9.5px; color:var(--soft); margin-top:2px; display:block; font-family:'Manrope',sans-serif }
+    .timeline-card .next{
+      margin-top:18px; padding-top:14px; border-top:1px dashed var(--border);
+      font-size:12px; color:var(--muted); line-height:1.6;
+    }
+    .timeline-card .next strong{ color:var(--ink); font-weight:600 }
+
+    /* ─────────────────────────── ITEMS ─────────────────────────── */
+    .items-card{
+      background:#fff; border-radius:16px; overflow:hidden;
+      box-shadow:0 1px 0 rgba(0,0,0,.02), 0 6px 26px rgba(0,0,0,.04);
+      margin-bottom:18px;
+    }
+    .items-head{
+      padding:16px 22px 0; font-size:10px; text-transform:uppercase; letter-spacing:.14em;
+      color:var(--soft); font-family:'Raleway',sans-serif; font-weight:600;
+    }
+    .item{
+      display:flex; gap:14px; align-items:flex-start; padding:18px 22px;
+      border-bottom:1px solid var(--border);
+    }
+    .item:last-of-type{ border-bottom:0 }
+    .item-num{
+      font-family:'Manrope',sans-serif; font-size:11px; color:var(--soft); font-weight:700;
+      width:24px; flex-shrink:0; padding-top:2px;
+    }
+    .item-swatch{
+      width:54px; height:54px; border-radius:8px; flex-shrink:0;
+      background:linear-gradient(135deg, #d9c8a8, #b89968);
+      box-shadow:inset 0 0 0 1px rgba(0,0,0,.05);
+      position:relative; overflow:hidden;
+    }
+    .item-swatch.tela-dickson{ background:linear-gradient(135deg, #ddbf7a, #9a7d3e) }
+    .item-swatch.tela-dickson::after{ content:''; position:absolute; inset:0; background:repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,.07) 3px, rgba(255,255,255,.07) 4px) }
+    .item-swatch.tela-blackout{ background:linear-gradient(135deg, #2a2a2a, #4a4a4a) }
+    .item-swatch.tela-aluminio{ background:linear-gradient(135deg, #c8ccd1, #8b9098) }
+    .item-swatch.tela-aluminio::after{ content:''; position:absolute; inset:0; background:repeating-linear-gradient(90deg, transparent, transparent 5px, rgba(255,255,255,.18) 5px, rgba(255,255,255,.18) 6px) }
+    .item-body{ flex:1; min-width:0 }
+    .item-title{ font-family:'Raleway',sans-serif; font-weight:600; font-size:15px; color:var(--ink); margin-bottom:3px; line-height:1.3 }
+    .item-desc{ font-size:11.5px; color:var(--muted); line-height:1.55 }
+    .item-desc strong{ color:#0b3d2e; font-weight:600 }
+    .item-meta{ font-size:10.5px; color:var(--soft); margin-top:5px }
+    .item-price{ text-align:right; flex-shrink:0 }
+    .item-price .unit{ font-size:10px; color:var(--soft); font-weight:600 }
+    .item-price .total{ font-family:'Manrope',sans-serif; font-weight:600; color:var(--ink); font-size:15px; letter-spacing:.01em }
+    .item-price .qty{ font-size:11px; color:var(--muted); display:block; margin-top:2px }
+
+    /* ─────────────────────────── TOTALS ─────────────────────────── */
+    .totals-card{
+      background:#fff; border-radius:16px; padding:20px 22px;
+      box-shadow:0 1px 0 rgba(0,0,0,.02), 0 6px 26px rgba(0,0,0,.04);
+      margin-bottom:14px;
+    }
+    .totals-row{ display:flex; justify-content:space-between; align-items:baseline; padding:5px 0; font-size:13px; color:var(--muted) }
+    .totals-row.installation{ font-size:12px; color:var(--soft) }
+    .totals-row .v{ font-family:'Manrope',sans-serif; color:var(--ink); font-weight:500 }
+    .totals-row.total{
+      border-top:1px solid var(--ink); margin-top:8px; padding-top:14px;
+      font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--ink);
+    }
+    .totals-row.total .v{ font-family:'Manrope',sans-serif; font-size:22px; font-weight:700; letter-spacing:-.005em }
+
+    .promo-card{
+      margin-top:14px; padding:16px 18px; border-radius:12px;
+      background:linear-gradient(135deg, #f00020 0%, #980012 100%);
+      color:#fff; display:flex; justify-content:space-between; align-items:center; gap:12px;
+    }
+    .promo-card .left .pill{
+      display:inline-block; background:rgba(255,255,255,.22); padding:3px 10px; border-radius:20px;
+      font-size:10px; font-weight:700; letter-spacing:.06em; margin-bottom:6px;
+    }
+    .promo-card .left .txt{ font-size:11.5px; opacity:.9; line-height:1.4 }
+    .promo-card .left .txt strong{ font-weight:600 }
+    .promo-card .price{ font-family:'Manrope',sans-serif; font-size:20px; font-weight:700; white-space:nowrap }
+
+    /* ─────────────────────────── CTA ─────────────────────────── */
+    .cta-wrap{ margin:24px 0 14px }
+    .cta-accept{
+      display:flex; align-items:center; justify-content:center; gap:10px;
+      width:100%; padding:16px 24px; font:inherit;
+      background:var(--accept); color:#fff; border:0; border-radius:14px;
+      font-family:'Raleway',sans-serif; font-size:14px; font-weight:600; letter-spacing:.04em;
+      cursor:pointer; text-decoration:none; transition:all .2s;
+      box-shadow:0 4px 18px rgba(26,74,42,.28);
+    }
+    .cta-accept:hover{ transform:translateY(-1px); box-shadow:0 6px 22px rgba(26,74,42,.34) }
+    body.state-aceptada .cta-accept,
+    body.state-fabricacion .cta-accept,
+    body.state-listo .cta-accept,
+    body.state-entregado .cta-accept{ display:none }
+    .secondary-actions{ display:flex; gap:10px; margin-top:10px; flex-wrap:wrap }
+    .secondary-actions a{
+      flex:1; text-align:center; padding:11px 14px; border:1px solid var(--border); border-radius:10px;
+      background:#fff; color:var(--ink); text-decoration:none; font-size:12px; font-weight:500;
+      display:inline-flex; align-items:center; justify-content:center; gap:6px; min-width:120px;
+    }
+    .secondary-actions a:hover{ border-color:#bcb8b2 }
+
+    /* ─────────────────────────── ACCEPT MODAL ─────────────────────────── */
+    .modal-backdrop{
+      display:none; position:fixed; inset:0; background:rgba(20,20,20,.5);
+      z-index:100; align-items:center; justify-content:center; padding:20px;
+      backdrop-filter:blur(4px);
+    }
+    .modal-backdrop.visible{ display:flex }
+    .modal{
+      background:#fff; border-radius:18px; padding:28px 24px; max-width:420px; width:100%;
+      box-shadow:0 20px 60px rgba(0,0,0,.25);
+    }
+    .modal h2{ font-family:'Raleway',sans-serif; font-size:20px; margin:0 0 4px; font-weight:600; letter-spacing:-.01em }
+    .modal p{ font-size:12.5px; color:var(--muted); margin:0 0 18px; line-height:1.5 }
+    .modal .field{ display:block; margin-bottom:12px }
+    .modal .field label{ display:block; font-size:10px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:var(--soft); margin-bottom:4px }
+    .modal .field input{
+      width:100%; padding:11px 13px; border:1.5px solid var(--border); border-radius:8px;
+      font:inherit; font-size:14px; color:var(--ink); outline:none; transition:border-color .15s;
+      background:#fafaf8;
+    }
+    .modal .field input:focus{ border-color:var(--brand); background:#fff }
+    .modal .check-row{ display:flex; gap:9px; align-items:flex-start; font-size:11.5px; color:var(--muted); margin:14px 0 18px; line-height:1.45 }
+    .modal .check-row input{ margin-top:3px; accent-color:var(--accept); flex-shrink:0 }
+    .modal-btns{ display:flex; gap:10px }
+    .modal-btns button{ flex:1; padding:13px 16px; border-radius:10px; font:inherit; font-size:13px; cursor:pointer; font-family:'Raleway',sans-serif; font-weight:600; letter-spacing:.03em }
+    .modal-btns .cancel{ background:#fff; border:1px solid var(--border); color:var(--muted) }
+    .modal-btns .confirm{ background:var(--accept); border:0; color:#fff; box-shadow:0 4px 14px rgba(26,74,42,.25) }
+    .modal-btns .confirm:disabled{ opacity:.4; cursor:not-allowed; box-shadow:none }
+
+    /* ─────────────────────────── SUCCESS TOAST ─────────────────────────── */
+    .toast{
+      display:none; position:fixed; bottom:24px; left:50%; transform:translateX(-50%);
+      background:var(--accept); color:#fff; padding:14px 22px; border-radius:50px;
+      font-size:13px; font-weight:600; z-index:200; gap:8px; align-items:center;
+      box-shadow:0 8px 28px rgba(26,74,42,.4);
+    }
+    .toast.visible{ display:inline-flex }
+
+    /* ─────────────────────────── FOOTER ─────────────────────────── */
+    footer{
+      text-align:center; margin-top:32px; padding:24px 22px 0; border-top:1px solid var(--border);
+      font-family:'DM Sans',sans-serif;
+    }
+    footer .name{
+      font-family:'Raleway',sans-serif; font-size:11.5px; font-weight:500; letter-spacing:0.42em;
+      color:var(--ink); text-transform:uppercase; margin-bottom:14px;
+    }
+    footer .info{ font-size:10.5px; color:var(--muted); line-height:1.85 }
+    footer .info a{ color:var(--ink); text-decoration:none; border-bottom:1px solid #c8c5c0 }
+    footer .info a.wa{ color:var(--accept); border-bottom-color:#aac9b5 }
+    footer .legal{ font-size:9px; color:var(--soft); margin-top:14px; font-style:italic; letter-spacing:.04em }
+  </style>
+</head>
+<body class="state-pendiente">
+
+<!-- DEMO CONTROL BAR (solo visible para Gaston, no para el cliente real) -->
+<div class="demo-bar">
+  <span class="lbl">Demo controls</span>
+  <button onclick="setState('pendiente', this)" class="active">⏳ Pendiente</button>
+  <button onclick="setState('aceptada', this)">✓ Aceptada</button>
+  <button onclick="setState('fabricacion', this)">🔧 En fabricación</button>
+  <button onclick="setState('listo', this)">📦 Listo</button>
+  <button onclick="setState('entregado', this)">🚚 Entregado</button>
+  <label class="admin-view">
+    <input type="checkbox" onchange="toggleAdmin(this.checked)"> Ver vista admin
+  </label>
+</div>
+
+<!-- VISTA ADMIN (lo que vos ves del lado del sistema) -->
+<div class="admin-panel" id="adminPanel">
+  <h4>Lo que ves del lado admin</h4>
+  <div class="lab">Tracking de aperturas</div>
+  <div class="ev">📱 <strong>iPhone · Buenos Aires</strong><br>15/05/2026 · 11:23</div>
+  <div class="ev">📱 <strong>iPhone · Buenos Aires</strong><br>15/05/2026 · 14:05</div>
+  <div class="ev">💻 <strong>Mac · Buenos Aires</strong><br>15/05/2026 · 14:37 · <em style="color:#1a4a2a">→ Aceptada</em></div>
+  <div class="lab">Firma digital</div>
+  <div class="ev" style="font-size:10.5px">
+    <strong>María Aramburu</strong><br>
+    maria@aramburu.ar<br>
+    +54 9 11 4567-8900<br>
+    IP 181.45.232.78 · ID aB7xK9pQ
+  </div>
+</div>
+
+<!-- ───────────────────────────────── PORTAL ───────────────────────────────── -->
+<div class="page-wrap">
+
+  <!-- BRAND BAR -->
+  <div class="brand-bar">
+    <div class="logo">RollerMotion <small>®</small></div>
+    <div class="meta">
+      <span style="font-size:9px;text-transform:uppercase;letter-spacing:.12em;color:var(--soft);font-weight:600">Cotización</span>
+      <strong>COT-2026-0247</strong>
+    </div>
+  </div>
+
+  <!-- HERO -->
+  <div class="hero">
+    <h1>María, te preparamos<br>esta cotización</h1>
+    <p class="sub">Para tu obra en Belgrano R · Estudio Aramburu Arquitectos</p>
+    <div class="hero-meta">
+      <div>
+        <span class="k">Vendedor</span>
+        <span class="vendor"><span class="vendor-pic">GP</span><span class="v">Gastón Pezzic</span></span>
+      </div>
+      <div>
+        <span class="k">Emitida</span>
+        <span class="v">15 / 05 / 2026</span>
+      </div>
+      <div>
+        <span class="k">Válida hasta</span>
+        <span class="v" id="validitySpan">22 / 05 / 2026</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- BANNER DE ESTADO (post-acceptance) -->
+  <div class="status-banner" id="statusBanner">
+    <div class="check" id="statusIcon">✓</div>
+    <div class="txt">
+      <strong id="statusTitle">Pedido confirmado</strong>
+      <span id="statusSub">Recibimos tu aceptación el 15/05/2026 a las 14:37</span>
+    </div>
+  </div>
+
+  <!-- TIMELINE (post-acceptance) -->
+  <div class="timeline-card">
+    <h3>Seguimiento del pedido</h3>
+    <div class="timeline" id="timeline">
+      <div class="step done" data-step="confirmado">
+        <div class="dot">✓</div>
+        <div class="label">Confirmado</div>
+        <span class="when">15/05</span>
+      </div>
+      <div class="step" data-step="fabricacion">
+        <div class="dot">⚙</div>
+        <div class="label">En fabricación</div>
+        <span class="when" data-default="—">—</span>
+      </div>
+      <div class="step" data-step="listo">
+        <div class="dot">📦</div>
+        <div class="label">Listo</div>
+        <span class="when" data-default="—">—</span>
+      </div>
+      <div class="step" data-step="entregado">
+        <div class="dot">🚚</div>
+        <div class="label">Entregado</div>
+        <span class="when" data-default="—">—</span>
+      </div>
+    </div>
+    <div class="next" id="nextStep">
+      <strong>Próximo paso:</strong> Estamos preparando tu pedido para entrar a fabricación. Te avisamos en cuanto comience.
+    </div>
+  </div>
+
+  <!-- ITEMS -->
+  <div class="items-card">
+    <div class="items-head" style="padding-bottom:8px">Productos cotizados</div>
+
+    <div class="item">
+      <div class="item-num">01</div>
+      <div class="item-swatch tela-dickson"></div>
+      <div class="item-body">
+        <div class="item-title">Toldo Brazos Invisibles Punta a Punta</div>
+        <div class="item-desc">
+          <strong>Brazos italianos Helix SP</strong> · Ancho 3850mm · Saliente 2.10m · <strong>Tela acrílica Dickson ®</strong>
+        </div>
+        <div class="item-meta">Incluye instalación · Mano de obra confección · Chapón cubre toldo (2 uds.)</div>
+      </div>
+      <div class="item-price">
+        <div class="total">$1.247.500</div>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-num">02</div>
+      <div class="item-swatch tela-blackout"></div>
+      <div class="item-body">
+        <div class="item-title">Roller Blackout</div>
+        <div class="item-desc">Color Blanco · 1800 × 2400 mm · Mecanismo VTX</div>
+        <div class="item-meta">Cantidad: 2 unidades · Incluye instalación</div>
+      </div>
+      <div class="item-price">
+        <div class="total">$284.200</div>
+        <span class="qty">$142.100 × 2</span>
+      </div>
+    </div>
+
+    <div class="item">
+      <div class="item-num">03</div>
+      <div class="item-swatch tela-aluminio"></div>
+      <div class="item-body">
+        <div class="item-title">Riel Motorizado Somfy</div>
+        <div class="item-desc">Aluminio anodizado · Motor Movelite 35 RTS · Ancho 2800mm</div>
+        <div class="item-meta">Incluye control remoto · Configuración + instalación motorizada</div>
+      </div>
+      <div class="item-price">
+        <div class="total">$486.300</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TOTALES -->
+  <div class="totals-card">
+    <div class="totals-row"><span>Subtotal productos</span><span class="v">$2.018.000</span></div>
+    <div class="totals-row installation"><span>Servicio de instalación · 4 cortinas + 1 toldo</span><span class="v">$201.500</span></div>
+    <div class="totals-row total"><span>Total</span><span class="v">$2.219.500</span></div>
+
+    <div class="promo-card">
+      <div class="left">
+        <div class="pill">25% OFF</div>
+        <div class="txt"><strong>Contado efectivo o transferencia</strong><br>Aplica al pagar el total antes de fabricación</div>
+      </div>
+      <div class="price">$1.664.625</div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-wrap">
+    <button class="cta-accept" onclick="openModal()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      Aceptar y confirmar pedido
+    </button>
+    <div class="secondary-actions">
+      <a href="#" onclick="event.preventDefault();alert('Demo: descargaría el PDF')">📄 Descargar PDF</a>
+      <a href="https://api.whatsapp.com/send?phone=541169602821&text=Hola!%20Tengo%20una%20consulta%20sobre%20la%20cotizaci%C3%B3n%20%23COT-2026-0247" target="_blank">💬 Hacer una consulta</a>
+      <a href="#" onclick="event.preventDefault();navigator.clipboard?.writeText(location.href);alert('Demo: link copiado')">🔗 Compartir</a>
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <footer>
+    <div class="name">R O L L E R M O T I O N</div>
+    <div class="info">
+      Luis María Drago 196 · Villa Adelina · Buenos Aires &nbsp;·&nbsp; CUIT 30-71614334-8<br>
+      <a href="mailto:info@rollermotion.com.ar">info@rollermotion.com.ar</a>
+      &nbsp;·&nbsp;
+      <a class="wa" href="https://api.whatsapp.com/send?phone=541169602821" target="_blank">+54 11 6960-2821</a>
+    </div>
+    <div class="legal" id="legalLine">Validez 7 días desde la emisión · Precios sujetos a verificación de medidas en obra</div>
+  </footer>
+</div>
+
+<!-- ───────────────────────────────── MODAL DE ACEPTACIÓN ───────────────────────────────── -->
+<div class="modal-backdrop" id="acceptModal" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <h2>Confirmá tu pedido</h2>
+    <p>Al confirmar quedará registrado tu nombre, fecha y hora. Esto vale como aceptación del presupuesto.</p>
+
+    <div class="field">
+      <label>Tu nombre completo</label>
+      <input type="text" id="fname" value="María Aramburu" oninput="checkForm()">
+    </div>
+    <div class="field">
+      <label>Tu email</label>
+      <input type="email" id="femail" value="maria@aramburu.ar" oninput="checkForm()">
+    </div>
+    <div class="field">
+      <label>Tu teléfono</label>
+      <input type="tel" id="fphone" value="+54 9 11 4567-8900" oninput="checkForm()">
+    </div>
+    <label class="check-row">
+      <input type="checkbox" id="fcheck" checked onchange="checkForm()">
+      <span>Acepto el presupuesto y las condiciones de pago indicadas. Entiendo que esta confirmación es vinculante.</span>
+    </label>
+    <div class="modal-btns">
+      <button class="cancel" onclick="closeModal()">Cancelar</button>
+      <button class="confirm" id="confirmBtn" onclick="confirmAccept()">Confirmar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST DE CONFIRMACIÓN -->
+<div class="toast" id="toast">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+  <span id="toastTxt">¡Pedido confirmado!</span>
+</div>
+
+<script>
+  function setState(name, btn){
+    document.body.className = 'state-' + name;
+    document.querySelectorAll('.demo-bar button').forEach(b => b.classList.remove('active'));
+    if(btn) btn.classList.add('active');
+
+    // Update timeline
+    const steps = document.querySelectorAll('.timeline .step');
+    const order = ['pendiente','aceptada','fabricacion','listo','entregado'];
+    const stateIdx = order.indexOf(name);
+    steps.forEach((step, i) => {
+      step.classList.remove('done','current');
+      const stepIdx = i + 1; // step 0 (confirmado) corresponde a "aceptada"+
+      if(stateIdx >= stepIdx) step.classList.add('done');
+      else if(stateIdx === stepIdx - 1 && stateIdx > 0) step.classList.add('current');
+    });
+    // Marcar "confirmado" como done para todos los estados aceptada+
+    if(stateIdx >= 1) document.querySelector('.step[data-step=confirmado]').classList.add('done');
+
+    // Actualizar banner + next step
+    const banner   = document.getElementById('statusBanner');
+    const sIcon    = document.getElementById('statusIcon');
+    const sTitle   = document.getElementById('statusTitle');
+    const sSub     = document.getElementById('statusSub');
+    const nextStep = document.getElementById('nextStep');
+    const legal    = document.getElementById('legalLine');
+
+    if(name === 'pendiente'){
+      legal.textContent = 'Validez 7 días desde la emisión · Precios sujetos a verificación de medidas en obra';
+    } else {
+      legal.textContent = 'Pedido confirmado · Precios sujetos a verificación de medidas en obra';
+    }
+
+    if(name === 'aceptada'){
+      sIcon.textContent = '✓';
+      sTitle.textContent = 'Pedido confirmado';
+      sSub.textContent = 'Recibimos tu aceptación el 15/05/2026 a las 14:37';
+      nextStep.innerHTML = '<strong>Próximo paso:</strong> Estamos preparando tu pedido para entrar a fabricación. Te avisamos en cuanto comience.';
+      setWhen('confirmado','15/05');
+      setWhen('fabricacion','—');
+      setWhen('listo','—');
+      setWhen('entregado','—');
+    }
+    if(name === 'fabricacion'){
+      sIcon.textContent = '⚙';
+      sTitle.textContent = 'En fabricación';
+      sSub.textContent = 'Tu pedido está siendo fabricado por nuestro equipo';
+      nextStep.innerHTML = '<strong>Próximo paso:</strong> Estimamos terminar la fabricación el <strong>22/05/2026</strong>. Una vez listo te contactamos para coordinar la instalación.';
+      setWhen('confirmado','15/05');
+      setWhen('fabricacion','17/05');
+      setWhen('listo','—');
+      setWhen('entregado','—');
+    }
+    if(name === 'listo'){
+      sIcon.textContent = '📦';
+      sTitle.textContent = '¡Tu pedido está listo!';
+      sSub.textContent = 'Coordinamos la instalación contigo';
+      nextStep.innerHTML = '<strong>Próximo paso:</strong> Te contactamos en las próximas 24hs para coordinar día y horario de instalación. Si preferís, podés escribirnos por WhatsApp.';
+      setWhen('confirmado','15/05');
+      setWhen('fabricacion','17/05');
+      setWhen('listo','22/05');
+      setWhen('entregado','—');
+    }
+    if(name === 'entregado'){
+      sIcon.textContent = '🚚';
+      sTitle.textContent = '¡Pedido entregado!';
+      sSub.textContent = 'Esperamos que disfrutes tus nuevas cortinas y toldos';
+      nextStep.innerHTML = '<strong>¿Cómo te fue?</strong> Tu opinión nos ayuda mucho — <a href="#" style="color:var(--accept);font-weight:600">dejá tu reseña ⭐</a>';
+      setWhen('confirmado','15/05');
+      setWhen('fabricacion','17/05');
+      setWhen('listo','22/05');
+      setWhen('entregado','24/05');
+    }
+  }
+
+  function setWhen(stepName, val){
+    const el = document.querySelector(`.step[data-step="${stepName}"] .when`);
+    if(el) el.textContent = val;
+  }
+
+  function openModal(){ document.getElementById('acceptModal').classList.add('visible') }
+  function closeModal(){ document.getElementById('acceptModal').classList.remove('visible') }
+  function checkForm(){
+    const f1 = document.getElementById('fname').value.trim();
+    const f2 = document.getElementById('femail').value.trim();
+    const f3 = document.getElementById('fphone').value.trim();
+    const f4 = document.getElementById('fcheck').checked;
+    document.getElementById('confirmBtn').disabled = !(f1 && f2 && f3 && f4);
+  }
+  function confirmAccept(){
+    closeModal();
+    setState('aceptada', document.querySelectorAll('.demo-bar button')[1]);
+    const toast = document.getElementById('toast');
+    document.getElementById('toastTxt').textContent = '¡Pedido confirmado! Te llegará un mail.';
+    toast.classList.add('visible');
+    setTimeout(()=> toast.classList.remove('visible'), 3500);
+    window.scrollTo({ top:0, behavior:'smooth' });
+  }
+  function toggleAdmin(visible){
+    document.getElementById('adminPanel').classList.toggle('visible', visible);
+  }
+  checkForm();
+</script>
+
+</body>
+</html>

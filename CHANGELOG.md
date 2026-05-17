@@ -1,5 +1,50 @@
 # Changelog
 
+## V289 — 2026-05-15
+
+### Chapón y motor como items separados + nuevos rieles + Servicios y reparaciones
+
+**Cambio 1 — Chapón cubre toldos: ya no se bundlea al toldo**
+
+Antes el chapón se sumaba al precio del toldo y aparecía como `· + 2 chapones cubre toldos` en la descripción. Ahora cuando marcás el toggle **🛡 Chapón** y agregás el toldo, el chapón se agrega como un **item aparte** en la cotización (categoría "Accesorios de toldos · Chapón cubre toldos", cantidad calculada según el ancho, ref que indica para qué toldo es).
+
+El detalle del toggle ahora dice: *"— se agregará 2 chapones × 2m como item aparte"*.
+
+**Cambio 2 — Motor Vertilux 50/12 auto-agregado para toldos motorizados**
+
+Cuando marcás el toggle **⚡ Toldo motorizado** y agregás el toldo, el sistema:
+- Agrega el adicional de $26.700 a la instalación (como antes).
+- **Suma automáticamente** un Motor Vertilux 50/12 RF como item aparte ($511.000 lista × coef. cuotas), con ref que indica el toldo asociado.
+
+El detalle del toggle ahora dice: *"— suma Motor Vertilux 50/12 como item + $26.700 instalación"*.
+
+**Cambio 3 — Descripción del Motor 50/12 RF (recomendación)**
+
+```diff
+- 'Motor Vertilux 50/12 RF': 'Puede usarse para cortinas hasta 3700 × 3500 mm'
++ 'Motor Vertilux 50/12 RF': 'Motor con bajas revoluciones pero gran fuerza.
++                             Ideal para cortinas de más de 3700 mm de ancho.'
+```
+
+**Cambio 4 — Nuevos rieles en el grupo Rieles**
+
+- **Riel de Bandas Verticales** (`riel_bv_solo`) — Solo el riel sin telas. Precio: $72.000/ml (reusa insumo `riel_bv`). Nota: para fabricación se relevan medidas igual que en un pedido de bandas completas.
+- **Riel Panel Oriental** (`riel_panel_oriental`) — Con 3 opciones (3 vías, 4 vías, 5 vías) todas al mismo precio de **$80.000/ml**. Nuevo insumo `riel_panel_oriental`.
+
+**Cambio 5 — Nuevo grupo "Servicios y reparaciones"**
+
+Ubicado entre "Accesorios en aluminio" y "Otro" en el dropdown. Una sola entrada `Servicios y reparaciones` (tipo unitario) con 3 servicios:
+
+| Servicio | Precio lista |
+|---|---|
+| Ajuste de cortina manual en ancho | $36.800 |
+| Ajuste de cortina motorizada en ancho | $48.800 |
+| Soldado de cortina roller | $23.000 |
+
+Precios son lista, se multiplican por FV para el precio de venta. Cada servicio tiene su insumo (`srv_ajuste_manual`, `srv_ajuste_motor`, `srv_soldado_roller`) editable desde la pantalla de Insumos.
+
+**Pendiente (próxima iteración)**: cuando una cotización con servicios pasa a ser pedido, se debería requerir obligatoriamente: *"Medida final a ajustar en ancho"* + *"Comentarios/aclaraciones del trabajo"*, y eso debería salir en la planilla de fabricación. Por ahora el campo `Ref` de cotización sirve como nota libre. Se marcó el flag `requiereMedidaPedido: true` en la TELA `servicios` para identificarlo a futuro.
+
 ## V288.3 — 2026-05-15
 
 ### Accesorios de Toldos + toggle Chapón cubre toldos
