@@ -1,5 +1,41 @@
 # Changelog
 
+## V290 — 2026-05-15
+
+### Paneles Orientales + reorganización de la lista de precios
+
+**Cambio 1 — Nueva cortina "Paneles Orientales"**
+
+Producto nuevo en el grupo Cortinas, con cálculo idéntico a Bandas Verticales (riel × ancho + tela × m²) pero usando insumos propios:
+
+- **Riel**: `riel_panel_oriental` a $80.000/ml (ya existía desde V289).
+- **Telas**: 4 insumos nuevos (`panel_oriental_blackout`, `panel_oriental_screen5`, `panel_oriental_screen3`, `panel_oriental_screen1`) con los mismos precios default que las bandas verticales — el usuario los editará después según corresponda.
+- **Selector de vías**: 3 / 4 / 5 (todas al mismo precio, afectan solo a la descripción y al cálculo del ancho por panel).
+- **Panel informativo**: muestra en vivo `📐 5 vías · ancho riel 3000mm → cada panel ≈ 650mm de ancho` según fórmula `(ancho / vías) + 50mm`.
+
+Reutiliza la misma rama de código que `bandas_verticales` (tipo `'bandas'`) con flag `requiereVias:true` y override de `rielInsumoId` para apuntar al riel correcto.
+
+**Cambio 2 — Reorganización visual de la lista de precios**
+
+Antes los grupos se mostraban en orden de inserción (Telas, Ejes, Zócalos... revueltos). Ahora:
+
+- **Orden explícito** definido en `INSUMOS_CAT_ORDER`: primero Telas (cálculo), después sistemas (Bandas, Paneles, DUO, Venecianas, Confecciones, Toldos), después componentes (Rieles, Motores, Aluminio), y al final servicios (Instalaciones, Servicios y reparaciones).
+- **Header más prominente** por categoría: gradient con la paleta de marca, tipografía Raleway, contador de ítems.
+- **Sub-secciones** dentro de cada categoría según `subcat`. Por ejemplo en "Toldos" aparecen sub-headers para "Telas · Toldo Vertical · Servicios · Accesorios". En "Bandas Verticales": "Riel · Telas".
+
+**Cambio 3 — Migración de categorías**
+
+Los insumos de instalación y servicios se reasignaron a categorías más limpias:
+
+| Antes | Ahora |
+|---|---|
+| `instal_normal` cat:`Servicios` | cat:`Instalaciones` subcat:`Cortinas` |
+| `instal_motor` cat:`Servicios` | cat:`Instalaciones` subcat:`Cortinas` |
+| `instal_toldo_*` cat:`Servicios` subcat:`Toldos` | cat:`Instalaciones` subcat:`Toldos` |
+| `srv_*` cat:`Servicios` subcat:`Reparaciones` | cat:`Servicios y reparaciones` subcat:`Ajustes`/`Soldados` |
+
+La migración se aplica automáticamente al cargar para usuarios con `localStorage` existente (no requiere reset).
+
 ## V289 — 2026-05-15
 
 ### Chapón y motor como items separados + nuevos rieles + Servicios y reparaciones

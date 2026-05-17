@@ -1080,6 +1080,11 @@ body{
             </label>
           </div>
           <div id="qa-toldo-tela" style="margin-top:8px;display:none"></div>
+          <div id="qa-panel-info" style="margin-top:8px;display:none;background:#f0f9ff;border:1px solid #bae0fc;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#075985;line-height:1.55">
+            <strong style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#075985">ℹ Paneles Orientales</strong><br>
+            <span id="qa-panel-info-txt">El ancho de cada panel se determina según el ancho del riel y la cantidad de vías.</span>
+            <div id="qa-panel-calc" style="margin-top:6px;font-family:'Manrope',sans-serif;font-size:11px;color:#0c4a6e;display:none"></div>
+          </div>
           <div id="qa-warnings" style="margin-top:10px"></div>
 
           <!-- DEPRECADO V251: este bloque ya no se usa — los detalles técnicos se piden en el overlay de confirmación -->
@@ -2133,6 +2138,25 @@ const TELAS = {
     },
   },
 
+  // V290 — Paneles Orientales (mismo cálculo que bandas: riel × ancho + tela × m²)
+  // Diferencia: riel con su precio propio + tela con insumos panel_oriental_*
+  // + selector de vías (3/4/5) que afecta sólo a la descripción/cálculo de ancho del paño.
+  'paneles_orientales': {
+    label:'Paneles Orientales', grupo:'Cortinas', tipo:'bandas', colorLabel:'Tela',
+    rielInsumoId: 'riel_panel_oriental',
+    requiereVias: true,
+    viasOpciones: ['3','4','5'],
+    viasDefault: '4',
+    infoMsg: 'El ancho de cada panel se determina según el ancho del riel y la cantidad de vías. Cálculo: (ancho del riel ÷ vías) + 50mm. Ej: riel 3000mm en 5 vías → paneles de ~650mm.',
+    subtipos: {
+      'solo_riel':           { label:'Solo Riel',     insumoId:null,                      colors:['—'] },
+      'panel_oriental_blk':  { label:'Blackout',      insumoId:'panel_oriental_blackout', colors:['Blanco','Ivory','Beige','Gris','Negro'] },
+      'panel_oriental_sc5':  { label:'Sunscreen 5%',  insumoId:'panel_oriental_screen5',  colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Negro'] },
+      'panel_oriental_sc3':  { label:'Sunscreen 3%',  insumoId:'panel_oriental_screen3',  colors:['Blanco','Beige','Gris Claro','Gris Oscuro'] },
+      'panel_oriental_sc1':  { label:'Sunscreen 1%',  insumoId:'panel_oriental_screen1',  colors:['Blanco','Beige'] },
+    },
+  },
+
   'venecianas': {
     label:'Venecianas', grupo:'Cortinas', tipo:'veneciana', colorLabel:'Tipo',
     subtipos: {
@@ -2240,12 +2264,12 @@ const INSUMOS_DEFAULT = [
   { id:'contrapeso',       cat:'Cadenas',     subcat:'',          nombre:'Contrapeso cadena',           precio:2130,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   // CONSUMIBLES
   { id:'bifa_3m',          cat:'Consumibles', subcat:'',          nombre:'Bifa 3M GPT (rollo 50ml)',    precio:113600, unidad:'rollo',en_cotizador:false, cat_cotizador:'',           unidad_venta:'rollo' },
-  { id:'instal_normal',          cat:'Servicios', subcat:'',       nombre:'Instalación cortina estándar',            precio:30000,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
-  { id:'instal_motor',           cat:'Servicios', subcat:'',       nombre:'Instalación cortina motorizada',          precio:53000,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
-  // V288.2 — Instalación toldos
-  { id:'instal_toldo_brazos',    cat:'Servicios', subcat:'Toldos', nombre:'Instalación toldo brazos invisibles',     precio:100750, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
-  { id:'instal_toldo_vertical',  cat:'Servicios', subcat:'Toldos', nombre:'Instalación toldo vertical',              precio:75600,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
-  { id:'instal_motor_toldo',     cat:'Servicios', subcat:'Toldos', nombre:'Adicional instalación toldo motorizado',  precio:26700,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  // V290 — Instalaciones reorganizadas en su propia categoría
+  { id:'instal_normal',          cat:'Instalaciones', subcat:'Cortinas', nombre:'Instalación cortina estándar',            precio:30000,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'instal_motor',           cat:'Instalaciones', subcat:'Cortinas', nombre:'Instalación cortina motorizada',          precio:53000,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'instal_toldo_brazos',    cat:'Instalaciones', subcat:'Toldos',   nombre:'Instalación toldo brazos invisibles',     precio:100750, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'instal_toldo_vertical',  cat:'Instalaciones', subcat:'Toldos',   nombre:'Instalación toldo vertical',              precio:75600,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'instal_motor_toldo',     cat:'Instalaciones', subcat:'Toldos',   nombre:'Adicional instalación toldo motorizado',  precio:26700,  unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   // TOLDOS — TELAS (precio por metro lineal del ancho del rollo indicado)
   { id:'tela_toldo_dickson_150',  cat:'Toldos', subcat:'Telas',   nombre:'Tela acrílica Dickson ® 150cm (ml)',         precio:91350,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
   { id:'tela_toldo_dickson_120',  cat:'Toldos', subcat:'Telas',   nombre:'Tela acrílica Dickson ® 120cm (ml)',         precio:63800,  unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
@@ -2341,10 +2365,16 @@ const INSUMOS_DEFAULT = [
   // ── V289 — RIEL PANEL ORIENTAL ──
   { id:'riel_panel_oriental', cat:'Rieles', subcat:'Panel Oriental', nombre:'Riel Panel Oriental (precio por ml)', precio:80000, unidad:'ml', en_cotizador:false, cat_cotizador:'', unidad_venta:'ml' },
 
+  // ── V290 — PANELES ORIENTALES (telas, mismos precios default que bandas verticales — editables) ──
+  { id:'panel_oriental_blackout', cat:'Paneles Orientales', subcat:'Telas', nombre:'Panel Oriental Blackout — precio m²',     precio:34840, unidad:'m2', en_cotizador:false, cat_cotizador:'', unidad_venta:'m2' },
+  { id:'panel_oriental_screen5',  cat:'Paneles Orientales', subcat:'Telas', nombre:'Panel Oriental Sunscreen 5% — precio m²', precio:43420, unidad:'m2', en_cotizador:false, cat_cotizador:'', unidad_venta:'m2' },
+  { id:'panel_oriental_screen3',  cat:'Paneles Orientales', subcat:'Telas', nombre:'Panel Oriental Sunscreen 3% — precio m²', precio:69466, unidad:'m2', en_cotizador:false, cat_cotizador:'', unidad_venta:'m2' },
+  { id:'panel_oriental_screen1',  cat:'Paneles Orientales', subcat:'Telas', nombre:'Panel Oriental Sunscreen 1% — precio m²', precio:47840, unidad:'m2', en_cotizador:false, cat_cotizador:'', unidad_venta:'m2' },
+
   // ── V289 — SERVICIOS Y REPARACIONES ──
-  { id:'srv_ajuste_manual',  cat:'Servicios', subcat:'Reparaciones', nombre:'Ajuste de cortina manual en ancho',     precio:36800, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
-  { id:'srv_ajuste_motor',   cat:'Servicios', subcat:'Reparaciones', nombre:'Ajuste de cortina motorizada en ancho', precio:48800, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
-  { id:'srv_soldado_roller', cat:'Servicios', subcat:'Reparaciones', nombre:'Soldado de cortina roller',             precio:23000, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'srv_ajuste_manual',  cat:'Servicios y reparaciones', subcat:'Ajustes',  nombre:'Ajuste de cortina manual en ancho',     precio:36800, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'srv_ajuste_motor',   cat:'Servicios y reparaciones', subcat:'Ajustes',  nombre:'Ajuste de cortina motorizada en ancho', precio:48800, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'srv_soldado_roller', cat:'Servicios y reparaciones', subcat:'Soldados', nombre:'Soldado de cortina roller',             precio:23000, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
 ];
 function getInsumos(){
   const local = localStorage.getItem('rm_insumos');
@@ -2369,10 +2399,54 @@ function getInsumos(){
         x.precio = 27000; changed = true;
       }
     });
+    // V290 — Migración de categorías para mejor organización visual de la lista de precios
+    const CAT_MIGRATIONS = {
+      'instal_normal':            { cat:'Instalaciones',         subcat:'Cortinas'  },
+      'instal_motor':             { cat:'Instalaciones',         subcat:'Cortinas'  },
+      'instal_toldo_brazos':      { cat:'Instalaciones',         subcat:'Toldos'    },
+      'instal_toldo_vertical':    { cat:'Instalaciones',         subcat:'Toldos'    },
+      'instal_motor_toldo':       { cat:'Instalaciones',         subcat:'Toldos'    },
+      'srv_ajuste_manual':        { cat:'Servicios y reparaciones', subcat:'Ajustes' },
+      'srv_ajuste_motor':         { cat:'Servicios y reparaciones', subcat:'Ajustes' },
+      'srv_soldado_roller':       { cat:'Servicios y reparaciones', subcat:'Soldados' },
+    };
+    arr.forEach(x => {
+      const m = CAT_MIGRATIONS[x.id];
+      if(m && (x.cat !== m.cat || x.subcat !== m.subcat)){
+        x.cat = m.cat; x.subcat = m.subcat; changed = true;
+      }
+    });
     if(changed) localStorage.setItem('rm_insumos', JSON.stringify(arr));
     return arr;
   } catch(e){ return INSUMOS_DEFAULT; }
 }
+
+// V290 — Orden explícito de categorías en la lista de precios
+const INSUMOS_CAT_ORDER = [
+  // Telas usadas en cálculo automático de Roller
+  'Telas',
+  // Sistemas (cortinas, telas + componentes específicos del sistema)
+  'Bandas Verticales',
+  'Paneles Orientales',
+  'DUO Zebra',
+  'Venecianas',
+  'Gasa de lino',
+  'Cortina Blackout Tex',
+  'Toldos',
+  // Componentes de fabricación
+  'Rieles',
+  'Motores',
+  'Acc. Motores',
+  // Aluminio (cálculo de roller)
+  'Ejes',
+  'Zócalos',
+  'Mecanismos',
+  'Cadenas',
+  'Consumibles',
+  // Servicios al final
+  'Instalaciones',
+  'Servicios y reparaciones',
+];
 function setInsumos(arr){ localStorage.setItem('rm_insumos', JSON.stringify(arr)); }
 function getInsumo(id){ return getInsumos().find(x=>x.id===id); }
 function getPrecio(id){ return getInsumo(id)?.precio || 0; }
@@ -3388,6 +3462,9 @@ function qaTelaChange(){
   if(panoBox) panoBox.style.display = 'none';
   const toldoTelaBox = document.getElementById('qa-toldo-tela');
   if(toldoTelaBox) toldoTelaBox.style.display = 'none';
+  // V290: ocultar panel info de Paneles Orientales
+  const panelInfoBox = document.getElementById('qa-panel-info');
+  if(panelInfoBox) panelInfoBox.style.display = 'none';
   restaurarColorSelect(); // restaurar select si había input libre
   // V287: restaurar visibilidad del wrapper de qa-color (toldos lo oculta)
   const _colorWrapDef = document.getElementById('qa-color')?.closest('.f');
@@ -3534,7 +3611,9 @@ function qaTelaChange(){
 
   } else if(telaObj.tipo === 'bandas'){
     // Bandas Verticales: qa-color = subtipo (riel/tela), qa-variante = color
+    // V290 — Paneles Orientales (requiereVias=true): qa-variante = Vías (3/4/5)
     const subtipos = telaObj.subtipos || {};
+    const esPanel  = !!telaObj.requiereVias;
     colorSel.innerHTML = Object.entries(subtipos).map(([k,v])=>
       `<option value="${k}">${v.label}</option>`).join('');
     const colorLblEl = document.getElementById('qa-color-lbl');
@@ -3542,20 +3621,41 @@ function qaTelaChange(){
     const varianteWrap = document.getElementById('qa-variante-wrap');
     const varianteSel  = document.getElementById('qa-variante');
     const varianteLbl  = document.getElementById('qa-variante-lbl');
-    if(varianteLbl) varianteLbl.textContent = 'Color';
-    // Poblar colores del primer subtipo
     const firstKey = Object.keys(subtipos)[0];
     const firstSt  = subtipos[firstKey];
-    if(varianteSel) varianteSel.innerHTML = (firstSt?.colors||[]).map(c=>`<option>${c}</option>`).join('');
-    // Solo mostrar variante si no es Solo Riel
-    if(varianteWrap) varianteWrap.style.display = firstKey === 'solo_riel' ? 'none' : 'flex';
-    // Al cambiar subtipo → actualizar colores y mostrar/ocultar variante
-    colorSel.onchange = function(){
-      const st = subtipos[this.value];
-      if(varianteSel) varianteSel.innerHTML = (st?.colors||[]).map(c=>`<option>${c}</option>`).join('');
-      if(varianteWrap) varianteWrap.style.display = this.value === 'solo_riel' ? 'none' : 'flex';
-      qaCalcPrecio();
-    };
+
+    if(esPanel){
+      // Paneles Orientales: qa-variante = Vías (3/4/5) — siempre visible
+      if(varianteLbl) varianteLbl.textContent = 'Vías';
+      const opciones = (telaObj.viasOpciones||['3','4','5']);
+      const defaultVia = telaObj.viasDefault || opciones[0];
+      if(varianteSel){
+        varianteSel.innerHTML = opciones.map(v=>`<option value="${v}"${v===defaultVia?' selected':''}>${v} vías</option>`).join('');
+      }
+      if(varianteWrap) varianteWrap.style.display = 'flex';
+      // Mostrar el panel info de Paneles Orientales
+      const panelInfo = document.getElementById('qa-panel-info');
+      const panelInfoTxt = document.getElementById('qa-panel-info-txt');
+      if(panelInfo) panelInfo.style.display = 'block';
+      if(panelInfoTxt && telaObj.infoMsg) panelInfoTxt.textContent = telaObj.infoMsg;
+      colorSel.onchange = function(){ qaCalcPrecio(); };
+    } else {
+      // Bandas Verticales clásico: qa-variante = Color de tela según subtipo
+      if(varianteLbl) varianteLbl.textContent = 'Color';
+      if(varianteSel) varianteSel.innerHTML = (firstSt?.colors||[]).map(c=>`<option>${c}</option>`).join('');
+      // Solo mostrar variante si no es Solo Riel
+      if(varianteWrap) varianteWrap.style.display = firstKey === 'solo_riel' ? 'none' : 'flex';
+      // Al cambiar subtipo → actualizar colores y mostrar/ocultar variante
+      colorSel.onchange = function(){
+        const st = subtipos[this.value];
+        if(varianteSel) varianteSel.innerHTML = (st?.colors||[]).map(c=>`<option>${c}</option>`).join('');
+        if(varianteWrap) varianteWrap.style.display = this.value === 'solo_riel' ? 'none' : 'flex';
+        qaCalcPrecio();
+      };
+      // Asegurar que el panel info esté oculto en bandas verticales
+      const panelInfo = document.getElementById('qa-panel-info');
+      if(panelInfo) panelInfo.style.display = 'none';
+    }
     const anchoWrapEl = document.getElementById('qa-ancho-wrap');
     const altoWrapEl  = document.getElementById('qa-alto-wrap');
     const medidaWrapEl= document.getElementById('qa-medida-wrap');
@@ -4267,23 +4367,48 @@ function qaCalcPrecio(){
 
   // ── BANDAS VERTICALES ──
   if(telaInfo?.tipo === 'bandas'){
-    if(!ancho || !alto){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; return; }
-    const subtipoKey = document.getElementById('qa-color')?.value || 'solo_riel';
-    const subtipo = (telaInfo.subtipos||{})[subtipoKey];
+    const esPanelB = !!telaInfo.requiereVias;
+    // Para bandas necesitamos ancho. Alto solo si NO es solo_riel.
+    const subtipoKeyB = document.getElementById('qa-color')?.value || 'solo_riel';
+    if(!ancho || (subtipoKeyB !== 'solo_riel' && !alto)){
+      disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4';
+      // limpiar cálculo del panel
+      const calcEl = document.getElementById('qa-panel-calc');
+      if(calcEl) calcEl.style.display = 'none';
+      return;
+    }
+    const subtipo = (telaInfo.subtipos||{})[subtipoKeyB];
     const anchoMl = parseInt(ancho)/1000; // ancho en metros = ml de riel
-    const precioRielMl = getPrecio('riel_bv') * getFV();
+    // V290: riel insumoId configurable por TELA
+    const rielInsId = telaInfo.rielInsumoId || 'riel_bv';
+    const precioRielMl = getPrecio(rielInsId) * getFV();
     const costoRiel = Math.round(anchoMl * precioRielMl);
     let pu = costoRiel;
     let detalleStr = `Riel ${anchoMl.toFixed(2)}ml: ${fmtM(costoRiel)}`;
     // Si tiene tela, sumar m²
-    if(subtipoKey !== 'solo_riel' && subtipo?.insumoId){
+    if(subtipoKeyB !== 'solo_riel' && subtipo?.insumoId){
       const m2 = (parseInt(ancho)/1000) * (parseInt(alto)/1000);
-      // Precio tela de banda — directo desde insumos bv_*
       const precioTela = getPrecio(subtipo.insumoId) * getFV();
       const costoTela = Math.round(m2 * precioTela);
       pu = costoRiel + costoTela;
       const m2Fmt = m2.toFixed(2);
       detalleStr = `Riel ${anchoMl.toFixed(2)}ml + ${m2Fmt}m² tela`;
+    }
+    // V290: para Paneles Orientales, mostrar ancho calculado por panel
+    if(esPanelB){
+      const vias = parseInt(document.getElementById('qa-variante')?.value) || 4;
+      const anchoMm = parseInt(ancho) || 0;
+      const anchoPanelMm = anchoMm > 0 ? Math.round(anchoMm / vias + 50) : 0;
+      const calcEl = document.getElementById('qa-panel-calc');
+      if(calcEl){
+        if(anchoPanelMm > 0){
+          calcEl.style.display = 'block';
+          calcEl.innerHTML = `📐 <strong>${vias} vías</strong> · ancho riel ${anchoMm}mm → cada panel ≈ <strong>${anchoPanelMm}mm</strong> de ancho`;
+        } else {
+          calcEl.style.display = 'none';
+        }
+      }
+      detalleStr = `${vias} vías · ` + detalleStr;
     }
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
@@ -4907,23 +5032,41 @@ function qaAgregar(){
     }
 
   } else if(telaObjA?.tipo === 'bandas'){
+    const esPanelA = !!telaObjA.requiereVias;
     const subtipoKey = document.getElementById('qa-color')?.value || 'solo_riel';
-    const colorElegido = document.getElementById('qa-variante')?.value || '';
+    const varianteVal = document.getElementById('qa-variante')?.value || '';
     const subtipo = (telaObjA.subtipos||{})[subtipoKey];
     const anchoMl2 = parseInt(ancho)/1000;
-    const precioRielMl2 = getPrecio('riel_bv') * getFV();
+    // V290: riel insumoId configurable
+    const rielInsIdA = telaObjA.rielInsumoId || 'riel_bv';
+    const precioRielMl2 = getPrecio(rielInsIdA) * getFV();
     const costoRiel2 = Math.round(anchoMl2 * precioRielMl2);
     if(subtipoKey === 'solo_riel'){
       precio = costoRiel2;
       color = 'Solo Riel';
     } else {
       const m2 = (parseInt(ancho)/1000) * (parseInt(alto)/1000);
-      // Precio tela de banda — directo desde insumos bv_*
-      const precioTela = getPrecio(subtipo?.insumoId||'bv_blackout') * getFV();
+      const fallbackTelaId = esPanelA ? 'panel_oriental_blackout' : 'bv_blackout';
+      const precioTela = getPrecio(subtipo?.insumoId || fallbackTelaId) * getFV();
       precio = costoRiel2 + Math.round(m2 * precioTela);
-      color = (subtipo?.label||subtipoKey) + (colorElegido ? ' · ' + colorElegido : '');
+      if(esPanelA){
+        // Para Paneles Orientales: variante = vías
+        const anchoMm = parseInt(ancho) || 0;
+        const vias = parseInt(varianteVal) || 4;
+        const anchoPanelMm = anchoMm > 0 ? Math.round(anchoMm / vias + 50) : 0;
+        color = `${vias} vías · ${subtipo?.label||subtipoKey}` + (anchoPanelMm>0 ? ` · paneles ~${anchoPanelMm}mm` : '');
+      } else {
+        // Bandas verticales: variante = color
+        color = (subtipo?.label||subtipoKey) + (varianteVal ? ' · ' + varianteVal : '');
+      }
     }
-    tela = 'bandas_verticales';
+    if(subtipoKey === 'solo_riel' && esPanelA){
+      // Solo riel para Panel Oriental también mencionar vías
+      const vias = parseInt(varianteVal) || 4;
+      color = `Solo Riel · ${vias} vías`;
+    }
+    // V290: mantener el tela_id correcto para identificar el sistema
+    tela = esPanelA ? 'paneles_orientales' : 'bandas_verticales';
 
   } else if(telaObjA?.tipo === 'libre'){
     // Producto libre: descripción en qa-color, precio manual
@@ -5502,6 +5645,7 @@ const TIPOS_CON_INSTALACION = [
   'conf_liviana',
   'conf_blackout',
   'bandas_verticales',
+  'paneles_orientales', // V290
   'veneciana',
   'riel_manual',
   'riel_motorizado',
@@ -7541,13 +7685,68 @@ function renderInsumosAdmin(){
     setInsumos(insumos);
   }
 
-  const cats = [...new Set(insumos.map(x=>x.cat))];
+  // V290: ordenar categorías según INSUMOS_CAT_ORDER, dejando al final las no listadas
+  const catsRaw = [...new Set(insumos.map(x=>x.cat))];
+  const cats = [
+    ...INSUMOS_CAT_ORDER.filter(c => catsRaw.includes(c)),
+    ...catsRaw.filter(c => !INSUMOS_CAT_ORDER.includes(c)),
+  ];
+
+  // Helper para renderizar una fila de insumo
+  const renderRow = (ins) => {
+    const esCalculo = ins.es_calculo !== false && ['tela_blackout','tela_screen5','tela_screen3','tela_screen1','eje_32','eje_38','eje_50liso','eje_50ref','eje_70','zoc_bolsillo','bifa_3m','mec_vtx10','mec_vtx20','mec_vtx30','contrapeso','union_cadena','tope_cadena','cadena_blanca','cadena_negra','sop_rueda_70'].includes(ins.id);
+    return `<tr style="border-bottom:1px solid var(--border);${esCalculo?'background:#f8f6ff;':''}">
+      <td style="padding:7px 12px">
+        ${esCalculo?'<span title="Usado en cálculo automático de cortinas" style="font-size:9px;background:#e8e4f8;color:#5c3d8f;border-radius:3px;padding:1px 5px;margin-right:6px;font-weight:700">CÁLCULO</span>':''}
+        <input value="${ins.nombre.replace(/"/g,'&quot;')}"
+          style="border:none;background:transparent;font-size:13px;font-weight:600;width:calc(100% - 80px);font-family:'DM Sans',sans-serif;outline:none;color:var(--ink)"
+          onchange="updateInsumo('${ins.id}','nombre',this.value)">
+      </td>
+      <td style="padding:7px 8px">
+        <input value="${ins.cat}" list="cats-list"
+          style="border:1px solid var(--border);border-radius:4px;background:#fff;font-size:11px;width:100%;font-family:'DM Sans',sans-serif;outline:none;padding:3px 6px;font-weight:600"
+          onchange="updateInsumo('${ins.id}','cat',this.value)">
+      </td>
+      <td style="padding:7px 8px;text-align:center;color:var(--muted);font-size:11px">${ins.unidad}</td>
+      <td style="padding:7px 8px;text-align:right">
+        <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">
+          <span style="font-size:10px;color:var(--muted)">$</span>
+          <input type="number" value="${ins.precio}"
+            style="border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;font-weight:700;width:110px;text-align:right;font-family:'DM Sans',sans-serif;outline:none"
+            onfocus="this.style.borderColor='var(--accent)'"
+            onblur="this.style.borderColor='var(--border)'"
+            onchange="updateInsumo('${ins.id}','precio',parseFloat(this.value)||0)">
+        </div>
+      </td>
+      <td style="padding:7px 8px;text-align:right;font-size:12px;font-weight:700;color:var(--accent)">
+        ${fmtM(Math.round(ins.precio * getFV()))}
+      </td>
+      <td style="padding:7px 8px;text-align:center">
+        ${esCalculo?'<span style="font-size:16px">🔑</span>':'—'}
+      </td>
+      <td style="padding:7px 8px;text-align:center">
+        <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px" onclick="deleteInsumo('${ins.id}')" title="Eliminar">🗑</button>
+      </td>
+    </tr>`;
+  };
+
+  // Helper para una sub-sección de subcat (si hay subcat con más de 1 grupo en la cat)
+  const renderSubcatHeader = (subcat) => `
+    <tr style="background:#fafaf8">
+      <td colspan="7" style="padding:6px 16px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--accent)">
+        ${subcat}
+      </td>
+    </tr>`;
 
   wrap.innerHTML = cats.map(cat=>{
     const items = insumos.filter(x=>x.cat===cat);
-    return `<div class="card" style="margin-bottom:12px">
-      <div class="card-h" style="background:var(--steel2);padding:8px 16px;font-size:10px">
-        ${cat} <span style="opacity:.5;font-weight:400">(${items.length})</span>
+    // Agrupar por subcat (preservando orden de aparición)
+    const subcatsOrdered = [];
+    items.forEach(it => { const s = it.subcat || ''; if(!subcatsOrdered.includes(s)) subcatsOrdered.push(s); });
+    const showSubcats = subcatsOrdered.length > 1 || (subcatsOrdered.length === 1 && subcatsOrdered[0] !== '');
+    return `<div class="card" style="margin-bottom:14px">
+      <div class="card-h" style="background:linear-gradient(90deg, var(--accent), var(--accent2, #d97500));padding:10px 18px;font-size:12px;color:#fff;font-family:'Raleway',sans-serif;font-weight:600;letter-spacing:.04em;text-transform:uppercase">
+        ${cat} <span style="opacity:.7;font-weight:400;font-size:10px;letter-spacing:0;text-transform:none;margin-left:6px">${items.length} ${items.length===1?'ítem':'ítems'}</span>
       </div>
       <div style="overflow-x:auto">
       <table style="width:100%;border-collapse:collapse;min-width:600px">
@@ -7561,42 +7760,13 @@ function renderInsumosAdmin(){
           <th style="width:32px"></th>
         </tr></thead>
         <tbody>
-          ${items.map(ins=>{
-            const esCalculo = ins.es_calculo !== false && ['tela_blackout','tela_screen5','tela_screen3','tela_screen1','eje_32','eje_38','eje_50liso','eje_50ref','eje_70','zoc_bolsillo','bifa_3m','mec_vtx10','mec_vtx20','mec_vtx30','contrapeso','union_cadena','tope_cadena','cadena_blanca','cadena_negra','sop_rueda_70'].includes(ins.id);
-            return `<tr style="border-bottom:1px solid var(--border);${esCalculo?'background:#f8f6ff;':''}">
-              <td style="padding:7px 12px">
-                ${esCalculo?'<span title="Usado en cálculo automático de cortinas" style="font-size:9px;background:#e8e4f8;color:#5c3d8f;border-radius:3px;padding:1px 5px;margin-right:6px;font-weight:700">CÁLCULO</span>':''}
-                <input value="${ins.nombre.replace(/"/g,'&quot;')}"
-                  style="border:none;background:transparent;font-size:13px;font-weight:600;width:calc(100% - 80px);font-family:'DM Sans',sans-serif;outline:none;color:var(--ink)"
-                  onchange="updateInsumo('${ins.id}','nombre',this.value)">
-              </td>
-              <td style="padding:7px 8px">
-                <input value="${ins.cat}" list="cats-list"
-                  style="border:1px solid var(--border);border-radius:4px;background:#fff;font-size:11px;width:100%;font-family:'DM Sans',sans-serif;outline:none;padding:3px 6px;font-weight:600"
-                  onchange="updateInsumo('${ins.id}','cat',this.value)">
-              </td>
-              <td style="padding:7px 8px;text-align:center;color:var(--muted);font-size:11px">${ins.unidad}</td>
-              <td style="padding:7px 8px;text-align:right">
-                <div style="display:flex;align-items:center;justify-content:flex-end;gap:3px">
-                  <span style="font-size:10px;color:var(--muted)">$</span>
-                  <input type="number" value="${ins.precio}"
-                    style="border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;font-weight:700;width:110px;text-align:right;font-family:'DM Sans',sans-serif;outline:none"
-                    onfocus="this.style.borderColor='var(--accent)'"
-                    onblur="this.style.borderColor='var(--border)'"
-                    onchange="updateInsumo('${ins.id}','precio',parseFloat(this.value)||0)">
-                </div>
-              </td>
-              <td style="padding:7px 8px;text-align:right;font-size:12px;font-weight:700;color:var(--accent)">
-                ${fmtM(Math.round(ins.precio * getFV()))}
-              </td>
-              <td style="padding:7px 8px;text-align:center">
-                ${esCalculo?'<span style="font-size:16px">🔑</span>':'—'}
-              </td>
-              <td style="padding:7px 8px;text-align:center">
-                <button style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:13px" onclick="deleteInsumo('${ins.id}')" title="Eliminar">🗑</button>
-              </td>
-            </tr>`;
-          }).join('')}
+          ${ showSubcats
+            ? subcatsOrdered.map(sc => {
+                const subItems = items.filter(x => (x.subcat||'') === sc);
+                return (sc ? renderSubcatHeader(sc) : '') + subItems.map(renderRow).join('');
+              }).join('')
+            : items.map(renderRow).join('')
+          }
         </tbody>
       </table>
       </div>
@@ -7930,6 +8100,7 @@ async function renderPreciosTelas(){
     'conf_liviana':      'Cortina tradicional liviana',
     'conf_blackout':     'Cortina tradicional Blackout Tex',
     'bandas_verticales': 'Bandas Verticales',
+    'paneles_orientales':'Paneles Orientales',
     'libre':             'Producto personalizado',
     'riel_manual':      'Riel Manual Aluminio',
     'riel_motorizado':  'Riel Motorizado Somfy',
