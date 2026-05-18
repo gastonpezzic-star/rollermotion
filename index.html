@@ -862,7 +862,7 @@ body{
   width:36px; height:36px; border-radius:50%; display:flex;
   align-items:center; justify-content:center;
 }
-.novedad-item.t-nuevo .novedad-item-ic{ background:#dcfce7; color:#16a34a; font-size:14px }
+.novedad-item.t-nuevo .novedad-item-ic{ background:#dcfce7; color:#15803d; font-size:18px; font-weight:700 }
 .novedad-item.t-discontinuado .novedad-item-ic{ background:#fee2e2 }
 .novedad-item.t-aumento .novedad-item-ic{ background:#fef3c7 }
 .novedad-item.t-general .novedad-item-ic{ background:#dbeafe }
@@ -1089,7 +1089,7 @@ body{
       <div class="f">
         <label>Tipo</label>
         <select id="nov-tipo">
-          <option value="nuevo">● Nuevo ingreso</option>
+          <option value="nuevo">✱ Nuevo ingreso</option>
           <option value="discontinuado">⚠ Discontinuado</option>
           <option value="aumento">📈 Aumento de precio</option>
           <option value="general">ℹ Información general</option>
@@ -3749,8 +3749,8 @@ function renderInicioNovedades(){
     return;
   }
   const tipos = {
-    // V291.3: nuevo ingreso → puntito verde minimalista (más sobrio que 🆕)
-    nuevo:        { ic:'●', cls:'t-nuevo',        lbl:'Nuevo ingreso' },
+    // V291.4: nuevo ingreso → asterisco fino (✱) en verde oscuro
+    nuevo:        { ic:'✱', cls:'t-nuevo',        lbl:'Nuevo ingreso' },
     discontinuado:{ ic:'⚠',  cls:'t-discontinuado', lbl:'Discontinuado' },
     aumento:      { ic:'📈', cls:'t-aumento',       lbl:'Aumento de precio' },
     general:      { ic:'ℹ',  cls:'t-general',       lbl:'Información' },
