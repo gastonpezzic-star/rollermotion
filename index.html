@@ -2809,7 +2809,8 @@ function calcCostoRoller(anchoMm, altoMm, sistemaKey, cadenaColor, esMotorizada)
 
   const anchoM = a/1000;
   const altoM  = h/1000;
-  const m2     = anchoM * altoM;
+  // V292: mínimo 1 m² — si la cortina es chica (ej. 800×800 = 0.64 m²), se cobra como si fuera 1 m²
+  const m2     = Math.max(anchoM * altoM, 1);
 
   const detalle = [];
   const add = (nombre, cantidad, precio_lista, unidad) => {
@@ -4805,7 +4806,8 @@ function qaCalcPrecio(){
     const insumoId = document.getElementById('qa-color')?.value || '';
     const item = (telaInfo.items||[]).find(it=>it.insumoId===insumoId);
     if(!item || !ancho || !alto){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; return; }
-    const m2 = (parseInt(ancho)/1000) * (parseInt(alto)/1000);
+    // V292: mínimo 1 m² para cobro
+    const m2 = Math.max((parseInt(ancho)/1000) * (parseInt(alto)/1000), 1);
     const anchoM = parseInt(ancho)/1000;
     // Precio m² cambio de tela = precio lista × 1.30 × getFV()
     // + zócalo bolsillo por metro de ancho × getFV()
@@ -5022,7 +5024,8 @@ function qaCalcPrecio(){
     const pEst   = getPrecio('duozebra_ancho') || telaInfo.precioEstructura || 50800;
     const pTela  = getPrecio('duozebra_m2tela') || telaInfo.precioM2Tela || 27000;
     const factor = telaInfo.factorLista || 1.70;
-    const anchoM = a/1000, m2 = (a/1000)*(h/1000);
+    // V292: mínimo 1 m² para cobro
+    const anchoM = a/1000, m2 = Math.max((a/1000)*(h/1000), 1);
     const precioLista = (anchoM * pEst + m2 * pTela) * factor;
     const pu = Math.round(precioLista * getFV());
     disp.textContent = fmtM(pu);
@@ -5079,7 +5082,8 @@ function qaCalcPrecio(){
     let detalleStr = `Riel ${anchoMl.toFixed(2)}ml: ${fmtM(costoRiel)}`;
     // Si tiene tela, sumar m²
     if(subtipoKeyB !== 'solo_riel' && subtipo?.insumoId){
-      const m2 = (parseInt(ancho)/1000) * (parseInt(alto)/1000);
+      // V292: mínimo 1 m² para cobro
+      const m2 = Math.max((parseInt(ancho)/1000) * (parseInt(alto)/1000), 1);
       const precioTela = getPrecio(subtipo.insumoId) * getFV();
       const costoTela = Math.round(m2 * precioTela);
       pu = costoRiel + costoTela;
@@ -5258,7 +5262,8 @@ function qaCalcPrecio(){
     const subtipoKey = document.getElementById('qa-color')?.value || Object.keys(telaInfo.subtipos||{})[0];
     const subtipo = (telaInfo.subtipos||{})[subtipoKey];
     if(!subtipo){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; return; }
-    const m2 = (parseInt(ancho)/1000) * (parseInt(alto)/1000);
+    // V292: mínimo 1 m² para cobro
+    const m2 = Math.max((parseInt(ancho)/1000) * (parseInt(alto)/1000), 1);
     const precioLista = getPrecio(subtipo.insumoId);
     const pu = Math.round(m2 * precioLista * getFV());
     disp.textContent = fmtM(pu);
@@ -5610,7 +5615,8 @@ function qaAgregar(){
   } else if(esCambioTela){
     const item = (telaObjA.items||[]).find(it=>it.insumoId===color);
     if(item && ancho && alto){
-      const m2 = (parseInt(ancho)/1000)*(parseInt(alto)/1000);
+      // V292: mínimo 1 m² para cobro
+      const m2 = Math.max((parseInt(ancho)/1000)*(parseInt(alto)/1000), 1);
       const costoTela = m2 * getPrecio(item.insumoId) * (telaObjA.recargo||1.30);
       // Solo incluir zócalo si la TELA lo declara explícitamente (cambiotela Roller sí, BV no)
       const costoZoc  = telaObjA.incluyeZoc ? (parseInt(ancho)/1000) * getPrecio('zoc_bolsillo') : 0;
@@ -5741,7 +5747,8 @@ function qaAgregar(){
       precio = costoRiel2;
       color = 'Solo Riel';
     } else {
-      const m2 = (parseInt(ancho)/1000) * (parseInt(alto)/1000);
+      // V292: mínimo 1 m² para cobro
+      const m2 = Math.max((parseInt(ancho)/1000) * (parseInt(alto)/1000), 1);
       const fallbackTelaId = esPanelA ? 'panel_oriental_blackout' : 'bv_blackout';
       const precioTela = getPrecio(subtipo?.insumoId || fallbackTelaId) * getFV();
       precio = costoRiel2 + Math.round(m2 * precioTela);
@@ -5879,7 +5886,8 @@ function qaAgregar(){
     const subtipoKey = document.getElementById('qa-color')?.value || Object.keys(telaObjA.subtipos||{})[0];
     const colorElegido = document.getElementById('qa-variante')?.value || '';
     const subtipo = (telaObjA.subtipos||{})[subtipoKey];
-    const m2 = (parseInt(ancho)/1000) * (parseInt(alto)/1000);
+    // V292: mínimo 1 m² para cobro
+    const m2 = Math.max((parseInt(ancho)/1000) * (parseInt(alto)/1000), 1);
     precio = Math.round(m2 * getPrecio(subtipo?.insumoId || 'ven_alum25') * getFV());
     color = (subtipo?.label || subtipoKey) + (colorElegido ? ' · ' + colorElegido : '');
     tela = 'venecianas';
@@ -7573,9 +7581,11 @@ function convertToOrder(idOrDoc){
   const motores   = (src.items||[]).filter(it => it.tela==='motores');
   const confItems = (src.items||[]).filter(it => it.tela==='conf_liviana'||it.tela==='conf_blackout');
   const rieles    = (src.items||[]).filter(it => it.tela==='riel_manual'||it.tela==='riel_motorizado'||it.tela==='riel_motorizado_celtic');
+  // V292: cambio de tela (Roller o Bandas) — solo pide caída + zócalo, no requiere mecanismo/eje/aluminio
+  const cambioTelaItems = (src.items||[]).filter(it => it.tela==='cambiotela'||it.tela==='cambiotela_bv');
 
   // Si no hay nada para configurar técnicamente → no mostrar overlay
-  if(!cortinas.length && !motores.length && !confItems.length && !rieles.length){
+  if(!cortinas.length && !motores.length && !confItems.length && !rieles.length && !cambioTelaItems.length){
     return { skipOverlay: true };
   }
 
@@ -7605,12 +7615,75 @@ function convertToOrder(idOrDoc){
   let html = '';
 
   // ── CORTINAS ROLLER ──
+  // V292: helper para renderizar un set de 6 campos (sent/lado/mec/cad/zoc/sop).
+  // Cuando es roller_doble, se renderiza DOS veces (BK + SC) con prefijo distinto.
+  const renderRollerFields = (i, d, prefix='') => {
+    const cls = (suf) => prefix ? `ped-${prefix}-${suf}` : `ped-${suf}`;
+    return `<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
+      <div>${lbl('Sentido caída')}<select class="${cls('sent')}" data-idx="${i}" ${sel()}>
+        <option${d.sent==='Detrás'?' selected':''}>Detrás</option>
+        <option${d.sent==='Delante'?' selected':''}>Delante</option>
+      </select></div>
+      <div>${lbl('Lado mecanismo')}<select class="${cls('lado')}" data-idx="${i}" ${sel()}>
+        <option${d.ladoMec==='Derecha'?' selected':''}>Derecha</option>
+        <option${d.ladoMec==='Izquierda'?' selected':''}>Izquierda</option>
+      </select></div>
+      <div>${lbl('Color mecanismo')}<select class="${cls('mec')}" data-idx="${i}" ${sel()}>
+        <option${d.colorMec==='Blanco'?' selected':''}>Blanco</option>
+        <option${d.colorMec==='Negro'?' selected':''}>Negro</option>
+      </select></div>
+      <div>${lbl('Cadena')}<select class="${cls('cad')}" data-idx="${i}" ${sel()}>
+        <option${d.cadena==='Blanca'?' selected':''}>Blanca</option>
+        <option${d.cadena==='Negra'?' selected':''}>Negra</option>
+        <option${d.cadena==='Metálica'?' selected':''}>Metálica</option>
+      </select></div>
+      <div>${lbl('Zócalo')}<select class="${cls('zoc')}" data-idx="${i}" ${sel()}>
+        <option${d.zoc==='Bolsillo'?' selected':''}>Bolsillo</option>
+        <option${d.zoc==='Visto Blanco'?' selected':''}>Visto Blanco</option>
+        <option${d.zoc==='Visto Negro'?' selected':''}>Visto Negro</option>
+      </select></div>
+      <div>${lbl('Soporte')}<select class="${cls('sop')}" data-idx="${i}" ${sel()}>
+        <option${d.soporte==='Corto'?' selected':''}>Corto</option>
+        <option${d.soporte==='Largo'?' selected':''}>Largo</option>
+        <option${d.soporte==='Doble'?' selected':''}>Doble</option>
+        <option${d.soporte==='Intermedio'?' selected':''}>Intermedio</option>
+      </select></div>
+    </div>`;
+  };
+
   if(cortinas.length){
     html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:10px">🪟 Cortinas Roller — Detalles técnicos</div>`;
     html += cortinas.map((it,i)=>{
       const d = getDefaults(it);
       const cant = parseInt(it.cant)||1;
-      const telaLabel = `Roller ${rollerLabel(it.tela)}`;
+      const esDoble = isRollerDoble(it.tela);
+      const telaLabel = esDoble ? 'Roller Doble (Blackout + Sunscreen)' : `Roller ${rollerLabel(it.tela)}`;
+      // V292: Roller Doble = pedimos detalles para ambas telas (BK + SC) por separado.
+      if(esDoble){
+        // Parsear colores del color string (formato típico: "BK:XXX · SC:YYY")
+        const m = (it.color||'').match(/BK:([^·]+)·\s*SC:(.+)/);
+        const colorBK = m ? m[1].trim() : it.color || '—';
+        const colorSC = m ? m[2].trim() : '—';
+        const dBK = it.bk ? { ...d, ...it.bk } : { ...d, soporte:'Doble' };
+        const dSC = it.sc ? { ...d, ...it.sc } : { ...d, soporte:'Doble' };
+        return `<div style="border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:10px;background:var(--surface2)">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
+            <div style="background:var(--steel);color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">#${i+1}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--ink)">${telaLabel}</div>
+            <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
+            ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+          </div>
+          <div style="background:#fff;border-left:3px solid #141414;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:10px">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#141414;margin-bottom:8px">⬛ Blackout — ${colorBK}</div>
+            ${renderRollerFields(i, dBK, 'bk')}
+          </div>
+          <div style="background:#fff;border-left:3px solid #c5a572;padding:10px 14px;border-radius:0 6px 6px 0">
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#8a6c3c;margin-bottom:8px">⬜ Sunscreen — ${colorSC}</div>
+            ${renderRollerFields(i, dSC, 'sc')}
+          </div>
+        </div>`;
+      }
+      // Cortina simple (un solo set de campos)
       return `<div style="border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:10px;background:var(--surface2)">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
           <div style="background:var(--steel);color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">#${i+1}</div>
@@ -7618,43 +7691,48 @@ function convertToOrder(idOrDoc){
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
           ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
         </div>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">
-          <div>${lbl('Sentido caída')}<select class="ped-sent" data-idx="${i}" ${sel()}>
-            <option${d.sent==='Detrás'?' selected':''}>Detrás</option>
-            <option${d.sent==='Delante'?' selected':''}>Delante</option>
+        ${renderRollerFields(i, d)}
+      </div>`;
+    }).join('');
+  }
+
+  // V292: ── CAMBIO DE TELA ──
+  // Solo requiere caída + tipo de zócalo. NO mecanismo, eje ni aluminio (la tela usa lo existente).
+  if(cambioTelaItems.length){
+    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${cortinas.length?'20px':0} 0 10px">🔄 Cambio de tela — Detalles</div>`;
+    html += cambioTelaItems.map((it,ti)=>{
+      const cant = parseInt(it.cant)||1;
+      const telaLabel = it.tela==='cambiotela_bv' ? 'Cambio de tela Bandas Verticales' : 'Cambio de tela Roller';
+      const sentVal = it.sent || 'Detrás';
+      const zocVal  = it.zoc  || 'Bolsillo';
+      return `<div style="border:1.5px solid #b8d4e8;border-radius:8px;padding:14px 18px;margin-bottom:10px;background:#f4f9fc">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="background:#1f6e9c;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">🔄 ${ti+1}</div>
+          <div style="font-size:13px;font-weight:700;color:#1a4a6a">${telaLabel}</div>
+          <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
+          ${it.color?`<div style="font-size:11px;color:#555;background:#e0eaf2;border-radius:4px;padding:2px 8px">${it.color}</div>`:''}
+          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>${lbl('Sentido caída')}<select class="ped-ct-sent" data-tidx="${ti}" ${sel()}>
+            <option${sentVal==='Detrás'?' selected':''}>Detrás</option>
+            <option${sentVal==='Delante'?' selected':''}>Delante</option>
           </select></div>
-          <div>${lbl('Lado mecanismo')}<select class="ped-lado" data-idx="${i}" ${sel()}>
-            <option${d.ladoMec==='Derecha'?' selected':''}>Derecha</option>
-            <option${d.ladoMec==='Izquierda'?' selected':''}>Izquierda</option>
-          </select></div>
-          <div>${lbl('Color mecanismo')}<select class="ped-mec" data-idx="${i}" ${sel()}>
-            <option${d.colorMec==='Blanco'?' selected':''}>Blanco</option>
-            <option${d.colorMec==='Negro'?' selected':''}>Negro</option>
-          </select></div>
-          <div>${lbl('Cadena')}<select class="ped-cad" data-idx="${i}" ${sel()}>
-            <option${d.cadena==='Blanca'?' selected':''}>Blanca</option>
-            <option${d.cadena==='Negra'?' selected':''}>Negra</option>
-            <option${d.cadena==='Metálica'?' selected':''}>Metálica</option>
-          </select></div>
-          <div>${lbl('Zócalo')}<select class="ped-zoc" data-idx="${i}" ${sel()}>
-            <option${d.zoc==='Bolsillo'?' selected':''}>Bolsillo</option>
-            <option${d.zoc==='Visto Blanco'?' selected':''}>Visto Blanco</option>
-            <option${d.zoc==='Visto Negro'?' selected':''}>Visto Negro</option>
-          </select></div>
-          <div>${lbl('Soporte')}<select class="ped-sop" data-idx="${i}" ${sel()}>
-            <option${d.soporte==='Corto'?' selected':''}>Corto</option>
-            <option${d.soporte==='Largo'?' selected':''}>Largo</option>
-            <option${d.soporte==='Doble'?' selected':''}>Doble</option>
-            <option${d.soporte==='Intermedio'?' selected':''}>Intermedio</option>
+          <div>${lbl('Zócalo')}<select class="ped-ct-zoc" data-tidx="${ti}" ${sel()}>
+            <option${zocVal==='Bolsillo'?' selected':''}>Bolsillo</option>
+            <option${zocVal==='Visto Blanco'?' selected':''}>Visto Blanco</option>
+            <option${zocVal==='Visto Negro'?' selected':''}>Visto Negro</option>
+            <option${zocVal==='Reutilizar existente'?' selected':''}>Reutilizar existente</option>
           </select></div>
         </div>
+        <div style="margin-top:10px;font-size:11px;color:#1f6e9c;background:#e8f1f7;border-radius:5px;padding:6px 10px">ℹ️ Cambio de tela: solo se confecciona la tela nueva, se reutiliza el mecanismo / eje / aluminio existente.</div>
       </div>`;
     }).join('');
   }
 
   // ── CORTINAS DE CONFECCIÓN ──
   if(confItems.length){
-    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${cortinas.length?'20px':0} 0 10px">🧵 Cortinas Tradicionales — Detalles de confección</div>`;
+    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${(cortinas.length||cambioTelaItems.length)?'20px':0} 0 10px">🧵 Cortinas Tradicionales — Detalles de confección</div>`;
     html += confItems.map((it,ci)=>{
       const cant = parseInt(it.cant)||1;
       const telaLabel = it.tela==='conf_blackout' ? 'Cortina Blackout Tex' : 'Cortina Gasa de lino';
@@ -7709,7 +7787,7 @@ function convertToOrder(idOrDoc){
 
   // ── RIELES (Manual + Motorizado) ──
   if(rieles.length){
-    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${(cortinas.length||confItems.length)?'20px':0} 0 10px">🪝 Rieles — Detalles técnicos</div>`;
+    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${(cortinas.length||cambioTelaItems.length||confItems.length)?'20px':0} 0 10px">🪝 Rieles — Detalles técnicos</div>`;
     html += rieles.map((it,ri)=>{
       const cant = parseInt(it.cant)||1;
       const esMotor = it.tela === 'riel_motorizado' || it.tela === 'riel_motorizado_celtic';
@@ -7787,12 +7865,28 @@ async function confirmarPedido(){
   // Cortinas roller — incluye blackout y sunscreen 5%, 3%, 1%
   const cortinas = (src.items||[]).filter(it => isRollerTela(it.tela));
   cortinas.forEach((it,i)=>{
-    it.sent     = document.querySelector(`.ped-sent[data-idx="${i}"]`)?.value || 'Detrás';
-    it.ladoMec  = document.querySelector(`.ped-lado[data-idx="${i}"]`)?.value || 'Derecha';
-    it.colorMec = document.querySelector(`.ped-mec[data-idx="${i}"]`)?.value  || 'Blanco';
-    it.cadena   = document.querySelector(`.ped-cad[data-idx="${i}"]`)?.value  || 'Blanca';
-    it.zoc      = document.querySelector(`.ped-zoc[data-idx="${i}"]`)?.value  || 'Bolsillo';
-    it.soporte  = document.querySelector(`.ped-sop[data-idx="${i}"]`)?.value  || (isRollerDoble(it.tela) ? 'Doble' : 'Largo');
+    if(isRollerDoble(it.tela)){
+      // V292: Roller Doble = persistir BK + SC por separado en it.bk / it.sc
+      const readSet = (prefix) => ({
+        sent:     document.querySelector(`.ped-${prefix}-sent[data-idx="${i}"]`)?.value || 'Detrás',
+        ladoMec:  document.querySelector(`.ped-${prefix}-lado[data-idx="${i}"]`)?.value || 'Derecha',
+        colorMec: document.querySelector(`.ped-${prefix}-mec[data-idx="${i}"]`)?.value  || 'Blanco',
+        cadena:   document.querySelector(`.ped-${prefix}-cad[data-idx="${i}"]`)?.value  || 'Blanca',
+        zoc:      document.querySelector(`.ped-${prefix}-zoc[data-idx="${i}"]`)?.value  || 'Bolsillo',
+        soporte:  document.querySelector(`.ped-${prefix}-sop[data-idx="${i}"]`)?.value  || 'Doble',
+      });
+      it.bk = readSet('bk');
+      it.sc = readSet('sc');
+      // Para compatibilidad con código que lee los campos planos: usar los del BK como "principales"
+      Object.assign(it, it.bk);
+    } else {
+      it.sent     = document.querySelector(`.ped-sent[data-idx="${i}"]`)?.value || 'Detrás';
+      it.ladoMec  = document.querySelector(`.ped-lado[data-idx="${i}"]`)?.value || 'Derecha';
+      it.colorMec = document.querySelector(`.ped-mec[data-idx="${i}"]`)?.value  || 'Blanco';
+      it.cadena   = document.querySelector(`.ped-cad[data-idx="${i}"]`)?.value  || 'Blanca';
+      it.zoc      = document.querySelector(`.ped-zoc[data-idx="${i}"]`)?.value  || 'Bolsillo';
+      it.soporte  = document.querySelector(`.ped-sop[data-idx="${i}"]`)?.value  || 'Largo';
+    }
   });
 
   // Confección tradicional
@@ -7802,6 +7896,13 @@ async function confirmarPedido(){
     it.cabezal       = document.querySelector(`.ped-conf-cab[data-cidx="${ci}"]`)?.value || 'Americano';
     it.dobladillo    = parseFloat(document.querySelector(`.ped-conf-dob[data-cidx="${ci}"]`)?.value)||20;
     it.arrastre      = parseFloat(document.querySelector(`.ped-conf-arr[data-cidx="${ci}"]`)?.value)||0;
+  });
+
+  // V292: Cambio de tela — solo caída + zócalo
+  const cambioTelaItems = (src.items||[]).filter(it => it.tela==='cambiotela'||it.tela==='cambiotela_bv');
+  cambioTelaItems.forEach((it,ti)=>{
+    it.sent = document.querySelector(`.ped-ct-sent[data-tidx="${ti}"]`)?.value || 'Detrás';
+    it.zoc  = document.querySelector(`.ped-ct-zoc[data-tidx="${ti}"]`)?.value  || 'Bolsillo';
   });
 
   // Rieles (manual + motorizado)

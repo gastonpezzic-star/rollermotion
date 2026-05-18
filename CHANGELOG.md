@@ -1,5 +1,51 @@
 # Changelog
 
+## V292 — 2026-05-15
+
+### Cambio de tela en overlay + Roller Doble dual + mínimo 1 m²
+
+**Cambio 1 — Mínimo 1 m² para cualquier cortina**
+
+Antes una cortina de 800×800 (0.64 m²) se cobraba por su área real. Ahora cualquier cortina con área < 1 m² se cotiza **como si fuera 1 m²**, que es el mínimo comercial. Aplica a:
+
+- Roller Blackout / Sunscreen (vía `calcCostoRoller`)
+- Roller Doble (porque usa `calcCostoRoller` × 2)
+- Cambio de tela (Roller y BV)
+- Bandas Verticales y Paneles Orientales
+- Venecianas
+- DUO Zebra
+
+Implementado como `Math.max(m² real, 1)` en cada cálculo. Cortinas existentes en cotizaciones ya guardadas mantienen su precio original.
+
+**Cambio 2 — Cambio de tela: sección propia en overlay de fabricación**
+
+Antes al pasar a fabricación un Cambio de tela el overlay se salteaba (no había nada para configurar). Ahora aparece una **sección dedicada** con solo los dos campos que aplican:
+
+- **Sentido caída** (Detrás / Delante)
+- **Zócalo** (Bolsillo / Visto Blanco / Visto Negro / Reutilizar existente)
+
+No pide mecanismo, eje, cadena ni aluminio porque el cambio de tela reutiliza todo lo existente — solo se confecciona la tela nueva. Una nota celeste lo aclara dentro del overlay.
+
+Aplica tanto a `cambiotela` (Roller) como a `cambiotela_bv` (Bandas Verticales).
+
+**Cambio 3 — Roller Doble: dos sets de campos (Blackout + Sunscreen)**
+
+Antes el Roller Doble se trataba como una cortina y se le pedía UN solo set de detalles técnicos. Como el Roller Doble es físicamente **dos cortinas en el mismo eje** (un Blackout y un Sunscreen), ahora el overlay pide **los detalles de ambas por separado**:
+
+```
+[Roller Doble — 1800×2400mm]
+   ⬛ Blackout — color XXX
+      Sentido · Lado · Color mec. · Cadena · Zócalo · Soporte
+   ⬜ Sunscreen — color YYY
+      Sentido · Lado · Color mec. · Cadena · Zócalo · Soporte
+```
+
+Se persisten como `item.bk = {...}` y `item.sc = {...}` con los 6 campos cada uno. El item sigue manteniendo los campos planos (`it.sent`, `it.ladoMec`, etc.) con los valores del BK para compatibilidad con código existente.
+
+> **Pendiente futuro**: la planilla de fabricación todavía no muestra ambos sets por separado para Roller Doble — los datos se capturan correctamente pero la planilla refleja los del BK. Cuando arranquemos con Roller Doble en producción se ajusta el render de planilla.
+
+
+
 ## V291 — 2026-05-15
 
 ### Centro de Operaciones (Inicio) 🏠
