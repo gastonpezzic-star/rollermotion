@@ -9634,12 +9634,37 @@ window.onload = function(){ setTimeout(function(){ window.print(); window.onafte
 /* ════════════════════════════
    PLANILLA DE FABRICACIÓN
 ════════════════════════════ */
-function getEjeInfo(ancho){
+// V292.8: motor manda sobre el ancho para decidir el eje.
+//   - 2N           → eje 38mm (siempre)
+//   - 6N/WD/RF     → eje 50mm mínimo (liso hasta 3200, reforzado hasta 3700, 70mm sobre eso)
+// Sin motor (cortina con cadena): se decide solo por ancho como antes.
+function _motorTipo(motorLabel){
+  const m = (motorLabel||'').toLowerCase();
+  if(!m) return null;
+  if(m.includes('2n')) return '2N';
+  if(m.includes('6n')) return '6N';
+  if(m.includes(' wd') || m.endsWith('wd') || /\bwd\b/.test(m)) return 'WD';
+  if(m.includes(' rf') || m.endsWith('rf') || /\brf\b/.test(m)) return 'RF';
+  // 50/12 RF cae aquí — es alto torque, va con 70mm
+  if(m.includes('50/12')) return '50/12';
+  return null;
+}
+function getEjeInfo(ancho, motorLabel){
   const a = parseInt(ancho)||0;
+  const mt = _motorTipo(motorLabel);
+  if(mt === '50/12') return {mm:'70', lbl:'70 mm'};
+  if(mt === '2N')    return {mm:'38', lbl:'38 mm'};
+  if(mt === '6N' || mt === 'WD' || mt === 'RF'){
+    // Mínimo 50mm. Sube según ancho.
+    if(a <= 3200) return {mm:'50', lbl:'50 mm liso'};
+    if(a <= 3700) return {mm:'55', lbl:'50 mm ref.'};
+    return {mm:'70', lbl:'70 mm'};
+  }
+  // Sin motor (manual con cadena)
   if(a <= 1700) return {mm:'32', lbl:'32 mm'};
   if(a <= 2200) return {mm:'38', lbl:'38 mm'};
   if(a <= 3200) return {mm:'50', lbl:'50 mm liso'};
-  if(a <= 3700) return {mm:'55', lbl:'55 mm ref.'};
+  if(a <= 3700) return {mm:'55', lbl:'50 mm ref.'};
   return {mm:'70', lbl:'70 mm'};
 }
 function getCorteTela(ancho, alto){ return {a: (parseInt(ancho)||0)-40, h: (parseInt(alto)||0)+350}; }
@@ -9818,12 +9843,13 @@ function openPlanilla(d){
       <td style="text-align:center">${zoc==='Reutilizar existente' ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>' : `<span class="ftag ${zocCls}">${zoc}</span>`}</td>
       <td style="text-align:center">${soporteCell}</td>
       <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
+      <td style="text-align:center;border-left:2px solid #e0eaf4"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
     </tr>`;
   }).join('');
 
   // ── HOJA 2: CORTES DE ALUMINIO (Roller + Accesorios + Rieles conf) ──
   const h2rows_roller = rollerItems.map((it,i)=>{
-    const eje = getEjeInfo(it.ancho);
+    const eje = getEjeInfo(it.ancho, it.motor);
     const cejeVal = getCorteEje(it.ancho);
     const zoc = it.zoc||'Bolsillo';
     const czocVal = getCorteZoc(it.ancho, zoc);
@@ -9844,13 +9870,16 @@ function openPlanilla(d){
           <div class="alum-sym"><span class="ftag ${zocCls}">${zoc}</span></div>
           <div class="alum-val"><span class="alum-val-lbl">corte</span><div class="cut-wrap"><span class="fcut">${czocVal} mm</span><span class="fcheck"></span></div></div>
         </div>`;
+    // V292.8: mostrar la medida real (ancho × alto) de la cortina en tono sutil para orientación
+    const medidaReal = `<div style="font-size:8.5px;color:#a8a5a0;font-style:italic;margin-top:2px;font-family:'Manrope',sans-serif;letter-spacing:.02em">↔ ${it.ancho||'—'} × ${it.alto||'—'} mm</div>`;
     return `<tr>
       <td><span class="fnum">${i+1}</span></td>
-      <td style="font-weight:700;font-size:10px">${getTelaLabel(it.tela)||'—'}${dobleTag2}${cambioTag2}</td>
+      <td style="font-weight:700;font-size:10px">${getTelaLabel(it.tela)||'—'}${dobleTag2}${cambioTag2}${medidaReal}</td>
       <td style="font-size:9px;color:#555">${it.color||'—'}</td>
       <td>${ejeCell}</td>
       <td>${zocCell}</td>
       <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
+      <td style="text-align:center;border-left:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
     </tr>`;
   }).join('');
 
@@ -9871,6 +9900,7 @@ function openPlanilla(d){
         </div>
       </td>
       <td style="font-size:10px;color:#888">${refLabel}</td>
+      <td style="text-align:center;border-left:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
     </tr>`;
   }).join('');
 
@@ -9892,6 +9922,7 @@ function openPlanilla(d){
         </div>
       </td>
       <td style="font-size:10px;color:#888">${refStr}</td>
+      <td style="text-align:center;border-left:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
     </tr>`;
   }).join('');
 
@@ -10022,7 +10053,7 @@ function openPlanilla(d){
       <div class="fab-brand">Roller<span>Motion</span></div>
       <div style="text-align:center;flex:1;padding:0 16px">
         <div class="fab-doc-title">${hoja} &nbsp;·&nbsp; ${pedNum}</div>
-        <div class="fab-doc-num">${d.cliente} &nbsp;·&nbsp; Entrega: <span style="color:#d4820e">${fecha}</span></div>
+        <div class="fab-doc-num">${d.cliente} &nbsp;·&nbsp; Entrega: <span style="color:#d4820e">${fecha}</span>${d.vendedor ? ` &nbsp;·&nbsp; Vendedor: <span style="color:#555;font-weight:600">${d.vendedor}</span>` : ''}</div>
       </div>
       <div id="${barcodeId}" data-pednum="${pedNum}" style="min-width:110px;text-align:right"></div>
     </div>`;
@@ -10056,6 +10087,7 @@ function openPlanilla(d){
           <th style="color:#1a4a6a;text-align:center">Zócalo</th>
           <th style="color:#1a4a6a;text-align:center">Soporte</th>
           <th style="color:#1a4a6a;width:50px">Ref.</th>
+          <th style="color:#1a4a6a;text-align:center;width:48px;border-left:2px solid #c0d4ee">Check ✓</th>
         </tr></thead>
         <tbody>${h1rows}</tbody>
       </table>
@@ -10082,6 +10114,7 @@ function openPlanilla(d){
           <th style="color:#7a4a00;text-align:center">Eje / Accesorio — Corte</th>
           <th style="color:#7a4a00;text-align:center">Zócalo — Corte</th>
           <th style="color:#7a4a00">Ref.</th>
+          <th style="color:#7a4a00;text-align:center;width:48px;border-left:2px solid #f0d8a0">Check ✓</th>
         </tr></thead>
         <tbody>${h2rows}</tbody>
       </table>
