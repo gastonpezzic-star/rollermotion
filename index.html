@@ -1392,8 +1392,8 @@ body{
           </div>
           <div id="qa-toldo-tela" style="margin-top:8px;display:none"></div>
           <div id="qa-panel-info" style="margin-top:8px;display:none;background:#f0f9ff;border:1px solid #bae0fc;border-radius:8px;padding:10px 14px;font-size:11.5px;color:#075985;line-height:1.55">
-            <strong style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#075985">ℹ Paneles Orientales</strong><br>
-            <span id="qa-panel-info-txt">El ancho de cada panel se determina según el ancho del riel y la cantidad de vías.</span>
+            <strong id="qa-panel-info-title" style="font-size:10.5px;text-transform:uppercase;letter-spacing:.08em;color:#075985">ℹ Información</strong><br>
+            <span id="qa-panel-info-txt">—</span>
             <div id="qa-panel-calc" style="margin-top:6px;font-family:'Manrope',sans-serif;font-size:11px;color:#0c4a6e;display:none"></div>
           </div>
           <div id="qa-warnings" style="margin-top:10px"></div>
@@ -4101,6 +4101,13 @@ function onAccesorioChange(){
     if(anchoWrap) anchoWrap.style.display = '';
     if(altoWrap)  altoWrap.style.display  = '';
     if(medidaWrap) medidaWrap.style.display = 'none';
+    // V292.5: aclarar al usuario qué medida cargar en cambio de tela
+    const panelInfoCT = document.getElementById('qa-panel-info');
+    const panelInfoTitleCT = document.getElementById('qa-panel-info-title');
+    const panelInfoTxtCT = document.getElementById('qa-panel-info-txt');
+    if(panelInfoCT) panelInfoCT.style.display = 'block';
+    if(panelInfoTitleCT) panelInfoTitleCT.textContent = 'ℹ Cambio de tela';
+    if(panelInfoTxtCT) panelInfoTxtCT.textContent = 'Ingresá las medidas de ancho × alto de la tela a reemplazar, considerando el largo total de enrollamiento sobre el eje (no solo la parte visible).';
   } else if(item.unidad === 'mm'){
     if(anchoWrap) anchoWrap.style.display = 'none';
     if(altoWrap)  altoWrap.style.display  = 'none';
@@ -4327,8 +4334,10 @@ function qaTelaChange(){
       if(varianteWrap) varianteWrap.style.display = 'flex';
       // Mostrar el panel info de Paneles Orientales
       const panelInfo = document.getElementById('qa-panel-info');
+      const panelInfoTitle = document.getElementById('qa-panel-info-title');
       const panelInfoTxt = document.getElementById('qa-panel-info-txt');
       if(panelInfo) panelInfo.style.display = 'block';
+      if(panelInfoTitle) panelInfoTitle.textContent = 'ℹ Paneles Orientales';
       if(panelInfoTxt && telaObj.infoMsg) panelInfoTxt.textContent = telaObj.infoMsg;
       colorSel.onchange = function(){ qaCalcPrecio(); };
     } else {
@@ -8434,8 +8443,10 @@ function renderFab(){
     // Mostrar la planilla "📋 Armado (Roller / aluminio)" si:
     // - tiene roller / rieles sueltos / motorizados (necesitan armado + cortes aluminio)
     // - o tiene confección CON riel (los rieles van en hoja 2 de cortes aluminio)
+    // - o tiene cambio de tela (V292.5: necesita planilla para corte de tela + zócalo si aplica)
     const tieneRoller = (d.items||[]).some(it =>
       isRollerTela(it.tela)
+      || isCambioTela(it.tela)
       || it.tela==='riel_manual'
       || it.tela==='riel_motorizado'
       || it.tela==='riel_motorizado_celtic'
@@ -9668,10 +9679,13 @@ function openPlanilla(d){
 
   const allItems = d.items||[];
 
-  // Items roller (blackout/sunscreen/etc con eje)
+  // Items roller (blackout/sunscreen/etc con eje) + cambio de tela
+  // V292.5: incluir explícitamente cambio de tela. El filtro genérico ya los tomaba
+  // por ancho/alto, pero lo dejamos explícito para que sea claro.
   const rollerItemsRaw = allItems.filter(it =>
     it.tela==='blackout' || it.tela==='sunscreen5' ||
     it.tela==='Roller Blackout' || it.tela==='Roller Sunscreen 5%' ||
+    isCambioTela(it.tela) ||
     (it.ancho && it.alto && it.tela !== 'conf_liviana' && it.tela !== 'conf_blackout')
   );
 
