@@ -722,6 +722,10 @@ body{
   font-family:'Raleway',sans-serif; font-size:11px; font-weight:600;
   letter-spacing:0.16em; text-transform:uppercase; color:var(--accent); margin-bottom:6px;
 }
+.inicio-greeting-big{
+  font-family:'Raleway',sans-serif; font-size:30px; font-weight:600;
+  letter-spacing:-.02em; color:var(--brand); margin:0 0 6px; line-height:1.1;
+}
 .inicio-title{
   font-family:'Raleway',sans-serif; font-size:32px; font-weight:600;
   letter-spacing:-.025em; color:var(--brand); margin:0 0 6px; line-height:1.1;
@@ -766,6 +770,16 @@ body{
   overflow:hidden; margin-bottom:18px;
 }
 .inicio-card-wide{ width:100% }
+/* V291.2: Novedades destacadas visualmente (primer bloque del tablero) */
+.inicio-card-novedades{
+  background:linear-gradient(135deg, #fff 0%, #fefaf1 100%);
+  border-color:#f5e6c4;
+  box-shadow:0 1px 0 rgba(0,0,0,.02), 0 6px 24px rgba(240,150,32,.08);
+}
+.inicio-card-novedades .inicio-card-h{
+  background:linear-gradient(90deg, #fff7ed, #fefaf1);
+  border-bottom:1px solid #f5e6c4;
+}
 .inicio-card-h{
   display:flex; align-items:center; gap:10px;
   padding:14px 20px 12px; border-bottom:1px solid #f1efea;
@@ -1012,14 +1026,23 @@ body{
       <!-- Hero -->
       <div class="inicio-hero">
         <div>
-          <div class="inicio-greeting" id="inicio-greeting">Buen día</div>
-          <h1 class="inicio-title">Centro de Operaciones</h1>
+          <h1 class="inicio-greeting-big" id="inicio-greeting">Buen día</h1>
           <div class="inicio-date" id="inicio-date">—</div>
         </div>
         <div class="inicio-hero-actions">
           <button class="btn btn-primary" onclick="goNew('quote')" style="font-size:13px;padding:11px 22px">＋ Nueva cotización</button>
           <button class="btn btn-outline" onclick="goNew('order')" style="font-size:13px;padding:11px 22px">＋ Nuevo pedido</button>
         </div>
+      </div>
+
+      <!-- V291.2: Novedades PRIMERO — lo que un usuario debe ver al entrar -->
+      <div class="inicio-card inicio-card-wide inicio-card-novedades">
+        <div class="inicio-card-h">
+          <span class="inicio-card-ic">📣</span>
+          <div class="inicio-card-tt">Novedades</div>
+          <button class="inicio-add-btn" id="inicio-add-novedad-btn" onclick="abrirModalNovedad()" style="display:none">＋ Agregar</button>
+        </div>
+        <div class="inicio-card-body" id="inicio-novedades"></div>
       </div>
 
       <!-- KPIs -->
@@ -1046,24 +1069,14 @@ body{
         </div>
       </div>
 
-      <!-- Cotizaciones Destacadas -->
+      <!-- Top cotizaciones del mes (automático por monto) -->
       <div class="inicio-card inicio-card-wide">
         <div class="inicio-card-h">
           <span class="inicio-card-ic">⭐</span>
-          <div class="inicio-card-tt">Cotizaciones destacadas — seguimiento</div>
-          <span class="inicio-card-hint">Marcá una cotización con ★ desde la lista para que aparezca acá</span>
+          <div class="inicio-card-tt">Top cotizaciones del mes — para seguimiento</div>
+          <span class="inicio-card-hint">Las de mayor monto cotizado en los últimos 30 días</span>
         </div>
         <div class="inicio-card-body" id="inicio-destacadas"></div>
-      </div>
-
-      <!-- Novedades -->
-      <div class="inicio-card inicio-card-wide">
-        <div class="inicio-card-h">
-          <span class="inicio-card-ic">📣</span>
-          <div class="inicio-card-tt">Novedades</div>
-          <button class="inicio-add-btn" id="inicio-add-novedad-btn" onclick="abrirModalNovedad()" style="display:none">＋ Agregar</button>
-        </div>
-        <div class="inicio-card-body" id="inicio-novedades"></div>
       </div>
 
     </div>
@@ -3554,7 +3567,7 @@ function _sortDocsByDate(docs){
   });
 }
 
-function _docItemHtml(d, showStar){
+function _docItemHtml(d){
   const cant = (d.items||[]).reduce((s,i)=> s + (parseInt(i.cant)||1), 0);
   const tot = '$'+Math.round(parseFloat(d.total)||0).toLocaleString('es-AR');
   const fechaTxt = _formatFechaCorta(d.fecha || d.created_at);
@@ -3567,9 +3580,6 @@ function _docItemHtml(d, showStar){
   else if(isEnviada) estadoBadge = `<span class="badge b-enviada">${d.estado}</span>`;
   else if(isFab) estadoBadge = `<span class="badge b-fab">${d.estado}</span>`;
   else if(isListo) estadoBadge = `<span class="badge b-listo">${d.estado}</span>`;
-  const starBtn = showStar
-    ? `<span class="inicio-item-star ${d.destacada?'on':''}" onclick="event.stopPropagation();toggleDocDestacada('${d.id}',${!d.destacada})" title="${d.destacada?'Quitar de destacadas':'Marcar como destacada'}">★</span>`
-    : '';
   return `<div class="inicio-item" onclick="openDocFromList('${d.id}')">
     <div class="inicio-item-num">#${d.numero||'—'}</div>
     <div class="inicio-item-body">
@@ -3582,7 +3592,6 @@ function _docItemHtml(d, showStar){
       </div>
     </div>
     <div class="inicio-item-price">${tot}</div>
-    ${starBtn}
   </div>`;
 }
 
@@ -3614,7 +3623,7 @@ function renderInicioCotizaciones(){
     wrap.innerHTML = `<div class="inicio-empty"><div class="ic">📄</div><div class="ms">Sin cotizaciones aún</div><div class="sub">Las nuevas cotizaciones van a aparecer acá</div></div>`;
     return;
   }
-  wrap.innerHTML = cots.map(d => _docItemHtml(d, true)).join('');
+  wrap.innerHTML = cots.map(d => _docItemHtml(d)).join('');
 }
 
 function renderInicioPedidos(){
@@ -3625,38 +3634,56 @@ function renderInicioPedidos(){
     wrap.innerHTML = `<div class="inicio-empty"><div class="ic">📦</div><div class="ms">Sin pedidos confirmados</div><div class="sub">Los pedidos van a aparecer acá</div></div>`;
     return;
   }
-  wrap.innerHTML = peds.map(d => _docItemHtml(d, false)).join('');
+  wrap.innerHTML = peds.map(d => _docItemHtml(d)).join('');
 }
 
+// V291.2: destacadas AUTOMÁTICAS — top 5 cotizaciones de mayor monto en los últimos 30 días
 function renderInicioDestacadas(){
   const wrap = document.getElementById('inicio-destacadas');
   if(!wrap) return;
-  const destacadas = _sortDocsByDate(_docsVisiblesParaMi().filter(d => d.type==='quote' && d.destacada)).slice(0, 8);
-  if(!destacadas.length){
-    wrap.innerHTML = `<div class="inicio-empty"><div class="ic">⭐</div><div class="ms">No hay cotizaciones destacadas</div><div class="sub">Marcá una con la ★ en las listas de arriba o en Cotizaciones</div></div>`;
+  const ahora = Date.now();
+  const inicio30d = ahora - 30 * 86400 * 1000;
+  // Solo cotizaciones (no pedidos confirmados — esas ya están "ganadas")
+  const cotizacionesUlt30d = _docsVisiblesParaMi().filter(d => {
+    if(d.type !== 'quote') return false;
+    const ts = new Date(d.fecha || d.created_at || 0).getTime();
+    if(!ts || ts < inicio30d || ts > ahora) return false;
+    // Excluir las que ya están aprobadas/cerradas (no necesitan seguimiento)
+    const est = (d.estado||'').toLowerCase();
+    if(est === 'aprobada' || est === 'rechazada' || est === 'cerrada') return false;
+    return (parseFloat(d.total)||0) > 0;
+  });
+  const top = cotizacionesUlt30d
+    .sort((a,b) => (parseFloat(b.total)||0) - (parseFloat(a.total)||0))
+    .slice(0, 5);
+
+  if(!top.length){
+    wrap.innerHTML = `<div class="inicio-empty"><div class="ic">⭐</div><div class="ms">Sin cotizaciones del último mes</div><div class="sub">Las cotizaciones de mayor monto van a aparecer acá automáticamente para que les hagas seguimiento</div></div>`;
     return;
   }
-  wrap.innerHTML = destacadas.map(d => {
+  wrap.innerHTML = top.map((d, idx) => {
     const dias = Math.floor((new Date() - new Date(d.fecha || d.created_at || 0)) / 86400000);
     const diasBadge = dias > 14
-      ? `<span class="inicio-item-days warn">⏳ Pendiente hace ${dias}d</span>`
+      ? `<span class="inicio-item-days warn">⏳ Hace ${dias}d</span>`
       : dias > 7
-      ? `<span class="inicio-item-days">Pendiente hace ${dias}d</span>`
-      : `<span class="inicio-item-days">Hace ${dias}d</span>`;
+      ? `<span class="inicio-item-days">Hace ${dias}d</span>`
+      : `<span class="inicio-item-days">Hace ${dias||1}d</span>`;
     const cant = (d.items||[]).reduce((s,i)=> s + (parseInt(i.cant)||1), 0);
     const tot = '$'+Math.round(parseFloat(d.total)||0).toLocaleString('es-AR');
+    // Ranking medal por monto
+    const medal = idx===0 ? '🥇' : idx===1 ? '🥈' : idx===2 ? '🥉' : '⭐';
     return `<div class="inicio-item" onclick="openDocFromList('${d.id}')">
       <div class="inicio-item-num">#${d.numero||'—'}</div>
       <div class="inicio-item-body">
-        <div class="inicio-item-name">⭐ ${d.cliente||'Sin cliente'}</div>
+        <div class="inicio-item-name">${medal} ${d.cliente||'Sin cliente'}</div>
         <div class="inicio-item-meta">
           ${diasBadge}
           <span>${d.estado||'—'}</span>
           <span>${cant} ítem${cant!==1?'s':''}</span>
+          ${d.vendedor?`<span style="color:#9a9794">· ${d.vendedor}</span>`:''}
         </div>
       </div>
       <div class="inicio-item-price">${tot}</div>
-      <span class="inicio-item-star on" onclick="event.stopPropagation();toggleDocDestacada('${d.id}',false)" title="Quitar de destacadas">★</span>
     </div>`;
   }).join('');
 }
