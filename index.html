@@ -9852,7 +9852,12 @@ function openPlanilla(d){
     const eje = getEjeInfo(it.ancho, it.motor);
     const cejeVal = getCorteEje(it.ancho);
     const zoc = it.zoc||'Bolsillo';
-    const czocVal = getCorteZoc(it.ancho, zoc);
+    // V292.9: para cambio de tela el ancho cargado YA es el corte de tela exacto,
+    // entonces el zócalo es ancho (bolsillo) o ancho + 5 (visto). Sin el -40 del roller nuevo.
+    const _esCambioZoc = isCambioTela(it.tela);
+    const czocVal = _esCambioZoc
+      ? ((parseInt(it.ancho)||0) + (zoc && zoc.toLowerCase().includes('visto') ? 5 : 0))
+      : getCorteZoc(it.ancho, zoc);
     const zocCls = getZocTagClass(zoc);
     const dobleTag2 = it._dobleTag ? `<div style="font-size:8px;color:#8a6c3c;background:#fef7e8;border:1px solid #e8d8a8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔗 ${it._dobleTag}</div>` : '';
     // V292.4: cambio de tela — eje no se corta (reusa). Zócalo se corta sólo si NO eligió "Reutilizar existente".
