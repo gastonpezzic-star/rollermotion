@@ -6442,6 +6442,8 @@ function _calcToldoOpcionesTela(A, S){
 }
 function isRollerTela(t){ return TIPOS_ROLLER.includes((t||'').toLowerCase()); }
 function isRollerDoble(t){ const k=(t||'').toLowerCase(); return k==='rollerdoble' || k==='doble'; }
+// V292.4: helper para detectar cambio de tela (Roller o Bandas)
+function isCambioTela(t){ const k=(t||'').toLowerCase(); return k==='cambiotela' || k==='cambiotela_bv'; }
 
 // Calcula la combinación óptima de tramos para un riel con precio por tramo (ej: Celtic).
 // Para anchos hasta el máximo (6m), usa el tramo más chico que entre.
@@ -9755,8 +9757,12 @@ function openPlanilla(d){
     const zoc = it.zoc||'Bolsillo';
     const zocCls = getZocTagClass(zoc);
     const tieneMotor = !!it.motor;
+    // V292.4: cambio de tela — no lleva mecanismo/eje/cadena, se reutiliza lo existente
+    const esCambio = isCambioTela(it.tela);
     let cadenaCell;
-    if(tieneMotor){
+    if(esCambio){
+      cadenaCell = `<span style="color:#aaa;font-size:9px;font-style:italic">Reusa existente</span>`;
+    } else if(tieneMotor){
       const motorCorto = it.motor
         .replace('Motor Vertilux ','').replace('Control remoto','RF').replace('Accionamiento tecla','WD');
       cadenaCell = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
@@ -9770,16 +9776,22 @@ function openPlanilla(d){
     }
     // V292.1: si viene de un Roller Doble, mostrar tag "Doble #N" para que el operario sepa que va con su pareja
     const dobleTag = it._dobleTag ? `<div style="font-size:8px;color:#8a6c3c;background:#fef7e8;border:1px solid #e8d8a8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔗 ${it._dobleTag}</div>` : '';
+    // V292.4: tag visual para cambio de tela
+    const cambioTag = esCambio ? `<div style="font-size:8px;color:#1f6e9c;background:#e8f1f7;border:1px solid #b8d4e8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔄 Cambio de tela</div>` : '';
+    // Subtítulo de tela (sólo para roller blackout/sunscreen5)
+    const telaSubtit = (it.tela==='blackout'||it.tela==='Roller Blackout') ? 'Vertilux Fiberglass ®'
+                     : (it.tela==='sunscreen5'||it.tela==='Roller Sunscreen 5%') ? 'Vertilux VX ®'
+                     : '';
     return `<tr>
       <td><span class="fnum">${i+1}</span></td>
-      <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong><br><span style="font-size:7.5px;color:#888">${(it.tela==='blackout'||it.tela==='Roller Blackout')?'Vertilux Fiberglass ®':'Vertilux VX ®'}</span>${dobleTag}</td>
+      <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br><span style="font-size:7.5px;color:#888">${telaSubtit}</span>`:''}${dobleTag}${cambioTag}</td>
       <td style="font-size:10.5px">${it.color||'—'}</td>
       <td style="text-align:center"><span class="fcut">${ct.a} mm</span></td>
       <td style="text-align:center"><span class="fcut">${ct.h} mm</span></td>
       <td style="text-align:center;border-left:2px solid #e0eaf4">${getSentidoTag(it.sent)}</td>
-      <td style="text-align:center">${getMecTag(it.ladoMec, it.colorMec)}</td>
+      <td style="text-align:center">${esCambio ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa existente</span>' : getMecTag(it.ladoMec, it.colorMec)}</td>
       <td style="text-align:center">${cadenaCell}</td>
-      <td style="text-align:center"><span class="ftag ${zocCls}">${zoc}</span></td>
+      <td style="text-align:center">${zoc==='Reutilizar existente' ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>' : `<span class="ftag ${zocCls}">${zoc}</span>`}</td>
       <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
     </tr>`;
   }).join('');
@@ -9792,22 +9804,27 @@ function openPlanilla(d){
     const czocVal = getCorteZoc(it.ancho, zoc);
     const zocCls = getZocTagClass(zoc);
     const dobleTag2 = it._dobleTag ? `<div style="font-size:8px;color:#8a6c3c;background:#fef7e8;border:1px solid #e8d8a8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔗 ${it._dobleTag}</div>` : '';
-    return `<tr>
-      <td><span class="fnum">${i+1}</span></td>
-      <td style="font-weight:700;font-size:10px">${getTelaLabel(it.tela)||'—'}${dobleTag2}</td>
-      <td style="font-size:9px;color:#555">${it.color||'—'}</td>
-      <td>
-        <div class="alum-cell">
+    // V292.4: cambio de tela — eje no se corta (reusa). Zócalo se corta sólo si NO eligió "Reutilizar existente".
+    const esCambio2 = isCambioTela(it.tela);
+    const cambioTag2 = esCambio2 ? `<div style="font-size:8px;color:#1f6e9c;background:#e8f1f7;border:1px solid #b8d4e8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔄 Cambio de tela</div>` : '';
+    const ejeCell = esCambio2
+      ? `<div class="alum-cell" style="opacity:.55"><div class="alum-sym" style="color:#aaa;font-size:9px;font-style:italic">Reusa eje existente</div></div>`
+      : `<div class="alum-cell">
           <div class="alum-sym"><div class="eje-wrap"><div class="eje-ring">${eje.mm}</div><span class="eje-lbl">${eje.lbl}</span></div></div>
           <div class="alum-val"><span class="alum-val-lbl">corte</span><div class="cut-wrap"><span class="fcut">${cejeVal} mm</span><span class="fcheck"></span></div></div>
-        </div>
-      </td>
-      <td>
-        <div class="alum-cell">
+        </div>`;
+    const zocCell = (esCambio2 && zoc === 'Reutilizar existente')
+      ? `<div class="alum-cell" style="opacity:.55"><div class="alum-sym" style="color:#aaa;font-size:9px;font-style:italic">Reusa zócalo existente</div></div>`
+      : `<div class="alum-cell">
           <div class="alum-sym"><span class="ftag ${zocCls}">${zoc}</span></div>
           <div class="alum-val"><span class="alum-val-lbl">corte</span><div class="cut-wrap"><span class="fcut">${czocVal} mm</span><span class="fcheck"></span></div></div>
-        </div>
-      </td>
+        </div>`;
+    return `<tr>
+      <td><span class="fnum">${i+1}</span></td>
+      <td style="font-weight:700;font-size:10px">${getTelaLabel(it.tela)||'—'}${dobleTag2}${cambioTag2}</td>
+      <td style="font-size:9px;color:#555">${it.color||'—'}</td>
+      <td>${ejeCell}</td>
+      <td>${zocCell}</td>
       <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
     </tr>`;
   }).join('');
