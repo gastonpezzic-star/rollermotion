@@ -1,5 +1,74 @@
 # Changelog
 
+## V291 — 2026-05-15
+
+### Centro de Operaciones (Inicio) 🏠
+
+Nueva pestaña **🏠 Inicio** que aparece primero en el menú y es la página por defecto al loguearse. Sustituye el aterrizaje directo en Cotizaciones.
+
+**Contenido**:
+
+1. **Hero**: saludo personalizado según la hora ("Buen día, Gastón"), fecha en español, atajos rápidos "＋ Nueva cotización" y "＋ Nuevo pedido".
+
+2. **4 KPI cards** con el pulso del mes:
+   - Cotizaciones del mes (cantidad + total cotizado)
+   - Pedidos confirmados (cantidad)
+   - Facturado del mes
+   - Tasa de conversión (pedidos / cotizaciones × 100)
+
+3. **2 columnas — Últimas cotizaciones / Últimos pedidos**: máximo 5 cada una, con número, cliente, fecha relativa ("hace 2h"), estado con badge de color, cantidad de ítems y total. Click → abre el doc.
+
+4. **Cotizaciones destacadas — seguimiento**: las cotizaciones marcadas con ★. Cada una muestra cuántos días lleva pendiente (badge amarillo > 7 días, rojo > 14 días). Marcar/desmarcar con un click en la ★.
+
+5. **Próximas entregas · 7 días**: pedidos con `fecha_entrega` en los próximos 7 días (o vencidas), ordenados cronológicamente, con badge "Hoy / Mañana / En N días / Vencida".
+
+6. **Novedades**: panel administrable. Tipos: 🆕 Nuevo ingreso · ⚠ Discontinuado · 📈 Aumento de precio · ℹ Información general. Cada novedad tiene título, descripción opcional y fecha de vencimiento opcional (se ocultan automáticamente al vencer). Solo admins ven el botón "＋ Agregar" y los íconos de editar/eliminar.
+
+**Diseño**:
+
+- Tipografía Raleway en títulos, Manrope para números, DM Sans para body.
+- Cards con bordes suaves (radius 14px), sombras sutiles, hover con micro-elevación.
+- Grid responsive:
+  - **Desktop**: 4 KPIs en fila + 2 columnas para listas.
+  - **Tablet**: 2 KPIs por fila + 1 columna.
+  - **Mobile**: 2 KPIs por fila + todo apilado, botones de hero ocupan ancho completo.
+- Paleta consistente con el sistema (naranja `#f09620`, negro `#141414`, fondo cálido `#f5f4f1`).
+- Badges de estado con colores semánticos (verde aprobada/listo, azul enviada, amarillo en fabricación, rojo rechazada).
+
+**Filtrado por rol**:
+
+- Admin y Fábrica: ven todas las cotizaciones y pedidos.
+- Vendedor: ve solo los suyos (`vendedor === ME.name`).
+
+**SQL necesario en Supabase**:
+
+```sql
+-- 1) Tabla de novedades
+CREATE TABLE IF NOT EXISTS novedades (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  titulo TEXT NOT NULL,
+  descripcion TEXT,
+  tipo TEXT,
+  fecha_creacion TIMESTAMPTZ DEFAULT NOW(),
+  fecha_vencimiento TIMESTAMPTZ,
+  activa BOOLEAN DEFAULT TRUE,
+  creado_por TEXT
+);
+
+-- 2) Columna destacada en documentos
+ALTER TABLE documentos ADD COLUMN IF NOT EXISTS destacada BOOLEAN DEFAULT FALSE;
+```
+
+Si el usuario aún no corre el SQL, **el resto del Inicio funciona** (KPIs, listas, próximas entregas). Solo las novedades estarán vacías y al marcar una cotización como destacada aparecerá un toast avisando que falta correr el SQL. La marca queda en memoria hasta que se refresque la página.
+
+**Ideas para próximas iteraciones**:
+
+- Top vendedores del mes (cuando esté multi-user maduro)
+- Tela más vendida del mes (útil para stock)
+- Notificaciones internas (comentarios en pedidos)
+- Quick search global
+- Auto-detección de cotizaciones "calientes" (alto valor + sin pedido)
+
 ## V290.1 — 2026-05-15
 
 ### Toldos: medidas en columnas + chapón como 'Cobertor de toldo' + icono herramienta

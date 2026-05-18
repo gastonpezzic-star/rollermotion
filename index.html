@@ -709,6 +709,208 @@ body{
   #qa-precio-manual-wrap{ flex:1 }
 }
 
+/* ══════════════════════════════════════
+   V291 — CENTRO DE OPERACIONES (Inicio)
+   ══════════════════════════════════════ */
+.inicio-wrap{ max-width:1240px; padding:32px 24px 60px }
+
+.inicio-hero{
+  display:flex; justify-content:space-between; align-items:flex-end; gap:24px;
+  margin-bottom:28px; flex-wrap:wrap;
+}
+.inicio-greeting{
+  font-family:'Raleway',sans-serif; font-size:11px; font-weight:600;
+  letter-spacing:0.16em; text-transform:uppercase; color:var(--accent); margin-bottom:6px;
+}
+.inicio-title{
+  font-family:'Raleway',sans-serif; font-size:32px; font-weight:600;
+  letter-spacing:-.025em; color:var(--brand); margin:0 0 6px; line-height:1.1;
+}
+.inicio-date{ font-size:13px; color:#7a7775; font-weight:500; text-transform:capitalize }
+.inicio-hero-actions{ display:flex; gap:10px; flex-wrap:wrap }
+
+/* KPI cards */
+.inicio-kpis{
+  display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:24px;
+}
+.inicio-kpi{
+  background:#fff; border-radius:14px; padding:18px 20px;
+  border:1px solid var(--border);
+  box-shadow:0 1px 0 rgba(0,0,0,.02), 0 4px 18px rgba(20,20,20,.04);
+  position:relative; overflow:hidden; transition:transform .15s, box-shadow .15s;
+}
+.inicio-kpi:hover{ transform:translateY(-2px); box-shadow:0 4px 24px rgba(20,20,20,.08) }
+.inicio-kpi .lbl{
+  font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.1em;
+  color:#9a9794; margin-bottom:6px;
+}
+.inicio-kpi .val{
+  font-family:'Manrope',sans-serif; font-size:26px; font-weight:700; color:var(--brand);
+  letter-spacing:-.015em; line-height:1.1;
+}
+.inicio-kpi .sub{ font-size:11px; color:#7a7775; margin-top:6px }
+.inicio-kpi .accent-bar{
+  position:absolute; left:0; top:0; bottom:0; width:3px;
+  background:var(--accent);
+}
+.inicio-kpi.kpi-positive .accent-bar{ background:#2a9d5e }
+.inicio-kpi.kpi-warning .accent-bar{ background:#d4820e }
+
+/* Rows of cards */
+.inicio-row{ margin-bottom:18px }
+.inicio-row-2col{ display:grid; grid-template-columns:1fr 1fr; gap:14px }
+
+.inicio-card{
+  background:#fff; border-radius:14px; border:1px solid var(--border);
+  box-shadow:0 1px 0 rgba(0,0,0,.02), 0 4px 18px rgba(20,20,20,.04);
+  overflow:hidden; margin-bottom:18px;
+}
+.inicio-card-wide{ width:100% }
+.inicio-card-h{
+  display:flex; align-items:center; gap:10px;
+  padding:14px 20px 12px; border-bottom:1px solid #f1efea;
+}
+.inicio-card-ic{ font-size:18px; line-height:1 }
+.inicio-card-tt{
+  font-family:'Raleway',sans-serif; font-size:13.5px; font-weight:600; color:var(--brand);
+  letter-spacing:-.005em; flex:1;
+}
+.inicio-card-link{
+  font-size:11px; color:var(--accent); font-weight:600; cursor:pointer;
+  letter-spacing:.02em; text-decoration:none;
+}
+.inicio-card-link:hover{ color:var(--accent2) }
+.inicio-card-hint{ font-size:10.5px; color:#a8a5a0; font-style:italic; font-weight:400 }
+.inicio-card-body{ padding:6px 0 8px }
+
+/* List items inside cards */
+.inicio-item{
+  display:flex; align-items:center; gap:14px;
+  padding:11px 20px; border-bottom:1px solid #f4f3f0;
+  cursor:pointer; transition:background .12s;
+}
+.inicio-item:last-child{ border-bottom:0 }
+.inicio-item:hover{ background:#fafaf8 }
+.inicio-item-num{
+  font-family:'Manrope',sans-serif; font-size:11px; font-weight:700; color:var(--accent);
+  background:#fef6e8; padding:4px 10px; border-radius:6px; letter-spacing:.04em;
+  flex-shrink:0; min-width:62px; text-align:center;
+}
+.inicio-item-body{ flex:1; min-width:0 }
+.inicio-item-name{
+  font-size:13.5px; font-weight:600; color:var(--brand); margin-bottom:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.inicio-item-meta{
+  font-size:11px; color:#7a7775; display:flex; gap:10px; flex-wrap:wrap;
+}
+.inicio-item-meta .badge{
+  background:#f1efea; padding:2px 8px; border-radius:10px; font-size:10px;
+  font-weight:600; color:#555;
+}
+.inicio-item-meta .badge.b-aprobada{ background:#dcfce7; color:#15803d }
+.inicio-item-meta .badge.b-rechazada{ background:#fee2e2; color:#b91c1c }
+.inicio-item-meta .badge.b-enviada{ background:#dbeafe; color:#1d4ed8 }
+.inicio-item-meta .badge.b-fab{ background:#fef3c7; color:#a16207 }
+.inicio-item-meta .badge.b-listo{ background:#dcfce7; color:#15803d }
+.inicio-item-price{
+  font-family:'Manrope',sans-serif; font-size:14px; font-weight:700;
+  color:var(--brand); white-space:nowrap; text-align:right;
+}
+.inicio-item-star{
+  flex-shrink:0; font-size:18px; cursor:pointer; padding:4px;
+  border-radius:6px; transition:background .12s; color:#d8d5d0; line-height:1;
+}
+.inicio-item-star:hover{ background:#fef6e8 }
+.inicio-item-star.on{ color:#f09620 }
+.inicio-item-days{
+  font-size:10px; color:#a87742; background:#fff7ed; padding:3px 8px;
+  border-radius:10px; font-weight:600; white-space:nowrap;
+}
+.inicio-item-days.warn{ color:#b91c1c; background:#fee2e2 }
+
+/* Empty states */
+.inicio-empty{
+  padding:36px 20px; text-align:center; color:#a8a5a0;
+}
+.inicio-empty .ic{ font-size:32px; opacity:.6; margin-bottom:8px }
+.inicio-empty .ms{ font-size:13px; font-weight:500 }
+.inicio-empty .sub{ font-size:11px; margin-top:4px; color:#bcb8b2 }
+
+/* Novedades */
+.novedad-item{
+  display:flex; gap:12px; align-items:flex-start; padding:12px 20px;
+  border-bottom:1px solid #f4f3f0; position:relative;
+}
+.novedad-item:last-child{ border-bottom:0 }
+.novedad-item-ic{
+  font-size:18px; line-height:1; padding-top:2px; flex-shrink:0;
+  width:36px; height:36px; border-radius:50%; display:flex;
+  align-items:center; justify-content:center;
+}
+.novedad-item.t-nuevo .novedad-item-ic{ background:#dcfce7 }
+.novedad-item.t-discontinuado .novedad-item-ic{ background:#fee2e2 }
+.novedad-item.t-aumento .novedad-item-ic{ background:#fef3c7 }
+.novedad-item.t-general .novedad-item-ic{ background:#dbeafe }
+.novedad-item-body{ flex:1; min-width:0 }
+.novedad-item-tt{ font-size:13.5px; font-weight:600; color:var(--brand); margin-bottom:2px }
+.novedad-item-desc{ font-size:11.5px; color:#7a7775; line-height:1.5 }
+.novedad-item-meta{ font-size:10px; color:#a8a5a0; margin-top:4px; font-style:italic }
+.novedad-item-actions{ display:flex; gap:6px; opacity:.4; transition:opacity .15s }
+.novedad-item:hover .novedad-item-actions{ opacity:1 }
+.novedad-item-btn{
+  background:none; border:none; cursor:pointer; padding:6px;
+  border-radius:6px; color:#7a7775; font-size:13px;
+}
+.novedad-item-btn:hover{ background:#f4f3f0; color:var(--brand) }
+
+.inicio-add-btn{
+  background:var(--accent); color:#fff; border:0; border-radius:8px;
+  padding:6px 14px; font-size:11.5px; font-weight:600; cursor:pointer;
+  font-family:'DM Sans',sans-serif; letter-spacing:.02em; transition:background .15s;
+}
+.inicio-add-btn:hover{ background:var(--accent2) }
+
+/* Modal novedad */
+.modal-backdrop-ini{
+  display:none; position:fixed; inset:0; background:rgba(20,20,20,.5);
+  z-index:200; align-items:center; justify-content:center; padding:20px;
+  backdrop-filter:blur(4px);
+}
+.modal-backdrop-ini.visible{ display:flex }
+.modal-ini{
+  background:#fff; border-radius:16px; padding:24px 22px; max-width:460px; width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.25);
+}
+.modal-ini h2{ font-family:'Raleway',sans-serif; font-size:19px; margin:0 0 16px; font-weight:600; color:var(--brand); letter-spacing:-.01em }
+.modal-ini .f{ margin-bottom:13px }
+.modal-ini .f label{ display:block; font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#9a9794; margin-bottom:5px }
+.modal-ini .f input, .modal-ini .f select, .modal-ini .f textarea{
+  width:100%; padding:9px 12px; border:1.5px solid var(--border); border-radius:8px;
+  font:inherit; font-size:13px; color:var(--ink); outline:none; transition:border-color .15s;
+  background:#fafaf8; box-sizing:border-box;
+}
+.modal-ini .f input:focus, .modal-ini .f select:focus, .modal-ini .f textarea:focus{ border-color:var(--accent); background:#fff }
+.modal-ini-btns{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px }
+
+/* Responsive */
+@media (max-width: 980px){
+  .inicio-kpis{ grid-template-columns:repeat(2, 1fr) }
+  .inicio-row-2col{ grid-template-columns:1fr }
+  .inicio-title{ font-size:26px }
+}
+@media (max-width: 560px){
+  .inicio-wrap{ padding:20px 16px 50px }
+  .inicio-kpis{ grid-template-columns:1fr 1fr; gap:10px }
+  .inicio-kpi{ padding:14px 16px }
+  .inicio-kpi .val{ font-size:22px }
+  .inicio-hero{ flex-direction:column; align-items:flex-start; gap:18px }
+  .inicio-hero-actions{ width:100% }
+  .inicio-hero-actions .btn{ flex:1 }
+  .inicio-item{ flex-wrap:wrap; padding:10px 16px }
+  .inicio-item-name{ font-size:12.5px }
+}
+
 </style>
 </head>
 <body>
@@ -803,6 +1005,111 @@ body{
   </div>
 
   <!-- ── COTIZACIONES ── -->
+  <!-- ── V291 — CENTRO DE OPERACIONES (Inicio) ── -->
+  <div class="pg" id="pg-inicio">
+    <div class="wrap inicio-wrap">
+
+      <!-- Hero -->
+      <div class="inicio-hero">
+        <div>
+          <div class="inicio-greeting" id="inicio-greeting">Buen día</div>
+          <h1 class="inicio-title">Centro de Operaciones</h1>
+          <div class="inicio-date" id="inicio-date">—</div>
+        </div>
+        <div class="inicio-hero-actions">
+          <button class="btn btn-primary" onclick="goNew('quote')" style="font-size:13px;padding:11px 22px">＋ Nueva cotización</button>
+          <button class="btn btn-outline" onclick="goNew('order')" style="font-size:13px;padding:11px 22px">＋ Nuevo pedido</button>
+        </div>
+      </div>
+
+      <!-- KPIs -->
+      <div class="inicio-kpis" id="inicio-kpis"></div>
+
+      <!-- Row: Últimas Cotizaciones + Últimos Pedidos -->
+      <div class="inicio-row inicio-row-2col">
+        <div class="inicio-card">
+          <div class="inicio-card-h">
+            <span class="inicio-card-ic">📄</span>
+            <div class="inicio-card-tt">Últimas cotizaciones</div>
+            <a class="inicio-card-link" onclick="switchPage('pg-cot')">Ver todas →</a>
+          </div>
+          <div class="inicio-card-body" id="inicio-cotizaciones"></div>
+        </div>
+
+        <div class="inicio-card">
+          <div class="inicio-card-h">
+            <span class="inicio-card-ic">📦</span>
+            <div class="inicio-card-tt">Últimos pedidos confirmados</div>
+            <a class="inicio-card-link" onclick="switchPage('pg-ped')">Ver todos →</a>
+          </div>
+          <div class="inicio-card-body" id="inicio-pedidos"></div>
+        </div>
+      </div>
+
+      <!-- Cotizaciones Destacadas -->
+      <div class="inicio-card inicio-card-wide">
+        <div class="inicio-card-h">
+          <span class="inicio-card-ic">⭐</span>
+          <div class="inicio-card-tt">Cotizaciones destacadas — seguimiento</div>
+          <span class="inicio-card-hint">Marcá una cotización con ★ desde la lista para que aparezca acá</span>
+        </div>
+        <div class="inicio-card-body" id="inicio-destacadas"></div>
+      </div>
+
+      <!-- Próximas Entregas -->
+      <div class="inicio-card inicio-card-wide">
+        <div class="inicio-card-h">
+          <span class="inicio-card-ic">📅</span>
+          <div class="inicio-card-tt">Próximas entregas · 7 días</div>
+        </div>
+        <div class="inicio-card-body" id="inicio-entregas"></div>
+      </div>
+
+      <!-- Novedades -->
+      <div class="inicio-card inicio-card-wide">
+        <div class="inicio-card-h">
+          <span class="inicio-card-ic">📣</span>
+          <div class="inicio-card-tt">Novedades</div>
+          <button class="inicio-add-btn" id="inicio-add-novedad-btn" onclick="abrirModalNovedad()" style="display:none">＋ Agregar</button>
+        </div>
+        <div class="inicio-card-body" id="inicio-novedades"></div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Modal: Crear/Editar novedad -->
+  <div id="modal-novedad" class="modal-backdrop-ini" onclick="if(event.target===this)cerrarModalNovedad()">
+    <div class="modal-ini">
+      <h2 id="modal-novedad-title">Agregar novedad</h2>
+      <div class="f">
+        <label>Tipo</label>
+        <select id="nov-tipo">
+          <option value="nuevo">🆕 Nuevo ingreso</option>
+          <option value="discontinuado">⚠ Discontinuado</option>
+          <option value="aumento">📈 Aumento de precio</option>
+          <option value="general">ℹ Información general</option>
+        </select>
+      </div>
+      <div class="f">
+        <label>Título</label>
+        <input type="text" id="nov-titulo" placeholder="Ej: Nuevo ingreso Sunscreen 5% Negro">
+      </div>
+      <div class="f">
+        <label>Descripción (opcional)</label>
+        <textarea id="nov-descripcion" rows="3" placeholder="Más detalles..."></textarea>
+      </div>
+      <div class="f">
+        <label>Vence el (opcional)</label>
+        <input type="date" id="nov-vence">
+      </div>
+      <div class="modal-ini-btns">
+        <button class="btn btn-outline" onclick="cerrarModalNovedad()">Cancelar</button>
+        <button class="btn btn-primary" onclick="guardarNovedad()">Guardar</button>
+      </div>
+    </div>
+  </div>
+
   <div class="pg" id="pg-cot">
     <div class="wrap">
       <div class="sh">
@@ -2883,6 +3190,8 @@ function normalizeDoc(d){
     corporativo:      d.corporativo||false,
     descuento:        d.descuento||{activo:false,pct:0,concepto:'',monto:0},
     cotizacionOrigen: d.cotizacion_origen||'',
+    // V291 — destacada (para seguimiento en Centro de Operaciones)
+    destacada:        d.destacada === true,
     // Flags de tracking mixto (roller + confección) — ahora persistidos en Supabase
     conf_recibida:    d.conf_recibida === true,
     roller_terminado: d.roller_terminado === true,
@@ -2983,6 +3292,7 @@ async function saveDocToSupabase(doc){
       // Flags de tracking mixto (roller + confección)
       conf_recibida:    !!doc.conf_recibida,
       roller_terminado: !!doc.roller_terminado,
+      // V291 — destacada se guarda vía toggleDocDestacada (update separado para no romper si falta la columna)
     }, { onConflict: 'id' });
   if(docErr) {
     console.error('❌ Error Supabase documentos:', JSON.stringify(docErr));
@@ -3108,7 +3418,7 @@ function loginLocal(email, pass, errEl, btn){
     document.getElementById('t-name').textContent = ME.name;
     document.getElementById('t-rb').textContent = ME.role==='admin'?'Administrador':(ME.role==='fabrica'?'Fábrica':'Vendedor');
     document.getElementById('t-rb').className = 't-role '+(ME.role==='admin'?'r-admin':'r-vendor');
-    buildNav(); renderCost(); switchPage('pg-cot'); renderCot(); renderPed();
+    buildNav(); renderCost(); switchPage('pg-inicio'); renderCot(); renderPed();
     if(ME.role==='admin'){ renderAdmin(); updateStats(); }
     updateNavBadges();
     updateSyncIndicator();
@@ -3163,6 +3473,7 @@ function doLogout(){
 ════════════════════════════ */
 function buildNav(){
   const tabs = [
+    { id:'pg-inicio', label:'🏠 Inicio' },
     { id:'pg-cot',   label:'📄 Cotizaciones' },
     { id:'pg-ped',   label:'📦 Pedidos'       },
   ];
@@ -3180,12 +3491,376 @@ function buildNav(){
   ).join('');
 }
 
+/* ════════════════════════════
+   V291 — CENTRO DE OPERACIONES (Inicio)
+════════════════════════════ */
+let _novedadesCache = [];
+let _editingNovedadId = null;
+
+async function renderInicio(){
+  // Saludo y fecha
+  const h = new Date().getHours();
+  const greeting = h<6?'Buenas noches':h<13?'Buen día':h<20?'Buenas tardes':'Buenas noches';
+  const greetEl = document.getElementById('inicio-greeting');
+  if(greetEl) greetEl.textContent = `${greeting}${ME?.name ? ', '+ME.name.split(' ')[0]:''}`;
+  const dateEl = document.getElementById('inicio-date');
+  if(dateEl){
+    const opts = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
+    dateEl.textContent = new Date().toLocaleDateString('es-AR', opts);
+  }
+  // Mostrar botón agregar novedad solo a admins
+  const addBtn = document.getElementById('inicio-add-novedad-btn');
+  if(addBtn) addBtn.style.display = (ME?.role==='admin') ? 'inline-flex' : 'none';
+
+  renderInicioKPIs();
+  renderInicioCotizaciones();
+  renderInicioPedidos();
+  renderInicioDestacadas();
+  renderInicioEntregas();
+  await loadNovedades();
+  renderInicioNovedades();
+}
+
+function _docsVisiblesParaMi(){
+  // Filtro según rol (vendedor solo ve los suyos)
+  const docs = getDocs()||[];
+  if(!ME) return docs;
+  if(ME.role==='admin' || ME.role==='fabrica') return docs;
+  return docs.filter(d => d.vendedor === ME.name);
+}
+
+function renderInicioKPIs(){
+  const wrap = document.getElementById('inicio-kpis');
+  if(!wrap) return;
+  const docs = _docsVisiblesParaMi();
+  const now = new Date();
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const ms = monthStart.getTime();
+
+  const cotsMes = docs.filter(d => d.type==='quote' && new Date(d.fecha||d.created_at||0).getTime() >= ms);
+  const pedsMes = docs.filter(d => d.type==='order' && new Date(d.fecha||d.created_at||0).getTime() >= ms);
+  const facturado = pedsMes.reduce((s,d)=> s + (parseFloat(d.total)||0), 0);
+  const conv = cotsMes.length > 0 ? Math.round((pedsMes.length / cotsMes.length) * 100) : 0;
+
+  const fmt = n => '$'+Math.round(n).toLocaleString('es-AR');
+  const html = [
+    { lbl:'Cotizaciones del mes', val: cotsMes.length, sub:`Total: ${fmt(cotsMes.reduce((s,d)=>s+(parseFloat(d.total)||0),0))}`, klass:'' },
+    { lbl:'Pedidos confirmados',  val: pedsMes.length, sub:'En el mes en curso', klass:'kpi-positive' },
+    { lbl:'Facturado del mes',    val: fmt(facturado).replace('$',''), prefix:'$', sub:'', klass:'kpi-positive' },
+    { lbl:'Tasa de conversión',   val: conv+'%', sub:`${pedsMes.length} pedidos / ${cotsMes.length} cot.`, klass: conv>=50?'kpi-positive':conv>=25?'kpi-warning':'' },
+  ].map(k => `
+    <div class="inicio-kpi ${k.klass||''}">
+      <div class="accent-bar"></div>
+      <div class="lbl">${k.lbl}</div>
+      <div class="val">${k.prefix||''}${k.val}</div>
+      ${k.sub?`<div class="sub">${k.sub}</div>`:''}
+    </div>`).join('');
+  wrap.innerHTML = html;
+}
+
+function _sortDocsByDate(docs){
+  return [...docs].sort((a,b) => {
+    const ta = new Date(a.created_at||a.fecha||0).getTime();
+    const tb = new Date(b.created_at||b.fecha||0).getTime();
+    return tb - ta;
+  });
+}
+
+function _docItemHtml(d, showStar){
+  const cant = (d.items||[]).reduce((s,i)=> s + (parseInt(i.cant)||1), 0);
+  const tot = '$'+Math.round(parseFloat(d.total)||0).toLocaleString('es-AR');
+  const fechaTxt = _formatFechaCorta(d.fecha || d.created_at);
+  const isAprobada = (d.estado||'').toLowerCase() === 'aprobada';
+  const isEnviada  = (d.estado||'').toLowerCase() === 'enviada';
+  const isFab      = (d.estado||'').toLowerCase().includes('fabric');
+  const isListo    = (d.estado||'').toLowerCase().includes('finaliz') || (d.estado||'').toLowerCase() === 'listo';
+  let estadoBadge = `<span class="badge">${d.estado||'—'}</span>`;
+  if(isAprobada) estadoBadge = `<span class="badge b-aprobada">${d.estado}</span>`;
+  else if(isEnviada) estadoBadge = `<span class="badge b-enviada">${d.estado}</span>`;
+  else if(isFab) estadoBadge = `<span class="badge b-fab">${d.estado}</span>`;
+  else if(isListo) estadoBadge = `<span class="badge b-listo">${d.estado}</span>`;
+  const starBtn = showStar
+    ? `<span class="inicio-item-star ${d.destacada?'on':''}" onclick="event.stopPropagation();toggleDocDestacada('${d.id}',${!d.destacada})" title="${d.destacada?'Quitar de destacadas':'Marcar como destacada'}">★</span>`
+    : '';
+  return `<div class="inicio-item" onclick="openDocFromList('${d.id}')">
+    <div class="inicio-item-num">#${d.numero||'—'}</div>
+    <div class="inicio-item-body">
+      <div class="inicio-item-name">${d.cliente||'Sin cliente'}</div>
+      <div class="inicio-item-meta">
+        <span>${fechaTxt}</span>
+        ${estadoBadge}
+        <span>${cant} ítem${cant!==1?'s':''}</span>
+        ${d.vendedor?`<span style="color:#9a9794">· ${d.vendedor}</span>`:''}
+      </div>
+    </div>
+    <div class="inicio-item-price">${tot}</div>
+    ${starBtn}
+  </div>`;
+}
+
+function _formatFechaCorta(f){
+  if(!f) return '—';
+  const d = new Date(f);
+  if(isNaN(d.getTime())) return f;
+  const now = new Date();
+  const diff = (now - d) / 1000;
+  if(diff < 60) return 'recién';
+  if(diff < 3600) return `hace ${Math.floor(diff/60)} min`;
+  if(diff < 86400) return `hace ${Math.floor(diff/3600)}h`;
+  if(diff < 86400*7) return `hace ${Math.floor(diff/86400)}d`;
+  return d.toLocaleDateString('es-AR', { day:'numeric', month:'short' });
+}
+
+function openDocFromList(id){
+  if(typeof openDoc === 'function'){
+    const d = getDocs().find(x => x.id === id);
+    if(d) openDoc(d, false);
+  }
+}
+
+function renderInicioCotizaciones(){
+  const wrap = document.getElementById('inicio-cotizaciones');
+  if(!wrap) return;
+  const cots = _sortDocsByDate(_docsVisiblesParaMi().filter(d => d.type === 'quote')).slice(0, 5);
+  if(!cots.length){
+    wrap.innerHTML = `<div class="inicio-empty"><div class="ic">📄</div><div class="ms">Sin cotizaciones aún</div><div class="sub">Las nuevas cotizaciones van a aparecer acá</div></div>`;
+    return;
+  }
+  wrap.innerHTML = cots.map(d => _docItemHtml(d, true)).join('');
+}
+
+function renderInicioPedidos(){
+  const wrap = document.getElementById('inicio-pedidos');
+  if(!wrap) return;
+  const peds = _sortDocsByDate(_docsVisiblesParaMi().filter(d => d.type === 'order')).slice(0, 5);
+  if(!peds.length){
+    wrap.innerHTML = `<div class="inicio-empty"><div class="ic">📦</div><div class="ms">Sin pedidos confirmados</div><div class="sub">Los pedidos van a aparecer acá</div></div>`;
+    return;
+  }
+  wrap.innerHTML = peds.map(d => _docItemHtml(d, false)).join('');
+}
+
+function renderInicioDestacadas(){
+  const wrap = document.getElementById('inicio-destacadas');
+  if(!wrap) return;
+  const destacadas = _sortDocsByDate(_docsVisiblesParaMi().filter(d => d.type==='quote' && d.destacada)).slice(0, 8);
+  if(!destacadas.length){
+    wrap.innerHTML = `<div class="inicio-empty"><div class="ic">⭐</div><div class="ms">No hay cotizaciones destacadas</div><div class="sub">Marcá una con la ★ en las listas de arriba o en Cotizaciones</div></div>`;
+    return;
+  }
+  wrap.innerHTML = destacadas.map(d => {
+    const dias = Math.floor((new Date() - new Date(d.fecha || d.created_at || 0)) / 86400000);
+    const diasBadge = dias > 14
+      ? `<span class="inicio-item-days warn">⏳ Pendiente hace ${dias}d</span>`
+      : dias > 7
+      ? `<span class="inicio-item-days">Pendiente hace ${dias}d</span>`
+      : `<span class="inicio-item-days">Hace ${dias}d</span>`;
+    const cant = (d.items||[]).reduce((s,i)=> s + (parseInt(i.cant)||1), 0);
+    const tot = '$'+Math.round(parseFloat(d.total)||0).toLocaleString('es-AR');
+    return `<div class="inicio-item" onclick="openDocFromList('${d.id}')">
+      <div class="inicio-item-num">#${d.numero||'—'}</div>
+      <div class="inicio-item-body">
+        <div class="inicio-item-name">⭐ ${d.cliente||'Sin cliente'}</div>
+        <div class="inicio-item-meta">
+          ${diasBadge}
+          <span>${d.estado||'—'}</span>
+          <span>${cant} ítem${cant!==1?'s':''}</span>
+        </div>
+      </div>
+      <div class="inicio-item-price">${tot}</div>
+      <span class="inicio-item-star on" onclick="event.stopPropagation();toggleDocDestacada('${d.id}',false)" title="Quitar de destacadas">★</span>
+    </div>`;
+  }).join('');
+}
+
+function renderInicioEntregas(){
+  const wrap = document.getElementById('inicio-entregas');
+  if(!wrap) return;
+  const now = Date.now();
+  const limit = now + 7 * 86400 * 1000;
+  const entregas = _docsVisiblesParaMi().filter(d => {
+    if(d.type !== 'order') return false;
+    if(!d.entrega) return false;
+    const t = new Date(d.entrega).getTime();
+    return t >= now - 86400000 && t <= limit;
+  }).sort((a,b) => new Date(a.entrega) - new Date(b.entrega)).slice(0, 8);
+  if(!entregas.length){
+    wrap.innerHTML = `<div class="inicio-empty"><div class="ic">📅</div><div class="ms">Sin entregas en los próximos 7 días</div><div class="sub">Asigná una fecha de entrega a los pedidos para que aparezcan acá</div></div>`;
+    return;
+  }
+  wrap.innerHTML = entregas.map(d => {
+    const fechaEnt = new Date(d.entrega);
+    const dias = Math.ceil((fechaEnt - now) / 86400000);
+    const diasTxt = dias < 0 ? `Vencida hace ${-dias}d` : dias === 0 ? 'Hoy' : dias === 1 ? 'Mañana' : `En ${dias} días`;
+    const diasClass = dias < 0 ? 'warn' : '';
+    const tot = '$'+Math.round(parseFloat(d.total)||0).toLocaleString('es-AR');
+    return `<div class="inicio-item" onclick="openDocFromList('${d.id}')">
+      <div class="inicio-item-num">#${d.numero||'—'}</div>
+      <div class="inicio-item-body">
+        <div class="inicio-item-name">${d.cliente||'Sin cliente'}</div>
+        <div class="inicio-item-meta">
+          <span class="inicio-item-days ${diasClass}">${diasTxt}</span>
+          <span>${fechaEnt.toLocaleDateString('es-AR', {day:'numeric',month:'short'})}</span>
+          <span>${d.estado||'—'}</span>
+        </div>
+      </div>
+      <div class="inicio-item-price">${tot}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ── NOVEDADES (Supabase) ── */
+async function loadNovedades(){
+  if(!_sb){ _novedadesCache = []; return; }
+  try {
+    const { data, error } = await _sb.from('novedades').select('*').eq('activa', true).order('fecha_creacion', { ascending:false });
+    if(error){ console.warn('[Novedades] Tabla no disponible (¿faltó SQL?):', error.message); _novedadesCache = []; return; }
+    // Filtrar las vencidas
+    const now = new Date();
+    _novedadesCache = (data||[]).filter(n => !n.fecha_vencimiento || new Date(n.fecha_vencimiento) >= now);
+  } catch(e){ console.warn('[Novedades] Error:', e); _novedadesCache = []; }
+}
+
+function renderInicioNovedades(){
+  const wrap = document.getElementById('inicio-novedades');
+  if(!wrap) return;
+  const items = _novedadesCache;
+  if(!items.length){
+    wrap.innerHTML = `<div class="inicio-empty">
+      <div class="ic">📣</div>
+      <div class="ms">Sin novedades activas</div>
+      <div class="sub">${ME?.role==='admin' ? 'Tocá ＋ Agregar para sumar una' : 'El equipo va a publicar acá novedades de telas, precios y cambios'}</div>
+    </div>`;
+    return;
+  }
+  const tipos = {
+    nuevo:        { ic:'🆕', cls:'t-nuevo',        lbl:'Nuevo ingreso' },
+    discontinuado:{ ic:'⚠',  cls:'t-discontinuado', lbl:'Discontinuado' },
+    aumento:      { ic:'📈', cls:'t-aumento',       lbl:'Aumento de precio' },
+    general:      { ic:'ℹ',  cls:'t-general',       lbl:'Información' },
+  };
+  const isAdmin = ME?.role === 'admin';
+  wrap.innerHTML = items.map(n => {
+    const t = tipos[n.tipo] || tipos.general;
+    const fecha = n.fecha_creacion ? new Date(n.fecha_creacion).toLocaleDateString('es-AR', {day:'numeric',month:'short'}) : '';
+    const vence = n.fecha_vencimiento ? ` · vence ${new Date(n.fecha_vencimiento).toLocaleDateString('es-AR', {day:'numeric',month:'short'})}` : '';
+    return `<div class="novedad-item ${t.cls}">
+      <div class="novedad-item-ic">${t.ic}</div>
+      <div class="novedad-item-body">
+        <div class="novedad-item-tt">${(n.titulo||'').replace(/</g,'&lt;')}</div>
+        ${n.descripcion ? `<div class="novedad-item-desc">${(n.descripcion||'').replace(/</g,'&lt;')}</div>` : ''}
+        <div class="novedad-item-meta">${t.lbl} · publicada ${fecha}${vence}</div>
+      </div>
+      ${isAdmin ? `<div class="novedad-item-actions">
+        <button class="novedad-item-btn" onclick="editarNovedad('${n.id}')" title="Editar">✏</button>
+        <button class="novedad-item-btn" onclick="eliminarNovedad('${n.id}')" title="Eliminar">🗑</button>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function abrirModalNovedad(){
+  _editingNovedadId = null;
+  document.getElementById('modal-novedad-title').textContent = 'Agregar novedad';
+  document.getElementById('nov-tipo').value = 'nuevo';
+  document.getElementById('nov-titulo').value = '';
+  document.getElementById('nov-descripcion').value = '';
+  document.getElementById('nov-vence').value = '';
+  document.getElementById('modal-novedad').classList.add('visible');
+  setTimeout(()=> document.getElementById('nov-titulo').focus(), 50);
+}
+
+function cerrarModalNovedad(){
+  document.getElementById('modal-novedad').classList.remove('visible');
+  _editingNovedadId = null;
+}
+
+function editarNovedad(id){
+  const n = _novedadesCache.find(x => x.id === id);
+  if(!n) return;
+  _editingNovedadId = id;
+  document.getElementById('modal-novedad-title').textContent = 'Editar novedad';
+  document.getElementById('nov-tipo').value = n.tipo || 'nuevo';
+  document.getElementById('nov-titulo').value = n.titulo || '';
+  document.getElementById('nov-descripcion').value = n.descripcion || '';
+  document.getElementById('nov-vence').value = n.fecha_vencimiento ? n.fecha_vencimiento.slice(0,10) : '';
+  document.getElementById('modal-novedad').classList.add('visible');
+}
+
+async function guardarNovedad(){
+  const titulo = document.getElementById('nov-titulo').value.trim();
+  if(!titulo){ toast('El título es obligatorio','err'); return; }
+  const novedad = {
+    titulo,
+    descripcion: document.getElementById('nov-descripcion').value.trim() || null,
+    tipo: document.getElementById('nov-tipo').value,
+    fecha_vencimiento: document.getElementById('nov-vence').value || null,
+    activa: true,
+    creado_por: ME?.name || null,
+  };
+  if(!_sb){ toast('Sin conexión a Supabase','err'); return; }
+  try {
+    if(_editingNovedadId){
+      const { error } = await _sb.from('novedades').update(novedad).eq('id', _editingNovedadId);
+      if(error) throw error;
+      toast('✓ Novedad actualizada','ok');
+    } else {
+      const { error } = await _sb.from('novedades').insert([novedad]);
+      if(error) throw error;
+      toast('✓ Novedad agregada','ok');
+    }
+    cerrarModalNovedad();
+    await loadNovedades();
+    renderInicioNovedades();
+  } catch(e){
+    console.error(e);
+    toast('⚠ Error al guardar — ¿corriste el SQL de novedades?','err');
+  }
+}
+
+async function eliminarNovedad(id){
+  if(!confirm('¿Eliminar esta novedad?')) return;
+  try {
+    const { error } = await _sb.from('novedades').delete().eq('id', id);
+    if(error) throw error;
+    toast('Novedad eliminada','ok');
+    await loadNovedades();
+    renderInicioNovedades();
+  } catch(e){
+    console.error(e);
+    toast('Error al eliminar','err');
+  }
+}
+
+/* ── Marcar/desmarcar cotización como destacada ── */
+async function toggleDocDestacada(id, value){
+  const doc = getDocs().find(x => x.id === id);
+  if(!doc) return;
+  doc.destacada = !!value;
+  try {
+    if(_sb){
+      const { error } = await _sb.from('documentos').update({ destacada: !!value }).eq('id', id);
+      if(error){
+        console.warn('[Destacada] Supabase rechazó (¿falta columna?):', error.message);
+        toast('⚠ Falta correr SQL: ALTER TABLE documentos ADD COLUMN destacada BOOLEAN','err');
+      }
+    }
+  } catch(e){ console.warn('[Destacada]', e); }
+  // Re-render
+  if(document.getElementById('pg-inicio').classList.contains('on')){
+    renderInicioCotizaciones();
+    renderInicioDestacadas();
+  }
+  if(document.getElementById('pg-cot').classList.contains('on')) renderCot();
+}
+
 function switchPage(id){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
   document.getElementById(id).classList.add('on');
   const tab = document.querySelector(`[data-pg="${id}"]`);
   if(tab) tab.classList.add('on');
+  if(id==='pg-inicio') renderInicio();
   if(id==='pg-admin'){ renderAdmin(); updateStats(); }
   if(id==='pg-cot') renderCot();
   if(id==='pg-ped'){ renderPed(); renderRecibos(); }
