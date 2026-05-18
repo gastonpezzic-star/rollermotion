@@ -9800,6 +9800,12 @@ function openPlanilla(d){
     const telaSubtit = (it.tela==='blackout'||it.tela==='Roller Blackout') ? 'Vertilux Fiberglass ®'
                      : (it.tela==='sunscreen5'||it.tela==='Roller Sunscreen 5%') ? 'Vertilux VX ®'
                      : '';
+    // V292.7: mostrar el soporte cargado en el overlay de confirmación
+    // Para cambio de tela no aplica (reusa el soporte existente).
+    const soporteVal = it.soporte || (isRollerDoble(it.tela) ? 'Doble' : 'Largo');
+    const soporteCell = esCambio
+      ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>'
+      : `<span style="background:#f0e8d8;border:1px solid #d4c4a0;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;color:#6a4a1a;white-space:nowrap">${soporteVal}</span>`;
     return `<tr>
       <td><span class="fnum">${i+1}</span></td>
       <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br><span style="font-size:7.5px;color:#888">${telaSubtit}</span>`:''}${dobleTag}${cambioTag}</td>
@@ -9810,6 +9816,7 @@ function openPlanilla(d){
       <td style="text-align:center">${esCambio ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa existente</span>' : getMecTag(it.ladoMec, it.colorMec)}</td>
       <td style="text-align:center">${cadenaCell}</td>
       <td style="text-align:center">${zoc==='Reutilizar existente' ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>' : `<span class="ftag ${zocCls}">${zoc}</span>`}</td>
+      <td style="text-align:center">${soporteCell}</td>
       <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
     </tr>`;
   }).join('');
@@ -10047,6 +10054,7 @@ function openPlanilla(d){
           <th style="color:#1a4a6a;text-align:center">Mec.</th>
           <th style="color:#1a4a6a;text-align:center">Cadena / Motor</th>
           <th style="color:#1a4a6a;text-align:center">Zócalo</th>
+          <th style="color:#1a4a6a;text-align:center">Soporte</th>
           <th style="color:#1a4a6a;width:50px">Ref.</th>
         </tr></thead>
         <tbody>${h1rows}</tbody>
