@@ -731,7 +731,7 @@ body{
 
 /* KPI cards */
 .inicio-kpis{
-  display:grid; grid-template-columns:repeat(4, 1fr); gap:14px; margin-bottom:24px;
+  display:grid; grid-template-columns:repeat(3, 1fr); gap:14px; margin-bottom:24px;
 }
 .inicio-kpi{
   background:#fff; border-radius:14px; padding:18px 20px;
@@ -894,14 +894,14 @@ body{
 .modal-ini-btns{ display:flex; gap:10px; justify-content:flex-end; margin-top:16px }
 
 /* Responsive */
-@media (max-width: 980px){
-  .inicio-kpis{ grid-template-columns:repeat(2, 1fr) }
+@media (max-width: 860px){
+  .inicio-kpis{ grid-template-columns:repeat(3, 1fr) }
   .inicio-row-2col{ grid-template-columns:1fr }
   .inicio-title{ font-size:26px }
 }
 @media (max-width: 560px){
   .inicio-wrap{ padding:20px 16px 50px }
-  .inicio-kpis{ grid-template-columns:1fr 1fr; gap:10px }
+  .inicio-kpis{ grid-template-columns:1fr; gap:10px }
   .inicio-kpi{ padding:14px 16px }
   .inicio-kpi .val{ font-size:22px }
   .inicio-hero{ flex-direction:column; align-items:flex-start; gap:18px }
@@ -1054,15 +1054,6 @@ body{
           <span class="inicio-card-hint">Marcá una cotización con ★ desde la lista para que aparezca acá</span>
         </div>
         <div class="inicio-card-body" id="inicio-destacadas"></div>
-      </div>
-
-      <!-- Próximas Entregas -->
-      <div class="inicio-card inicio-card-wide">
-        <div class="inicio-card-h">
-          <span class="inicio-card-ic">📅</span>
-          <div class="inicio-card-tt">Próximas entregas · 7 días</div>
-        </div>
-        <div class="inicio-card-body" id="inicio-entregas"></div>
       </div>
 
       <!-- Novedades -->
@@ -3498,11 +3489,11 @@ let _novedadesCache = [];
 let _editingNovedadId = null;
 
 async function renderInicio(){
-  // Saludo y fecha
+  // Saludo y fecha (V291.1: sin nombre — neutro para todos los roles)
   const h = new Date().getHours();
   const greeting = h<6?'Buenas noches':h<13?'Buen día':h<20?'Buenas tardes':'Buenas noches';
   const greetEl = document.getElementById('inicio-greeting');
-  if(greetEl) greetEl.textContent = `${greeting}${ME?.name ? ', '+ME.name.split(' ')[0]:''}`;
+  if(greetEl) greetEl.textContent = greeting;
   const dateEl = document.getElementById('inicio-date');
   if(dateEl){
     const opts = { weekday:'long', day:'numeric', month:'long', year:'numeric' };
@@ -3516,7 +3507,6 @@ async function renderInicio(){
   renderInicioCotizaciones();
   renderInicioPedidos();
   renderInicioDestacadas();
-  renderInicioEntregas();
   await loadNovedades();
   renderInicioNovedades();
 }
@@ -3539,14 +3529,12 @@ function renderInicioKPIs(){
 
   const cotsMes = docs.filter(d => d.type==='quote' && new Date(d.fecha||d.created_at||0).getTime() >= ms);
   const pedsMes = docs.filter(d => d.type==='order' && new Date(d.fecha||d.created_at||0).getTime() >= ms);
-  const facturado = pedsMes.reduce((s,d)=> s + (parseFloat(d.total)||0), 0);
   const conv = cotsMes.length > 0 ? Math.round((pedsMes.length / cotsMes.length) * 100) : 0;
 
-  const fmt = n => '$'+Math.round(n).toLocaleString('es-AR');
+  // V291.1: 3 KPIs (sin facturado del mes)
   const html = [
-    { lbl:'Cotizaciones del mes', val: cotsMes.length, sub:`Total: ${fmt(cotsMes.reduce((s,d)=>s+(parseFloat(d.total)||0),0))}`, klass:'' },
+    { lbl:'Cotizaciones del mes', val: cotsMes.length, sub:'En el mes en curso', klass:'' },
     { lbl:'Pedidos confirmados',  val: pedsMes.length, sub:'En el mes en curso', klass:'kpi-positive' },
-    { lbl:'Facturado del mes',    val: fmt(facturado).replace('$',''), prefix:'$', sub:'', klass:'kpi-positive' },
     { lbl:'Tasa de conversión',   val: conv+'%', sub:`${pedsMes.length} pedidos / ${cotsMes.length} cot.`, klass: conv>=50?'kpi-positive':conv>=25?'kpi-warning':'' },
   ].map(k => `
     <div class="inicio-kpi ${k.klass||''}">
