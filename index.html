@@ -9667,11 +9667,32 @@ function getEjeInfo(ancho, motorLabel){
   if(a <= 3700) return {mm:'55', lbl:'50 mm ref.'};
   return {mm:'70', lbl:'70 mm'};
 }
-function getCorteTela(ancho, alto){ return {a: (parseInt(ancho)||0)-40, h: (parseInt(alto)||0)+350}; }
-function getCorteEje(ancho){ return (parseInt(ancho)||0)-35; }
-function getCorteZoc(ancho, zoc){
-  const ct = (parseInt(ancho)||0)-40;
-  return zoc && zoc.toLowerCase().includes('visto') ? ct+5 : ct;
+// V293: cortes ajustados según tipo de armado.
+// Manual (sin motor): tela ancho−35, eje ancho−30 (eje 5mm más ancho que tela).
+// Motor (eje ≤50mm):  tela ancho−40, eje ancho−35 (idem +5mm, fórmula clásica).
+// Motor (eje 70mm):   tela ancho−65, eje ancho−60 (idem +5mm, motor+calota toman lugar).
+// El zócalo siempre se mide desde el corte de tela: bolsillo = corte tela, visto = +5.
+function _restasArmado(ancho, motorLabel){
+  const esMotor = !!motorLabel;
+  if(!esMotor) return { tela:35, eje:30 };
+  const eje = getEjeInfo(ancho, motorLabel);
+  if(eje.mm === '70') return { tela:65, eje:60 };
+  return { tela:40, eje:35 };
+}
+function getCorteTela(ancho, alto, motorLabel){
+  const a = parseInt(ancho)||0;
+  const h = parseInt(alto)||0;
+  const r = _restasArmado(a, motorLabel);
+  return { a: a - r.tela, h: h + 350 };
+}
+function getCorteEje(ancho, motorLabel){
+  const a = parseInt(ancho)||0;
+  const r = _restasArmado(a, motorLabel);
+  return a - r.eje;
+}
+function getCorteZoc(ancho, zoc, motorLabel){
+  const cTela = getCorteTela(ancho, 0, motorLabel).a;
+  return zoc && zoc.toLowerCase().includes('visto') ? cTela + 5 : cTela;
 }
 function getZocTagClass(zoc){
   if(!zoc) return 'ftag-gris';
@@ -9798,7 +9819,7 @@ function openPlanilla(d){
     // (ya consideró el enrollamiento). Para roller nuevo, getCorteTela aplica -40mm ancho / +350mm alto.
     const ct = esCambio
       ? { a: parseInt(it.ancho)||0, h: parseInt(it.alto)||0 }
-      : getCorteTela(it.ancho, it.alto);
+      : getCorteTela(it.ancho, it.alto, it.motor);
     const zoc = it.zoc||'Bolsillo';
     const zocCls = getZocTagClass(zoc);
     const tieneMotor = !!it.motor;
@@ -9850,14 +9871,14 @@ function openPlanilla(d){
   // ── HOJA 2: CORTES DE ALUMINIO (Roller + Accesorios + Rieles conf) ──
   const h2rows_roller = rollerItems.map((it,i)=>{
     const eje = getEjeInfo(it.ancho, it.motor);
-    const cejeVal = getCorteEje(it.ancho);
+    const cejeVal = getCorteEje(it.ancho, it.motor);
     const zoc = it.zoc||'Bolsillo';
     // V292.9: para cambio de tela el ancho cargado YA es el corte de tela exacto,
-    // entonces el zócalo es ancho (bolsillo) o ancho + 5 (visto). Sin el -40 del roller nuevo.
+    // entonces el zócalo es ancho (bolsillo) o ancho + 5 (visto). Sin el descuento del roller nuevo.
     const _esCambioZoc = isCambioTela(it.tela);
     const czocVal = _esCambioZoc
       ? ((parseInt(it.ancho)||0) + (zoc && zoc.toLowerCase().includes('visto') ? 5 : 0))
-      : getCorteZoc(it.ancho, zoc);
+      : getCorteZoc(it.ancho, zoc, it.motor);
     const zocCls = getZocTagClass(zoc);
     const dobleTag2 = it._dobleTag ? `<div style="font-size:8px;color:#8a6c3c;background:#fef7e8;border:1px solid #e8d8a8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔗 ${it._dobleTag}</div>` : '';
     // V292.4: cambio de tela — eje no se corta (reusa). Zócalo se corta sólo si NO eligió "Reutilizar existente".
@@ -10077,7 +10098,7 @@ function openPlanilla(d){
       <div class="sec-hdr" style="background:#e8f0fa;border:1px solid #c0d4ee;border-bottom:none">
         <div class="sec-circle">1</div>
         <div class="sec-ttl" style="color:#1a4a6a">Corte de Tela &amp; Armado</div>
-        <span class="sec-sub" style="color:#1a4a6a">Ancho − 40 mm &nbsp;·&nbsp; Alto + 350 mm &nbsp;·&nbsp; Cadena = alto × 1.7</span>
+        <span class="sec-sub" style="color:#1a4a6a">Manual −35 &nbsp;·&nbsp; Motor −40 &nbsp;·&nbsp; Motor eje 70 −65 &nbsp;·&nbsp; Alto + 350 &nbsp;·&nbsp; Cadena = alto × 1.7</span>
       </div>
       <table class="fab-table">
         <thead style="background:#dce8f4"><tr>
@@ -10109,7 +10130,7 @@ function openPlanilla(d){
       <div class="sec-hdr" style="background:#fef4e0;border:1px solid #f0d8a0;border-bottom:none">
         <div class="sec-circle">2</div>
         <div class="sec-ttl" style="color:#7a4a00">Cortes de Aluminio</div>
-        <span class="sec-sub" style="color:#7a4a00">Eje = ancho − 30 mm &nbsp;·&nbsp; Bolsillo = corte tela &nbsp;·&nbsp; Visto = corte tela + 5 mm</span>
+        <span class="sec-sub" style="color:#7a4a00">Eje: Manual −30 · Motor −35 · Motor eje 70 −60 &nbsp;·&nbsp; Zócalo bolsillo = corte tela &nbsp;·&nbsp; Visto = + 5</span>
       </div>
       <table class="fab-table">
         <thead style="background:#fdecc8"><tr>
