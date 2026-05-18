@@ -9767,12 +9767,16 @@ function openPlanilla(d){
 
   // ── HOJA 1: CORTE DE TELA + ARMADO (Roller) ──
   const h1rows = rollerItems.map((it,i)=>{
-    const ct = getCorteTela(it.ancho, it.alto);
+    // V292.4: cambio de tela — no lleva mecanismo/eje/cadena, se reutiliza lo existente
+    const esCambio = isCambioTela(it.tela);
+    // V292.6: para cambio de tela, el corte es EXACTAMENTE lo que cargó el usuario
+    // (ya consideró el enrollamiento). Para roller nuevo, getCorteTela aplica -40mm ancho / +350mm alto.
+    const ct = esCambio
+      ? { a: parseInt(it.ancho)||0, h: parseInt(it.alto)||0 }
+      : getCorteTela(it.ancho, it.alto);
     const zoc = it.zoc||'Bolsillo';
     const zocCls = getZocTagClass(zoc);
     const tieneMotor = !!it.motor;
-    // V292.4: cambio de tela — no lleva mecanismo/eje/cadena, se reutiliza lo existente
-    const esCambio = isCambioTela(it.tela);
     let cadenaCell;
     if(esCambio){
       cadenaCell = `<span style="color:#aaa;font-size:9px;font-style:italic">Reusa existente</span>`;
