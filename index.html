@@ -7697,7 +7697,7 @@ function convertToOrder(idOrDoc){
   }
 
   // V292: ── CAMBIO DE TELA ──
-  // Solo requiere caída + tipo de zócalo. NO mecanismo, eje ni aluminio (la tela usa lo existente).
+  // Pide color de tela + caída + tipo de zócalo. NO mecanismo, eje ni aluminio (se reutiliza lo existente).
   if(cambioTelaItems.length){
     html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${cortinas.length?'20px':0} 0 10px">🔄 Cambio de tela — Detalles</div>`;
     html += cambioTelaItems.map((it,ti)=>{
@@ -7705,6 +7705,12 @@ function convertToOrder(idOrDoc){
       const telaLabel = it.tela==='cambiotela_bv' ? 'Cambio de tela Bandas Verticales' : 'Cambio de tela Roller';
       const sentVal = it.sent || 'Detrás';
       const zocVal  = it.zoc  || 'Bolsillo';
+      // V292.3: buscar los colores disponibles según el tipo de tela seleccionada en la cotización
+      const telaCfg = TELAS[it.tela];
+      const subItem = telaCfg?.items?.find(x => x.nombre === it.color);
+      const coloresDisp = subItem?.colors || ['Blanco','Ivory','Beige','Gris','Negro'];
+      const colorTelaVal = it.colorTela || coloresDisp[0];
+      const colorOpts = coloresDisp.map(c => `<option${c===colorTelaVal?' selected':''}>${c}</option>`).join('');
       return `<div style="border:1.5px solid #b8d4e8;border-radius:8px;padding:14px 18px;margin-bottom:10px;background:#f4f9fc">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
           <div style="background:#1f6e9c;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">🔄 ${ti+1}</div>
@@ -7713,7 +7719,10 @@ function convertToOrder(idOrDoc){
           ${it.color?`<div style="font-size:11px;color:#555;background:#e0eaf2;border-radius:4px;padding:2px 8px">${it.color}</div>`:''}
           ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div>${lbl('Color de tela')}<select class="ped-ct-color" data-tidx="${ti}" ${sel()}>
+            ${colorOpts}
+          </select></div>
           <div>${lbl('Sentido caída')}<select class="ped-ct-sent" data-tidx="${ti}" ${sel()}>
             <option${sentVal==='Detrás'?' selected':''}>Detrás</option>
             <option${sentVal==='Delante'?' selected':''}>Delante</option>
@@ -7899,11 +7908,21 @@ async function confirmarPedido(){
     it.arrastre      = parseFloat(document.querySelector(`.ped-conf-arr[data-cidx="${ci}"]`)?.value)||0;
   });
 
-  // V292: Cambio de tela — solo caída + zócalo
+  // V292/V292.3: Cambio de tela — color de tela + caída + zócalo
   const cambioTelaItems = (src.items||[]).filter(it => it.tela==='cambiotela'||it.tela==='cambiotela_bv');
   cambioTelaItems.forEach((it,ti)=>{
-    it.sent = document.querySelector(`.ped-ct-sent[data-tidx="${ti}"]`)?.value || 'Detrás';
-    it.zoc  = document.querySelector(`.ped-ct-zoc[data-tidx="${ti}"]`)?.value  || 'Bolsillo';
+    const telaName = it.color || '';
+    it.colorTela = document.querySelector(`.ped-ct-color[data-tidx="${ti}"]`)?.value || it.colorTela || 'Blanco';
+    it.sent      = document.querySelector(`.ped-ct-sent[data-tidx="${ti}"]`)?.value  || 'Detrás';
+    it.zoc       = document.querySelector(`.ped-ct-zoc[data-tidx="${ti}"]`)?.value   || 'Bolsillo';
+    // V292.3: enriquecer it.color con el color de tela elegido para que se vea en PDF/planilla
+    // sin perder el nombre del tipo de tela. Formato: "Tipo de tela · Color"
+    if(telaName && !telaName.includes(' · ')){
+      it.color = `${telaName} · ${it.colorTela}`;
+    } else if(telaName){
+      // Ya tenía " · X" — reemplazar el color
+      it.color = telaName.replace(/\s·\s.+$/, ` · ${it.colorTela}`);
+    }
   });
 
   // Rieles (manual + motorizado)
