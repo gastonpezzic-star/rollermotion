@@ -9647,11 +9647,57 @@ function openPlanilla(d){
   const allItems = d.items||[];
 
   // Items roller (blackout/sunscreen/etc con eje)
-  const rollerItems = allItems.filter(it =>
+  const rollerItemsRaw = allItems.filter(it =>
     it.tela==='blackout' || it.tela==='sunscreen5' ||
     it.tela==='Roller Blackout' || it.tela==='Roller Sunscreen 5%' ||
     (it.ancho && it.alto && it.tela !== 'conf_liviana' && it.tela !== 'conf_blackout')
   );
+
+  // V292.1: Roller Doble → expandir cada item en DOS (Blackout + Sunscreen) para la planilla.
+  // El usuario las fabrica como dos cortinas separadas que se unen con soporte doble.
+  // Cada una usa los datos que se cargaron en el overlay de confirmación (it.bk / it.sc),
+  // o los del item base como fallback (soporte=Doble por default).
+  const rollerItems = [];
+  let _pairCounter = 0;
+  rollerItemsRaw.forEach(it => {
+    if(isRollerDoble(it.tela)){
+      _pairCounter++;
+      const pairTag = _pairCounter;
+      const m = (it.color||'').match(/BK:([^·]+)·\s*SC:(.+)/);
+      const colorBK = m ? m[1].trim() : (it.color || '—');
+      const colorSC = m ? m[2].trim() : '—';
+      const baseBk = it.bk || {};
+      const baseSc = it.sc || {};
+      // Cortina Blackout
+      rollerItems.push({
+        ...it,
+        tela: 'blackout',
+        color: colorBK,
+        sent:     baseBk.sent     || it.sent     || 'Detrás',
+        ladoMec:  baseBk.ladoMec  || it.ladoMec  || 'Derecha',
+        colorMec: baseBk.colorMec || it.colorMec || 'Blanco',
+        cadena:   baseBk.cadena   || it.cadena   || 'Blanca',
+        zoc:      baseBk.zoc      || it.zoc      || 'Bolsillo',
+        soporte:  baseBk.soporte  || 'Doble',
+        _dobleTag: `Doble #${pairTag}`,
+      });
+      // Cortina Sunscreen
+      rollerItems.push({
+        ...it,
+        tela: 'sunscreen5',
+        color: colorSC,
+        sent:     baseSc.sent     || it.sent     || 'Detrás',
+        ladoMec:  baseSc.ladoMec  || it.ladoMec  || 'Derecha',
+        colorMec: baseSc.colorMec || it.colorMec || 'Blanco',
+        cadena:   baseSc.cadena   || it.cadena   || 'Blanca',
+        zoc:      baseSc.zoc      || it.zoc      || 'Bolsillo',
+        soporte:  baseSc.soporte  || 'Doble',
+        _dobleTag: `Doble #${pairTag}`,
+      });
+    } else {
+      rollerItems.push(it);
+    }
+  });
 
   // Items de confección tradicional
   const confItems = allItems.filter(it =>
@@ -9702,9 +9748,11 @@ function openPlanilla(d){
       const largoCad = Math.round((parseInt(it.alto)||0)*1.7);
       cadenaCell = `<div style="display:flex;align-items:center;justify-content:center;gap:4px">${getCadenaTag(cad)}<span style="font-family:'Manrope',sans-serif;font-size:11px;font-weight:700;white-space:nowrap">${largoCad} mm</span></div>`;
     }
+    // V292.1: si viene de un Roller Doble, mostrar tag "Doble #N" para que el operario sepa que va con su pareja
+    const dobleTag = it._dobleTag ? `<div style="font-size:8px;color:#8a6c3c;background:#fef7e8;border:1px solid #e8d8a8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔗 ${it._dobleTag}</div>` : '';
     return `<tr>
       <td><span class="fnum">${i+1}</span></td>
-      <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong><br><span style="font-size:7.5px;color:#888">${(it.tela==='blackout'||it.tela==='Roller Blackout')?'Vertilux Fiberglass ®':'Vertilux VX ®'}</span></td>
+      <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong><br><span style="font-size:7.5px;color:#888">${(it.tela==='blackout'||it.tela==='Roller Blackout')?'Vertilux Fiberglass ®':'Vertilux VX ®'}</span>${dobleTag}</td>
       <td style="font-size:10.5px">${it.color||'—'}</td>
       <td style="text-align:center"><span class="fcut">${ct.a} mm</span></td>
       <td style="text-align:center"><span class="fcut">${ct.h} mm</span></td>
@@ -9723,9 +9771,10 @@ function openPlanilla(d){
     const zoc = it.zoc||'Bolsillo';
     const czocVal = getCorteZoc(it.ancho, zoc);
     const zocCls = getZocTagClass(zoc);
+    const dobleTag2 = it._dobleTag ? `<div style="font-size:8px;color:#8a6c3c;background:#fef7e8;border:1px solid #e8d8a8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔗 ${it._dobleTag}</div>` : '';
     return `<tr>
       <td><span class="fnum">${i+1}</span></td>
-      <td style="font-weight:700;font-size:10px">${getTelaLabel(it.tela)||'—'}</td>
+      <td style="font-weight:700;font-size:10px">${getTelaLabel(it.tela)||'—'}${dobleTag2}</td>
       <td style="font-size:9px;color:#555">${it.color||'—'}</td>
       <td>
         <div class="alum-cell">

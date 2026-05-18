@@ -1,5 +1,29 @@
 # Changelog
 
+## V292.1 — 2026-05-15
+
+### Roller Doble en planilla: dos cortinas separadas con tag de pareja
+
+Antes el Roller Doble aparecía como UNA fila en la planilla de fabricación, lo que era incorrecto porque físicamente son **dos cortinas** que se unen mediante un soporte doble. Ahora cada Roller Doble se expande en **dos filas** (una para la Blackout, otra para la Sunscreen), cada una con sus propios datos técnicos provenientes del overlay de confirmación (`it.bk` y `it.sc`).
+
+**Cambios**:
+
+- Cada cortina expandida queda con su propia `tela` (`blackout` o `sunscreen5`), color, sentido, lado mecanismo, color mecanismo, cadena, zócalo y soporte.
+- El **soporte default = "Doble"** para las dos (porque se unen con soporte doble).
+- Etiqueta visual `🔗 Doble #N` en cada fila para que el operario reconozca al instante que esas dos filas son una pareja.
+- Aplica en las dos hojas de la planilla: Hoja 1 (Corte de tela + armado) y Hoja 2 (Cortes de aluminio).
+- El item original sigue siendo UNO en la cotización y en el pedido — la expansión es solo en el render de la planilla.
+
+**Ejemplo visual en planilla**:
+
+```
+01 · Roller Blackout · color X        🔗 Doble #1
+02 · Roller Sunscreen 5% · color Y    🔗 Doble #1
+03 · Roller Blackout (simple) · color Z
+04 · Roller Doble - blackout          🔗 Doble #2
+05 · Roller Doble - sunscreen         🔗 Doble #2
+```
+
 ## V292 — 2026-05-15
 
 ### Cambio de tela en overlay + Roller Doble dual + mínimo 1 m²
