@@ -7844,7 +7844,8 @@ function convertToOrder(idOrDoc){
       </div>`).join('');
   }
 
-  if(!cortinas.length && !motores.length && !confItems.length && !rieles.length){
+  // V292.2: incluir cambioTelaItems en el check (sino sobrescribía el HTML armado)
+  if(!cortinas.length && !motores.length && !confItems.length && !rieles.length && !cambioTelaItems.length){
     html = '<div style="font-size:13px;color:var(--muted);padding:12px 0">No hay artículos para configurar.</div>';
   }
 
