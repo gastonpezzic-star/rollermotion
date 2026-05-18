@@ -9657,27 +9657,27 @@ function getEjeInfo(ancho, motorLabel){
   if(mt === '6N' || mt === 'WD' || mt === 'RF'){
     // Mínimo 50mm. Sube según ancho.
     if(a <= 3200) return {mm:'50', lbl:'50 mm liso'};
-    if(a <= 3700) return {mm:'55', lbl:'50 mm ref.'};
+    if(a <= 3700) return {mm:'50R', lbl:'50 mm ref.'};
     return {mm:'70', lbl:'70 mm'};
   }
   // Sin motor (manual con cadena)
   if(a <= 1700) return {mm:'32', lbl:'32 mm'};
   if(a <= 2200) return {mm:'38', lbl:'38 mm'};
   if(a <= 3200) return {mm:'50', lbl:'50 mm liso'};
-  if(a <= 3700) return {mm:'55', lbl:'50 mm ref.'};
+  if(a <= 3700) return {mm:'50R', lbl:'50 mm ref.'};
   return {mm:'70', lbl:'70 mm'};
 }
-// V293: cortes ajustados según tipo de armado.
-// Manual (sin motor): tela ancho−35, eje ancho−30 (eje 5mm más ancho que tela).
-// Motor (eje ≤50mm):  tela ancho−40, eje ancho−35 (idem +5mm, fórmula clásica).
-// Motor (eje 70mm):   tela ancho−65, eje ancho−60 (idem +5mm, motor+calota toman lugar).
-// El zócalo siempre se mide desde el corte de tela: bolsillo = corte tela, visto = +5.
+// V293.1: cortes según tipo de armado. La regla SIEMPRE depende del eje:
+// - Eje 70mm:    tela ancho−65, eje ancho−60 (regla por eje, con o sin motor).
+// - Motor + eje ≤50mm: tela ancho−40, eje ancho−35 (motor + soporte).
+// - Manual + eje ≤50mm: tela ancho−35, eje ancho−30 (sin motor, mecanismo cadena).
+// En los 3 casos el eje queda 5mm más ancho que la tela.
+// Zócalo siempre desde el corte tela: bolsillo = corte tela, visto = corte tela + 5.
 function _restasArmado(ancho, motorLabel){
-  const esMotor = !!motorLabel;
-  if(!esMotor) return { tela:35, eje:30 };
   const eje = getEjeInfo(ancho, motorLabel);
-  if(eje.mm === '70') return { tela:65, eje:60 };
-  return { tela:40, eje:35 };
+  if(eje.mm === '70') return { tela:65, eje:60 };  // 70mm SIEMPRE, manual o motor
+  if(motorLabel)      return { tela:40, eje:35 };  // Motor + eje 38/50
+  return { tela:35, eje:30 };                       // Manual + eje 32/38/50
 }
 function getCorteTela(ancho, alto, motorLabel){
   const a = parseInt(ancho)||0;
@@ -10098,7 +10098,7 @@ function openPlanilla(d){
       <div class="sec-hdr" style="background:#e8f0fa;border:1px solid #c0d4ee;border-bottom:none">
         <div class="sec-circle">1</div>
         <div class="sec-ttl" style="color:#1a4a6a">Corte de Tela &amp; Armado</div>
-        <span class="sec-sub" style="color:#1a4a6a">Manual −35 &nbsp;·&nbsp; Motor −40 &nbsp;·&nbsp; Motor eje 70 −65 &nbsp;·&nbsp; Alto + 350 &nbsp;·&nbsp; Cadena = alto × 1.7</span>
+        <span class="sec-sub" style="color:#1a4a6a">Manual −35 &nbsp;·&nbsp; Motor −40 &nbsp;·&nbsp; Eje 70 −65 (siempre) &nbsp;·&nbsp; Alto + 350 &nbsp;·&nbsp; Cadena = alto × 1.7</span>
       </div>
       <table class="fab-table">
         <thead style="background:#dce8f4"><tr>
@@ -10130,7 +10130,7 @@ function openPlanilla(d){
       <div class="sec-hdr" style="background:#fef4e0;border:1px solid #f0d8a0;border-bottom:none">
         <div class="sec-circle">2</div>
         <div class="sec-ttl" style="color:#7a4a00">Cortes de Aluminio</div>
-        <span class="sec-sub" style="color:#7a4a00">Eje: Manual −30 · Motor −35 · Motor eje 70 −60 &nbsp;·&nbsp; Zócalo bolsillo = corte tela &nbsp;·&nbsp; Visto = + 5</span>
+        <span class="sec-sub" style="color:#7a4a00">Eje: Manual −30 · Motor −35 · Eje 70 −60 (siempre) &nbsp;·&nbsp; Zócalo bolsillo = corte tela &nbsp;·&nbsp; Visto = + 5</span>
       </div>
       <table class="fab-table">
         <thead style="background:#fdecc8"><tr>
