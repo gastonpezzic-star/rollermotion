@@ -3257,6 +3257,9 @@ function normalizeItem(it){
     toldoTelaLinearM:     it.toldo_tela_linear_m != null ? parseFloat(it.toldo_tela_linear_m) : null,
     // V288.2 — Toldo motorizado
     motorizado:           it.motorizado != null ? !!it.motorizado : false,
+    // V293.6 — Motor asignado a la cortina (label completo) + índice inverso (en motor items)
+    motor:                it.motor_asignado || '',
+    cortina_asignada:     it.cortina_asignada != null ? parseInt(it.cortina_asignada) : null,
   };
 }
 
@@ -3360,6 +3363,11 @@ async function saveDocToSupabase(doc){
       toldo_tela_linear_m:    it.toldoTelaLinearM != null ? parseFloat(it.toldoTelaLinearM) : null,
       // V288.2 — Toldo motorizado (para adicional de instalación)
       motorizado:             it.motorizado != null ? !!it.motorizado : null,
+      // V293.6 — Motor asignado a cortina roller (en confirmarPedido cuando el usuario
+      // vincula un motor de la lista de items a esta cortina). Texto con el label completo.
+      motor_asignado:         n(it.motor),
+      // V293.6 — Índice de cortina al que se asignó este motor (para motor items).
+      cortina_asignada:       (it.cortina_asignada != null && it.cortina_asignada !== '') ? parseInt(it.cortina_asignada) : null,
     }));
     const { error: itemsErr } = await _sb.from('items').insert(rows);
     if(itemsErr) {
@@ -9669,15 +9677,20 @@ window.onload = function(){ setTimeout(function(){ window.print(); window.onafte
 //   - 2N           → eje 38mm (siempre)
 //   - 6N/WD/RF     → eje 50mm mínimo (liso hasta 3200, reforzado hasta 3700, 70mm sobre eso)
 // Sin motor (cortina con cadena): se decide solo por ancho como antes.
+// V293.6: corregido orden y word-boundaries.
+//  Antes:
+//   - '12n' matcheaba '2n' (substring) → motor RF 12N era detectado como 2N (bug).
+//   - '50/12 RF' matcheaba 'rf' antes de llegar al check '50/12' (bug).
+//  Ahora: 50/12 PRIMERO, después tags individuales con \b word boundaries.
 function _motorTipo(motorLabel){
   const m = (motorLabel||'').toLowerCase();
   if(!m) return null;
-  if(m.includes('2n')) return '2N';
-  if(m.includes('6n')) return '6N';
-  if(m.includes(' wd') || m.endsWith('wd') || /\bwd\b/.test(m)) return 'WD';
-  if(m.includes(' rf') || m.endsWith('rf') || /\brf\b/.test(m)) return 'RF';
-  // 50/12 RF cae aquí — es alto torque, va con 70mm
-  if(m.includes('50/12')) return '50/12';
+  if(m.includes('50/12'))      return '50/12';   // alto torque → eje 70
+  if(/\b12n\b/.test(m))        return '12N';     // RF 12N → eje 50
+  if(/\b2n\b/.test(m))         return '2N';      // 2N batería → eje 38
+  if(/\b6n\b/.test(m))         return '6N';      // 6N → eje 50
+  if(/\bwd\b/.test(m))         return 'WD';      // tecla → eje 50
+  if(/\brf\b/.test(m))         return 'RF';      // remoto → eje 50
   return null;
 }
 function getEjeInfo(ancho, motorLabel){
@@ -9685,8 +9698,8 @@ function getEjeInfo(ancho, motorLabel){
   const mt = _motorTipo(motorLabel);
   if(mt === '50/12') return {mm:'70', lbl:'70 mm'};
   if(mt === '2N')    return {mm:'38', lbl:'38 mm'};
-  if(mt === '6N' || mt === 'WD' || mt === 'RF'){
-    // Mínimo 50mm. Sube según ancho.
+  if(mt === '6N' || mt === 'WD' || mt === 'RF' || mt === '12N'){
+    // V293.6: estos motores no entran en ejes de 32/38 — siempre mínimo 50mm.
     if(a <= 3200) return {mm:'50', lbl:'50 mm liso'};
     if(a <= 3700) return {mm:'50R', lbl:'50 mm ref.'};
     return {mm:'70', lbl:'70 mm'};
