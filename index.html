@@ -9879,10 +9879,16 @@ function openPlanilla(d){
                      : '';
     // V292.7: mostrar el soporte cargado en el overlay de confirmación
     // Para cambio de tela no aplica (reusa el soporte existente).
+    // V293.4: si tiene motor asignado → soporte "Motorizada" (con badge naranja distintivo)
     const soporteVal = it.soporte || (isRollerDoble(it.tela) ? 'Doble' : 'Largo');
-    const soporteCell = esCambio
-      ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>'
-      : `<span style="background:#f0e8d8;border:1px solid #d4c4a0;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;color:#6a4a1a;white-space:nowrap">${soporteVal}</span>`;
+    let soporteCell;
+    if(esCambio){
+      soporteCell = '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>';
+    } else if(tieneMotor){
+      soporteCell = `<span style="background:#fff4e0;border:1px solid #f5c97a;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;color:#a85d00;white-space:nowrap">⚡ Motorizada</span>`;
+    } else {
+      soporteCell = `<span style="background:#f0e8d8;border:1px solid #d4c4a0;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;color:#6a4a1a;white-space:nowrap">${soporteVal}</span>`;
+    }
     return `<tr>
       <td><span class="fnum">${i+1}</span></td>
       <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br><span style="font-size:7.5px;color:#888">${telaSubtit}</span>`:''}${dobleTag}${cambioTag}</td>
