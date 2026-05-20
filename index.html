@@ -9903,6 +9903,7 @@ function openPlanilla(d){
       soporteCell = `<span style="background:#f0e8d8;border:1px solid #d4c4a0;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;color:#6a4a1a;white-space:nowrap">${soporteVal}</span>`;
     }
     return `<tr>
+      <td style="text-align:center;border-right:2px solid #e0eaf4"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum">${i+1}</span></td>
       <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br><span style="font-size:7.5px;color:#888">${telaSubtit}</span>`:''}${dobleTag}${cambioTag}</td>
       <td style="font-size:10.5px">${it.color||'—'}</td>
@@ -9914,7 +9915,6 @@ function openPlanilla(d){
       <td style="text-align:center">${zoc==='Reutilizar existente' ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>' : `<span class="ftag ${zocCls}">${zoc}</span>`}</td>
       <td style="text-align:center">${soporteCell}</td>
       <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
-      <td style="text-align:center;border-left:2px solid #e0eaf4"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
     </tr>`;
   }).join('');
 
@@ -9948,14 +9948,20 @@ function openPlanilla(d){
         </div>`;
     // V292.8: mostrar la medida real (ancho × alto) de la cortina en tono sutil para orientación
     const medidaReal = `<div style="font-size:8.5px;color:#a8a5a0;font-style:italic;margin-top:2px;font-family:'Manrope',sans-serif;letter-spacing:.02em">↔ ${it.ancho||'—'} × ${it.alto||'—'} mm</div>`;
+    // V293.7: indicador motor/manual en columna Color/Detalle para que el cortador de aluminio sepa
+    const tieneMotor2 = !!it.motor;
+    const motorBadge = esCambio2 ? ''
+      : (tieneMotor2
+        ? `<div style="display:inline-block;background:#fff4e0;border:1px solid #f5c97a;border-radius:3px;padding:1px 5px;font-size:8px;font-weight:800;color:#a85d00;letter-spacing:.04em;margin-top:3px">⚡ MOTORIZADA</div>`
+        : `<div style="display:inline-block;background:#f0f4f8;border:1px solid #c0d0dc;border-radius:3px;padding:1px 5px;font-size:8px;font-weight:800;color:#5a7080;letter-spacing:.04em;margin-top:3px">🔧 MANUAL</div>`);
     return `<tr>
+      <td style="text-align:center;border-right:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum">${i+1}</span></td>
       <td style="font-weight:700;font-size:10px">${getTelaLabel(it.tela)||'—'}${dobleTag2}${cambioTag2}${medidaReal}</td>
-      <td style="font-size:9px;color:#555">${it.color||'—'}</td>
+      <td style="font-size:9px;color:#555">${it.color||'—'}${motorBadge}</td>
       <td>${ejeCell}</td>
       <td>${zocCell}</td>
       <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
-      <td style="text-align:center;border-left:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
     </tr>`;
   }).join('');
 
@@ -9966,6 +9972,7 @@ function openPlanilla(d){
     const cant = parseInt(it.cant)||1;
     const refLabel = cant > 1 ? `${it.ref||('Cort.'+(i+1))} ×${cant}` : (it.ref||('Cort.'+(i+1)));
     return `<tr style="background:#fffbf2">
+      <td style="text-align:center;border-right:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum" style="background:#c06000">R</span></td>
       <td style="font-weight:700;font-size:10px">${telaLabel}</td>
       <td style="font-size:9px;color:#c06000;font-weight:600">Riel de confección</td>
@@ -9976,7 +9983,6 @@ function openPlanilla(d){
         </div>
       </td>
       <td style="font-size:10px;color:#888">${refLabel}</td>
-      <td style="text-align:center;border-left:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
     </tr>`;
   }).join('');
 
@@ -9988,6 +9994,7 @@ function openPlanilla(d){
     const refStr   = it.ref||'—';
     const cant     = parseInt(it.cant)||1;
     return `<tr style="background:#f4f8ff">
+      <td style="text-align:center;border-right:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum" style="background:#2a6496">A</span></td>
       <td style="font-weight:700;font-size:10px;color:#1a4a6a">${getTelaLabel(it.tela)||'Accesorio'}</td>
       <td style="font-size:9px;color:#1a4a6a;font-weight:600">${colorStr}</td>
@@ -9998,7 +10005,6 @@ function openPlanilla(d){
         </div>
       </td>
       <td style="font-size:10px;color:#888">${refStr}</td>
-      <td style="text-align:center;border-left:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
     </tr>`;
   }).join('');
 
@@ -10152,6 +10158,7 @@ function openPlanilla(d){
       </div>
       <table class="fab-table">
         <thead style="background:#dce8f4"><tr>
+          <th style="color:#1a4a6a;text-align:center;width:38px">✓</th>
           <th style="color:#1a4a6a;width:22px">#</th>
           <th style="color:#1a4a6a">Tela / Color</th>
           <th style="color:#1a4a6a">Color</th>
@@ -10163,7 +10170,6 @@ function openPlanilla(d){
           <th style="color:#1a4a6a;text-align:center">Zócalo</th>
           <th style="color:#1a4a6a;text-align:center">Soporte</th>
           <th style="color:#1a4a6a;width:50px">Ref.</th>
-          <th style="color:#1a4a6a;text-align:center;width:48px;border-left:2px solid #c0d4ee">Check ✓</th>
         </tr></thead>
         <tbody>${h1rows}</tbody>
       </table>
@@ -10184,13 +10190,13 @@ function openPlanilla(d){
       </div>
       <table class="fab-table">
         <thead style="background:#fdecc8"><tr>
+          <th style="color:#7a4a00;text-align:center;width:38px">✓</th>
           <th style="color:#7a4a00;width:22px">#</th>
           <th style="color:#7a4a00">Tipo</th>
           <th style="color:#7a4a00">Color / Detalle</th>
           <th style="color:#7a4a00;text-align:center">Eje / Accesorio — Corte</th>
           <th style="color:#7a4a00;text-align:center">Zócalo — Corte</th>
           <th style="color:#7a4a00">Ref.</th>
-          <th style="color:#7a4a00;text-align:center;width:48px;border-left:2px solid #f0d8a0">Check ✓</th>
         </tr></thead>
         <tbody>${h2rows}</tbody>
       </table>
