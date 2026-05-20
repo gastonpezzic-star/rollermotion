@@ -9693,6 +9693,25 @@ function _motorTipo(motorLabel){
   if(/\brf\b/.test(m))         return 'RF';      // remoto → eje 50
   return null;
 }
+
+// V293.8: nombre corto y claro del motor para la planilla.
+// Antes: 'WD Accionamiento tecla' → reemplazos sucesivos producían 'WD WD' (bug).
+// Ahora: regex específica por patrón → output limpio y descriptivo.
+//   BATERIA 2N             → '2N batería'
+//   BATERIA 6N             → '6N batería'
+//   RF 6N Control remoto   → '6N RF radio'
+//   RF 12N Control remoto  → '12N RF radio'
+//   WD Accionamiento tecla → 'WD tecla'
+//   50/12 RF               → '50/12 RF'
+function motorLabelCorto(motorLabel){
+  if(!motorLabel) return '';
+  let m = String(motorLabel).replace(/^Motor Vertilux\s*/i, '').trim();
+  if(/50\/12/.test(m))                          return '50/12 RF';
+  if(/BATERIA\s*(\d+N)/i.test(m))               return m.replace(/BATERIA\s*(\d+N)/i, '$1 batería');
+  if(/RF\s*(\d+N)\s*Control remoto/i.test(m))   return m.replace(/RF\s*(\d+N)\s*Control remoto/i, '$1 RF radio');
+  if(/WD\s*Accionamiento tecla/i.test(m))       return 'WD tecla';
+  return m;
+}
 function getEjeInfo(ancho, motorLabel){
   const a = parseInt(ancho)||0;
   const mt = _motorTipo(motorLabel);
@@ -9871,11 +9890,11 @@ function openPlanilla(d){
     if(esCambio){
       cadenaCell = `<span style="color:#aaa;font-size:9px;font-style:italic">Reusa existente</span>`;
     } else if(tieneMotor){
-      const motorCorto = it.motor
-        .replace('Motor Vertilux ','').replace('Control remoto','RF').replace('Accionamiento tecla','WD');
+      // V293.8: nombre corto descriptivo en lugar del bugueado replace anterior
+      const motorCorto = motorLabelCorto(it.motor);
       cadenaCell = `<div style="display:flex;flex-direction:column;align-items:center;gap:2px">
         <span style="background:#d4820e;color:#fff;border-radius:3px;padding:2px 6px;font-size:8px;font-weight:800;white-space:nowrap">⚡ MOTOR</span>
-        <span style="font-size:9px;font-weight:700;color:#d4820e;text-align:center;line-height:1.2;max-width:90px">${motorCorto}</span>
+        <span style="font-size:9px;font-weight:700;color:#d4820e;text-align:center;line-height:1.2;max-width:110px">${motorCorto}</span>
       </div>`;
     } else {
       const cad = it.cadena||'Blanca';
