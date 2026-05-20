@@ -8082,23 +8082,54 @@ function renderRow(d, isAdmin){
   </tr>`;
 }
 
+// V293.2: el menú se renderiza en document.body con position:fixed
+// para evitar que el overflow:hidden del .lt-wrap lo recorte.
 function toggleActionMenu(btn, ev){
   if(ev) ev.stopPropagation();
-  const wrap = btn.closest('.btn-menu-wrap');
-  const wasOpen = wrap.querySelector('.menu-dropdown') !== null;
+  // Toggle: si ya estaba abierto este menú, cerrarlo
+  const existing = document.querySelector('.menu-dropdown[data-active="1"]');
+  const wasMine = existing && existing.dataset.btnRef === (btn.dataset.menuId || '');
   document.querySelectorAll('.menu-dropdown').forEach(m=>m.remove());
-  if(wasOpen) return;
+  if(wasMine) return;
+
+  // Asignar id único al botón para identificar el menú abierto
+  if(!btn.dataset.menuId) btn.dataset.menuId = 'mn-' + Math.random().toString(36).slice(2,8);
+
   const menu = document.createElement('div');
   menu.className = 'menu-dropdown';
+  menu.dataset.active = '1';
+  menu.dataset.btnRef = btn.dataset.menuId;
   menu.innerHTML = btn.dataset.menu;
-  wrap.appendChild(menu);
+  menu.style.position = 'fixed';
+
+  // Calcular posición desde el botón. Si no hay espacio abajo → abrir hacia arriba.
+  const rect = btn.getBoundingClientRect();
+  const approxMenuH = 160;
+  const margen = 6;
+  menu.style.right = (window.innerWidth - rect.right) + 'px';
+  menu.style.left  = 'auto';
+  if(window.innerHeight - rect.bottom < approxMenuH + margen){
+    menu.style.bottom = (window.innerHeight - rect.top + margen) + 'px';
+    menu.style.top = 'auto';
+  } else {
+    menu.style.top = (rect.bottom + margen) + 'px';
+    menu.style.bottom = 'auto';
+  }
+
+  document.body.appendChild(menu);
+
   setTimeout(()=>{
-    document.addEventListener('click', function closeMenu(e){
-      if(!wrap.contains(e.target)){
-        menu.remove();
-        document.removeEventListener('click', closeMenu);
-      }
-    });
+    function closeMenu(e){
+      if(e && menu.contains(e.target)) return;
+      if(e && e.target === btn) return; // el botón se encarga del toggle
+      menu.remove();
+      document.removeEventListener('click', closeMenu);
+      window.removeEventListener('scroll', closeMenu, true);
+      window.removeEventListener('resize', closeMenu);
+    }
+    document.addEventListener('click', closeMenu);
+    window.addEventListener('scroll', closeMenu, true);
+    window.addEventListener('resize', closeMenu);
   }, 0);
 }
 
