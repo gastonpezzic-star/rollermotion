@@ -8483,9 +8483,11 @@ function renderFab(){
     // - tiene roller / rieles sueltos / motorizados (necesitan armado + cortes aluminio)
     // - o tiene confección CON riel (los rieles van en hoja 2 de cortes aluminio)
     // - o tiene cambio de tela (V292.5: necesita planilla para corte de tela + zócalo si aplica)
+    // - o tiene producto libre (V294: aparece como línea para no perderse)
     const tieneRoller = (d.items||[]).some(it =>
       isRollerTela(it.tela)
       || isCambioTela(it.tela)
+      || it.tela==='libre'
       || it.tela==='riel_manual'
       || it.tela==='riel_motorizado'
       || it.tela==='riel_motorizado_celtic'
@@ -9849,6 +9851,10 @@ function openPlanilla(d){
     it.tela === 'conf_liviana' || it.tela === 'conf_blackout'
   );
 
+  // V294: items "libre" — productos personalizados sin medidas ni fabricación
+  // específica. Aparecen como una línea simple en la planilla para que no se pierdan.
+  const libreItems = allItems.filter(it => it.tela === 'libre');
+
   // Items de aluminio/accesorios con medida de corte (tubos, ángulos, guías, cenefas)
   const TELAS_ACCESORIO_CORTE = ['tubos','angulos','guias','cenefas'];
   const accesorioItems = allItems.filter(it => {
@@ -9867,7 +9873,7 @@ function openPlanilla(d){
     return false;
   });
 
-  if(!rollerItems.length && !confItems.length){
+  if(!rollerItems.length && !confItems.length && !libreItems.length){
     toast('Sin cortinas con medidas para generar planilla','err'); return;
   }
 
@@ -10159,7 +10165,9 @@ function openPlanilla(d){
       <div id="${barcodeId}" data-pednum="${pedNum}" style="min-width:110px;text-align:right"></div>
     </div>`;
 
-  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (confItems.length > 0 ? 2 : 0);
+  // V294: si solo hay libreItems (sin roller ni conf), cuenta como 1 hoja para el "Hoja N de M"
+  const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && confItems.length === 0;
+  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (confItems.length > 0 ? 2 : 0) + (hayLibreSolo ? 1 : 0);
   let hojaNum = 0;
 
   let html = `<div class="fab-doc">`;
@@ -10283,6 +10291,46 @@ function openPlanilla(d){
     </div>
     </div>
     ${rollerItems.length > 0 ? '</div>' : ''}`;
+  }
+
+  // ── V294: Productos personalizados (items 'libre') ──
+  // Aparecen como una sección simple al final. Sin medidas ni fabricación específica,
+  // solo descripción + cantidad + ref. Sirve para que el operario sepa que esos items
+  // forman parte del pedido aunque no requieran corte/armado.
+  if(libreItems.length > 0){
+    if(hayLibreSolo){
+      hojaNum++;
+      html += `<div class="fab-page-break">${headerHtml(`Productos personalizados — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-libre')}`;
+    }
+    html += `
+    <div class="fab-section" style="margin-top:${hayLibreSolo?'0':'14px'}">
+      <div class="sec-hdr" style="background:#f3ecdc;border:1px solid #d8c89c;border-bottom:none">
+        <div class="sec-circle" style="background:#7a5a1a">✏</div>
+        <div class="sec-ttl" style="color:#5a3a0a">Productos personalizados</div>
+        <span class="sec-sub" style="color:#5a3a0a">Items custom sin medidas ni fabricación específica — verificar antes de armar</span>
+      </div>
+      <table class="fab-table">
+        <thead style="background:#ece0c4"><tr>
+          <th style="color:#5a3a0a;text-align:center;width:38px">✓</th>
+          <th style="color:#5a3a0a;width:22px">#</th>
+          <th style="color:#5a3a0a">Descripción</th>
+          <th style="color:#5a3a0a;text-align:center;width:60px">Cant.</th>
+          <th style="color:#5a3a0a">Ref.</th>
+        </tr></thead>
+        <tbody>
+          ${libreItems.map((it,i) => {
+            const cant = parseInt(it.cant)||1;
+            return `<tr>
+              <td style="text-align:center;border-right:2px solid #d8c89c"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
+              <td><span class="fnum" style="background:#7a5a1a">${i+1}</span></td>
+              <td style="font-size:11px;font-weight:600;color:#3a2a0a">${it.color || '<span style="color:#aaa;font-style:italic">Sin descripción</span>'}</td>
+              <td style="text-align:center;font-weight:700;font-family:'Manrope',sans-serif">${cant}</td>
+              <td style="font-size:10px;color:#888">${it.ref || '—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>${hayLibreSolo?'</div>':''}`;
   }
 
   html += `</div>`;
