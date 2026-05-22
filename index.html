@@ -554,7 +554,22 @@ body{
 }
 
 /* ══ PLANILLA DE FABRICACIÓN ══ */
-.fab-doc{font-size:11px;color:#141414;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+/* V294.1: contenedor con fondo gris claro (mesa de trabajo) y cada hoja como A4 con sombra */
+.fab-doc{font-size:11px;color:#141414;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#e8e5e0;padding:14px}
+.fab-sheet{
+  background:#fff;
+  border-radius:4px;
+  box-shadow:0 2px 16px rgba(0,0,0,.12), 0 1px 0 rgba(0,0,0,.04);
+  margin:0 auto 18px;
+  overflow:hidden;
+  max-width:760px;
+}
+.fab-sheet:last-child{ margin-bottom:0 }
+/* En print: sin fondo gris, sin sombras, sin márgenes — cada sheet es una página real */
+@media print{
+  .fab-doc{ background:transparent !important; padding:0 !important }
+  .fab-sheet{ box-shadow:none !important; margin:0 !important; border-radius:0 !important; max-width:none !important }
+}
 .fab-doc .fab-header{padding:10px 20px 8px;border-bottom:2.5px solid #f09620;display:flex;justify-content:space-between;align-items:flex-end}
 .fab-doc .fab-brand{font-family:'Manrope',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.5px}
 .fab-doc .fab-brand span{color:#f09620}
@@ -10173,9 +10188,12 @@ function openPlanilla(d){
   let html = `<div class="fab-doc">`;
 
   // ── Hojas Roller (solo si hay) ──
+  // V294.1: cada hoja envuelta en .fab-sheet para look de A4 individual en el preview.
+  // .fab-page-break sigue siendo el marcador para print (page-break-before).
   if(rollerItems.length > 0){
     hojaNum++;
     html += `
+    <div class="fab-sheet">
     ${headerHtml(`Corte de Tela &amp; Armado — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-hoja1')}
     <div class="fab-section">
       <div class="sec-hdr" style="background:#e8f0fa;border:1px solid #c0d4ee;border-bottom:none">
@@ -10201,13 +10219,11 @@ function openPlanilla(d){
         <tbody>${h1rows}</tbody>
       </table>
     </div>
-    <div class="fab-separator" style="height:28px;background:#e8e6e0;display:flex;align-items:center;justify-content:center;border-top:2px dashed #c0bdb8;border-bottom:2px dashed #c0bdb8;margin:0">
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#999">✂ &nbsp; Corte de página &nbsp; ✂</span>
     </div>`;
 
     hojaNum++;
     html += `
-    <div class="fab-page-break">
+    <div class="fab-sheet fab-page-break">
     ${headerHtml(`Cortes de Aluminio — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-hoja2')}
     <div class="fab-section">
       <div class="sec-hdr" style="background:#fef4e0;border:1px solid #f0d8a0;border-bottom:none">
@@ -10232,16 +10248,13 @@ function openPlanilla(d){
   }
 
   // ── Hojas Confección (solo si hay) ──
+  // V294.1: cada hoja en .fab-sheet. La primera de confección lleva .fab-page-break sólo
+  // si hay hojas previas (de roller); sino es la primera y no necesita break.
   if(confItems.length > 0){
-    const sepConf = rollerItems.length > 0 ? `
-    <div class="fab-separator" style="height:28px;background:#e8e6e0;display:flex;align-items:center;justify-content:center;border-top:2px dashed #c0bdb8;border-bottom:2px dashed #c0bdb8;margin:0">
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#999">✂ &nbsp; Corte de página — Confección &nbsp; ✂</span>
-    </div>` : '';
-
     hojaNum++;
+    const breakConf = rollerItems.length > 0 ? ' fab-page-break' : '';
     html += `
-    ${rollerItems.length > 0 ? '<div class="fab-page-break">' : ''}
-    ${sepConf}
+    <div class="fab-sheet${breakConf}">
     ${headerHtml(`Planilla de Confección — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-conf1')}
     <div class="fab-section">
       <div class="sec-hdr" style="background:#edf7ee;border:1px solid #a8d8b0;border-bottom:none">
@@ -10264,13 +10277,11 @@ function openPlanilla(d){
         <tbody>${h3rows || '<tr><td colspan="9" style="text-align:center;color:#888;padding:16px">Sin cortinas de confección en este pedido</td></tr>'}</tbody>
       </table>
     </div>
-    <div class="fab-separator" style="height:28px;background:#e8e6e0;display:flex;align-items:center;justify-content:center;border-top:2px dashed #c0bdb8;border-bottom:2px dashed #c0bdb8;margin:0">
-      <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#999">✂ &nbsp; Corte de página — Rieles &nbsp; ✂</span>
     </div>`;
 
     hojaNum++;
     html += `
-    <div class="fab-page-break">
+    <div class="fab-sheet fab-page-break">
     ${headerHtml(`Rieles de Confección — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-conf2')}
     <div class="fab-section">
       <div class="sec-hdr" style="background:#fef0e0;border:1px solid #f0c88a;border-bottom:none">
@@ -10289,8 +10300,7 @@ function openPlanilla(d){
         <tbody>${h4rows}</tbody>
       </table>
     </div>
-    </div>
-    ${rollerItems.length > 0 ? '</div>' : ''}`;
+    </div>`;
   }
 
   // ── V294: Productos personalizados (items 'libre') ──
@@ -10298,12 +10308,14 @@ function openPlanilla(d){
   // solo descripción + cantidad + ref. Sirve para que el operario sepa que esos items
   // forman parte del pedido aunque no requieran corte/armado.
   if(libreItems.length > 0){
-    if(hayLibreSolo){
-      hojaNum++;
-      html += `<div class="fab-page-break">${headerHtml(`Productos personalizados — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-libre')}`;
-    }
+    // V294.1: la sección libre también va en .fab-sheet.
+    // Si no hay roller ni conf, es la primera (sin page-break). Si hay otras, va con page-break.
+    const breakLibre = (rollerItems.length > 0 || confItems.length > 0) ? ' fab-page-break' : '';
+    if(hayLibreSolo) hojaNum++;
     html += `
-    <div class="fab-section" style="margin-top:${hayLibreSolo?'0':'14px'}">
+    <div class="fab-sheet${breakLibre}">
+    ${hayLibreSolo ? headerHtml(`Productos personalizados — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-libre') : ''}
+    <div class="fab-section">
       <div class="sec-hdr" style="background:#f3ecdc;border:1px solid #d8c89c;border-bottom:none">
         <div class="sec-circle" style="background:#7a5a1a">✏</div>
         <div class="sec-ttl" style="color:#5a3a0a">Productos personalizados</div>
@@ -10330,7 +10342,8 @@ function openPlanilla(d){
           }).join('')}
         </tbody>
       </table>
-    </div>${hayLibreSolo?'</div>':''}`;
+    </div>
+    </div>`;
   }
 
   html += `</div>`;
