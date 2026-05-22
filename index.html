@@ -554,21 +554,44 @@ body{
 }
 
 /* ══ PLANILLA DE FABRICACIÓN ══ */
-/* V294.1: contenedor con fondo gris claro (mesa de trabajo) y cada hoja como A4 con sombra */
-.fab-doc{font-size:11px;color:#141414;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#e8e5e0;padding:14px}
+/* V294.2: fondo blanco limpio como en la cotización. Cada hoja separada por un
+   divisor sutil (gradient line) que indica "fin de hoja N / inicio de hoja N+1"
+   sin recurrir al gris "mesa" que cortaba mucho la estética. */
+.fab-doc{font-size:11px;color:#141414;-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#fff}
 .fab-sheet{
   background:#fff;
-  border-radius:4px;
-  box-shadow:0 2px 16px rgba(0,0,0,.12), 0 1px 0 rgba(0,0,0,.04);
-  margin:0 auto 18px;
-  overflow:hidden;
-  max-width:760px;
+  position:relative;
 }
-.fab-sheet:last-child{ margin-bottom:0 }
-/* En print: sin fondo gris, sin sombras, sin márgenes — cada sheet es una página real */
+/* Divisor sutil entre hojas (sólo en pantalla, no en print) */
+.fab-sheet + .fab-sheet{
+  margin-top:32px;
+}
+.fab-sheet + .fab-sheet::before{
+  content:'';
+  position:absolute;
+  top:-18px;
+  left:14%;
+  right:14%;
+  height:1px;
+  background:linear-gradient(90deg, transparent 0%, #d4d1cb 30%, #d4d1cb 70%, transparent 100%);
+}
+.fab-sheet + .fab-sheet::after{
+  content:'· · ·';
+  position:absolute;
+  top:-26px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#fff;
+  padding:0 10px;
+  font-size:11px;
+  letter-spacing:.4em;
+  color:#bdbab2;
+}
+/* En print: sin divisores, page-break de toda la vida */
 @media print{
-  .fab-doc{ background:transparent !important; padding:0 !important }
-  .fab-sheet{ box-shadow:none !important; margin:0 !important; border-radius:0 !important; max-width:none !important }
+  .fab-sheet + .fab-sheet{ margin-top:0 !important }
+  .fab-sheet + .fab-sheet::before,
+  .fab-sheet + .fab-sheet::after{ display:none !important }
 }
 .fab-doc .fab-header{padding:10px 20px 8px;border-bottom:2.5px solid #f09620;display:flex;justify-content:space-between;align-items:flex-end}
 .fab-doc .fab-brand{font-family:'Manrope',sans-serif;font-size:17px;font-weight:800;letter-spacing:-.5px}
