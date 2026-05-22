@@ -7634,7 +7634,23 @@ function convertToOrder(idOrDoc){
     };
   }
 
-  const cortinas  = (src.items||[]).filter(it => isRollerTela(it.tela));
+  // V294.3: expandir cortinas roller con cant>1 en N entradas individuales (una por unidad)
+  // así el form pide detalles por cada unidad. Doble NO se expande (siempre cant=1).
+  // En confirmarPedido se splittean los items en N copias cant=1 con sus propios datos.
+  const cortinasOriginal = (src.items||[]).filter(it => isRollerTela(it.tela));
+  const cortinas = [];
+  cortinasOriginal.forEach((it) => {
+    const cant = parseInt(it.cant) || 1;
+    if(isRollerDoble(it.tela) || cant <= 1){
+      cortinas.push(it); // referencia directa
+    } else {
+      for(let u = 0; u < cant; u++){
+        // copia con metadata para identificar después de qué item original viene
+        const copy = { ...it, cant: 1, _expandedFromItem: it, _unitIdx: u, _totalUnits: cant };
+        cortinas.push(copy);
+      }
+    }
+  });
   const motores   = (src.items||[]).filter(it => it.tela==='motores');
   const confItems = (src.items||[]).filter(it => it.tela==='conf_liviana'||it.tela==='conf_blackout');
   const rieles    = (src.items||[]).filter(it => it.tela==='riel_manual'||it.tela==='riel_motorizado'||it.tela==='riel_motorizado_celtic');
@@ -7715,6 +7731,10 @@ function convertToOrder(idOrDoc){
       const cant = parseInt(it.cant)||1;
       const esDoble = isRollerDoble(it.tela);
       const telaLabel = esDoble ? 'Roller Doble (Blackout + Sunscreen)' : `Roller ${rollerLabel(it.tela)}`;
+      // V294.3: badge "Unidad N de M" cuando este item es una expansión de un item original con cant>1
+      const unitBadge = it._expandedFromItem
+        ? `<span style="background:#fff4e0;border:1px solid #f5c97a;border-radius:4px;padding:2px 8px;font-size:10px;font-weight:700;color:#a85d00;letter-spacing:.04em">📦 Unidad ${it._unitIdx + 1} de ${it._totalUnits}</span>`
+        : '';
       // V292: Roller Doble = pedimos detalles para ambas telas (BK + SC) por separado.
       if(esDoble){
         // Parsear colores del color string (formato típico: "BK:XXX · SC:YYY")
@@ -7742,8 +7762,9 @@ function convertToOrder(idOrDoc){
       }
       // Cortina simple (un solo set de campos)
       return `<div style="border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:10px;background:var(--surface2)">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
           <div style="background:var(--steel);color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">#${i+1}</div>
+          ${unitBadge}
           <div style="font-size:13px;font-weight:700;color:var(--ink)">${telaLabel} — ${it.color}</div>
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
           ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
@@ -7929,8 +7950,26 @@ async function confirmarPedido(){
   const src = _pedidoSrc;
   if(!src) return;
 
-  // Cortinas roller — incluye blackout y sunscreen 5%, 3%, 1%
-  const cortinas = (src.items||[]).filter(it => isRollerTela(it.tela));
+  // V294.3: Cortinas roller — expandir items con cant>1 (no doble) en N entradas para
+  // leer los detalles por unidad. Luego splittear src.items reemplazando cada item
+  // expandido por N copias cant=1 cada una con sus propios datos.
+  const cortinasOrig = (src.items||[]).filter(it => isRollerTela(it.tela));
+  const cortinas = [];
+  const splitMap = new Map(); // origItem → array de copias cant=1 con detalles propios
+  cortinasOrig.forEach((it) => {
+    const cant = parseInt(it.cant) || 1;
+    if(isRollerDoble(it.tela) || cant <= 1){
+      cortinas.push(it);
+    } else {
+      const copies = [];
+      for(let u = 0; u < cant; u++){
+        const copy = { ...it, cant: 1, _expandedFromItem: it, _unitIdx: u, _totalUnits: cant };
+        cortinas.push(copy);
+        copies.push(copy);
+      }
+      splitMap.set(it, copies);
+    }
+  });
   cortinas.forEach((it,i)=>{
     if(isRollerDoble(it.tela)){
       // V292: Roller Doble = persistir BK + SC por separado en it.bk / it.sc
@@ -8000,6 +8039,26 @@ async function confirmarPedido(){
     }
   });
 
+  // V294.3: construir el array de items PARA EL PEDIDO con split aplicado.
+  // No mutamos src.items para que la cotización origen mantenga su estructura
+  // (1 línea cant=2 sigue siendo 1 línea cant=2). El pedido sí se splittea para
+  // poder llevar el detalle por unidad en la planilla.
+  const orderItems = [];
+  src.items.forEach((origIt) => {
+    if(splitMap.has(origIt)){
+      const copies = splitMap.get(origIt);
+      copies.forEach((copy) => {
+        const clean = { ...copy };
+        delete clean._expandedFromItem;
+        delete clean._unitIdx;
+        delete clean._totalUnits;
+        orderItems.push(clean);
+      });
+    } else {
+      orderItems.push(origIt);
+    }
+  });
+
   // Construir el pedido
   let next, order;
   if(_pedidoIsDraft){
@@ -8012,7 +8071,7 @@ async function confirmarPedido(){
       numero: next,
       fecha:  src.fecha || today(),
       estado: 'Pendiente',
-      items:  src.items,
+      items:  orderItems, // V294.3: usar items con split por unidad
     };
     delete order._isDraft;
     delete order.cotizacionOrigen;
@@ -8028,7 +8087,7 @@ async function confirmarPedido(){
       fecha:  today(),
       estado: 'Pendiente',
       cotizacionOrigen: src.numero||src.id,
-      items: src.items,
+      items: orderItems, // V294.3: usar items con split por unidad
     };
   }
   const srcId = src.id;
