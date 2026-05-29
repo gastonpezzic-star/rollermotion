@@ -3317,6 +3317,9 @@ async function saveDocToSupabase(doc){
       entrega:          d(doc.entrega),
       estado:           doc.estado || 'Cotización',
       vendedor_nombre:  n(doc.vendedor),
+      // V295: dueño del documento (para RLS). Preserva el original al editar; nuevos = usuario logueado.
+      // Solo usa ME.id si es sesión auth real (ME.profile). En fallback local queda null (evita romper la columna UUID).
+      vendedor_id:      doc.vendedor_id || ((ME && ME.profile) ? ME.id : null),
       cliente:          doc.cliente,
       cuit:             n(doc.cuit),
       direccion:        n(doc.dir),
@@ -3452,43 +3455,48 @@ const LOCAL_USERS = {
 };
 
 
-function loginLocal(email, pass, errEl, btn){
-  try {
-    const u = LOCAL_USERS[email.toLowerCase()];
-    if(!u || u.pass !== pass){
-      errEl.textContent = 'Email o contraseña incorrectos.';
-      errEl.style.display = 'block';
-      if(btn){ btn.textContent = 'Iniciar sesión'; btn.disabled = false; }
-      return false;
-    }
-    ME = { id: email, name: u.nombre, role: u.role, email };
-    loadDocsLocal();
-    document.getElementById('login-screen').style.display='none';
-    document.getElementById('app').style.display='flex';
-    document.getElementById('app').style.flexDirection='column';
-    document.getElementById('t-name').textContent = ME.name;
-    document.getElementById('t-rb').textContent = ME.role==='admin'?'Administrador':(ME.role==='fabrica'?'Fábrica':'Vendedor');
-    document.getElementById('t-rb').className = 't-role '+(ME.role==='admin'?'r-admin':'r-vendor');
-    buildNav(); renderCost(); switchPage('pg-inicio'); renderCot(); renderPed();
-    if(ME.role==='admin'){ renderAdmin(); updateStats(); }
-    updateNavBadges();
-    updateSyncIndicator();
-    // Sincroniza con Supabase en segundo plano
-    loadDocsWithFallback();
-    loadRecibos().then(()=>renderRecibos());
-    loadStock().then(()=>{ if(typeof renderStock==='function') renderStock(); });
-    loadProveedores();
-    // Activar Realtime — escucha cambios de otros usuarios
-    setupRealtime();
-  } catch(e) {
-    console.error('Error en login:', e);
-    errEl.textContent = 'Error al iniciar sesión. Recargá la página.';
-    errEl.style.display = 'block';
-    if(btn){ btn.textContent = 'Iniciar sesión'; btn.disabled = false; }
-  }
+// V295 — AUTH REAL DE SUPABASE
+// enterApp(): setup de UI post-login (común a login real, fallback local y restore de sesión)
+function enterApp(){
+  loadDocsLocal();
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('app').style.flexDirection='column';
+  document.getElementById('t-name').textContent = ME.name;
+  document.getElementById('t-rb').textContent = ME.role==='admin'?'Administrador':(ME.role==='fabrica'?'Fábrica':'Vendedor');
+  document.getElementById('t-rb').className = 't-role '+(ME.role==='admin'?'r-admin':'r-vendor');
+  buildNav(); renderCost(); switchPage('pg-inicio'); renderCot(); renderPed();
+  if(ME.role==='admin'){ renderAdmin(); updateStats(); }
+  updateNavBadges();
+  updateSyncIndicator();
+  // Sincroniza con Supabase en segundo plano
+  loadDocsWithFallback();
+  loadRecibos().then(()=>renderRecibos());
+  loadStock().then(()=>{ if(typeof renderStock==='function') renderStock(); });
+  loadProveedores();
+  // Activar Realtime — escucha cambios de otros usuarios
+  setupRealtime();
 }
 
-function doLogin(){
+// loadProfileAndEnter(): carga el perfil (rol, nombre) desde la tabla profiles y entra
+async function loadProfileAndEnter(session){
+  let prof = null;
+  try {
+    const { data } = await _sb.from('profiles').select('*').eq('id', session.user.id).single();
+    prof = data;
+  } catch(e){ console.warn('No se pudo cargar el perfil:', e); }
+  const rolRaw = (prof?.rol || 'vendedor').toLowerCase();
+  ME = {
+    id:    session.user.id,
+    name:  prof?.nombre || (session.user.email||'').split('@')[0],
+    role:  rolRaw === 'vendedor' ? 'vendor' : rolRaw,  // 'admin' | 'fabrica' | 'vendor'
+    email: session.user.email,
+    profile: prof || {},
+  };
+  enterApp();
+}
+
+async function doLogin(){
   const email = document.getElementById('l-u').value.trim();
   const pass  = document.getElementById('l-p').value;
   const errEl = document.getElementById('l-err');
@@ -3499,12 +3507,37 @@ function doLogin(){
     errEl.style.display='block';
     return;
   }
-  // Siempre usar LOCAL_USERS — no depender de Supabase para login
-  loginLocal(email, pass, errEl, btn);
+  if(btn){ btn.textContent='Ingresando…'; btn.disabled=true; }
+  // 1) Auth real de Supabase (sesión verdadera + RLS por rol)
+  try {
+    const { data, error } = await _sb.auth.signInWithPassword({ email, password: pass });
+    if(!error && data?.session){
+      await loadProfileAndEnter(data.session);
+      if(btn){ btn.textContent='Iniciar sesión'; btn.disabled=false; }
+      return;
+    }
+  } catch(e){ console.warn('Auth Supabase no disponible:', e); }
+  // 2) Fallback temporal a LOCAL_USERS (se quita en la limpieza final)
+  const u = LOCAL_USERS[email.toLowerCase()];
+  if(u && u.pass === pass){
+    ME = { id: email, name: u.nombre, role: u.role, email };
+    enterApp();
+    if(btn){ btn.textContent='Iniciar sesión'; btn.disabled=false; }
+    return;
+  }
+  errEl.textContent = 'Email o contraseña incorrectos.';
+  errEl.style.display = 'block';
+  if(btn){ btn.textContent='Iniciar sesión'; btn.disabled=false; }
 }
 
-
-// Sin auto-login por Supabase — solo LOCAL_USERS
+// Restaurar sesión al cargar la página (si ya estaba logueado, no pide login de nuevo)
+async function restoreSession(){
+  try {
+    const { data } = await _sb.auth.getSession();
+    if(data?.session){ await loadProfileAndEnter(data.session); }
+  } catch(e){ console.warn('No hay sesión previa:', e); }
+}
+restoreSession();
 
 document.getElementById('l-p').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
 
@@ -3523,19 +3556,25 @@ function doLogout(){
    NAV
 ════════════════════════════ */
 function buildNav(){
-  const tabs = [
-    { id:'pg-inicio', label:'🏠 Inicio' },
-    { id:'pg-cot',   label:'📄 Cotizaciones' },
-    { id:'pg-ped',   label:'📦 Pedidos'       },
-  ];
-  if(ME.role==='admin' || ME.role==='fabrica')
-    tabs.push({ id:'pg-fab', label:'🏭 Fábrica' });
-  if(ME.role==='admin'){
-    tabs.push({ id:'pg-clientes', label:'👥 Clientes' });
+  // V295 — navegación por rol
+  let tabs = [{ id:'pg-inicio', label:'🏠 Inicio' }];
+  if(ME.role==='fabrica'){
+    // Fábrica: solo pedidos, fábrica y stock (sin cotizaciones, precios ni admin)
+    tabs.push({ id:'pg-ped',   label:'📦 Pedidos' });
+    tabs.push({ id:'pg-fab',   label:'🏭 Fábrica' });
     tabs.push({ id:'pg-stock', label:'📦 Stock' });
-    tabs.push({ id:'pg-dashboard', label:'📊 Dashboard' });
-    tabs.push({ id:'pg-lista', label:'📋 Lista de precios' });
-    tabs.push({ id:'pg-admin',   label:'🛠 Administración' });
+  } else {
+    // Admin y Vendedor: cotizaciones + pedidos
+    tabs.push({ id:'pg-cot', label:'📄 Cotizaciones' });
+    tabs.push({ id:'pg-ped', label:'📦 Pedidos' });
+    if(ME.role==='admin'){
+      tabs.push({ id:'pg-fab',       label:'🏭 Fábrica' });
+      tabs.push({ id:'pg-clientes',  label:'👥 Clientes' });
+      tabs.push({ id:'pg-stock',     label:'📦 Stock' });
+      tabs.push({ id:'pg-dashboard', label:'📊 Dashboard' });
+      tabs.push({ id:'pg-lista',     label:'📋 Lista de precios' });
+      tabs.push({ id:'pg-admin',     label:'🛠 Administración' });
+    }
   }
   document.getElementById('nav-bar').innerHTML = tabs.map(t =>
     `<div class="ntab" data-pg="${t.id}" onclick="switchPage('${t.id}')">${t.label}</div>`
@@ -7058,6 +7097,7 @@ async function saveRecibo(thenView){
       doc_id: recibo.doc_id || null,
       doc_numero: recibo.doc_numero || null,
       vendedor: recibo.vendedor,
+      vendedor_id: ((ME && ME.profile) ? ME.id : null),  // V295: dueño del recibo (solo auth real, evita romper UUID)
     });
     if(error) throw error;
     toast('✅ Recibo guardado y sincronizado','ok');
@@ -7591,7 +7631,15 @@ function filterDocs(type, qId, sId){
   const st=document.getElementById(sId).value;
   return getDocs().filter(d=>{
     if(d.type!==type) return false;
-    if(ME.role!=='admin'&&d.vendedor!==ME.name) return false;
+    // V295: vendedor solo ve lo suyo. Con auth real filtramos por vendedor_id (coincide con RLS);
+    // en modo fallback local (sin perfil) usamos el nombre como antes.
+    if(ME.role!=='admin' && ME.role!=='fabrica'){
+      if(ME.profile && d.vendedor_id){
+        if(d.vendedor_id !== ME.id) return false;
+      } else if(d.vendedor !== ME.name){
+        return false;
+      }
+    }
     if(st&&d.estado!==st) return false;
     if(q&&!(d.cliente||'').toLowerCase().includes(q)&&!(d.numero||'').toLowerCase().includes(q)) return false;
     return true;
