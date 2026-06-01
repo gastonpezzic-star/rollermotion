@@ -14160,6 +14160,7 @@ function _dashBuckets(docs, desde, hasta, n){
       pedidos: peds.length,
       items: peds.reduce((s,d)=>s+(d.items||[]).filter(it=>it.ancho&&it.alto).reduce((ss,it)=>ss+(parseInt(it.cant)||1),0),0),
       cotiz: cots.length,
+      cotizado: cots.reduce((s,d)=>s+(d.total||0),0),
       aprob: cots.filter(d=>(d.estado||'')==='Aprobada').length,
     });
   }
@@ -14219,12 +14220,14 @@ function renderDashboard(){
   const pedidosPeriodo = docs.filter(d=>d.type==='order' && inR(d,desde,hasta));
   const pedidosPrev    = docs.filter(d=>d.type==='order' && inR(d,desdePrev,hastaPrev));
   const cotPeriodo     = docs.filter(d=>d.type==='quote' && inR(d,desde,hasta));
+  const cotPrev        = docs.filter(d=>d.type==='quote' && inR(d,desdePrev,hastaPrev));
 
   const ventasPeriodo  = pedidosPeriodo.reduce((s,d)=>s+(d.total||0),0);
   const ventasPrev     = pedidosPrev.reduce((s,d)=>s+(d.total||0),0);
+  const cotizadoTotal  = cotPeriodo.reduce((s,d)=>s+(d.total||0),0);
+  const cotizadoPrev   = cotPrev.reduce((s,d)=>s+(d.total||0),0);
   const ticketProm     = pedidosPeriodo.length ? ventasPeriodo/pedidosPeriodo.length : 0;
   const tasaConv       = cotPeriodo.length ? Math.round((cotPeriodo.filter(d=>d.estado==='Aprobada').length/cotPeriodo.length)*100) : 0;
-  const cortTotal      = pedidosPeriodo.reduce((s,d)=>(d.items||[]).filter(it=>it.ancho&&it.alto).reduce((ss,it)=>ss+(parseInt(it.cant)||1),s),0);
 
   const trend = (cur,prev)=>{
     if(!prev) return '<span class="trend-flat">sin previo</span>';
@@ -14242,7 +14245,7 @@ function renderDashboard(){
     { lbl:'Ventas período', num:fmtM(ventasPeriodo), tr:trend(ventasPeriodo,ventasPrev), ctx:'vs período ant.', color:'#f09620', serie:bk.map(b=>b.ventas) },
     { lbl:'Pedidos nuevos',  num:pedidosPeriodo.length, tr:trend(pedidosPeriodo.length,pedidosPrev.length), ctx:'vs período ant.', color:'#1a4a7a', serie:bk.map(b=>b.pedidos) },
     { lbl:'Ticket promedio', num:fmtM(ticketProm), tr:'', ctx:'por pedido', color:'#1a6640', serie:bk.map(b=>b.pedidos?Math.round(b.ventas/b.pedidos):0) },
-    { lbl:'Cortinas fabricadas', num:cortTotal, tr:'', ctx:'unidades', color:'#8a5cc4', serie:bk.map(b=>b.items) },
+    { lbl:'Total cotizado', num:fmtM(cotizadoTotal), tr:trend(cotizadoTotal,cotizadoPrev), ctx:`${cotPeriodo.length} cotizaciones`, color:'#8a5cc4', serie:bk.map(b=>b.cotizado) },
     { lbl:'Tasa de conversión', num:tasaConv+'%', tr:'', ctx:`${cotPeriodo.length} cotizaciones`, color:'#d4820e', serie:bk.map(b=>b.cotiz?Math.round(b.aprob/b.cotiz*100):0) },
   ].map(k=>`<div class="dash-kpi">
       <div class="lbl"><span class="kpi-dot" style="background:${k.color}"></span>${k.lbl}</div>
