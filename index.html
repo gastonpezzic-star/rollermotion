@@ -1988,6 +1988,73 @@ body{
     </div>
   </div>
 
+  <!-- ════ MI DASHBOARD (vendedor) ════ -->
+  <div class="pg" id="pg-mividash">
+    <div class="wrap">
+      <div class="sh">
+        <h2>📊 Mi Dashboard</h2>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select id="midash-periodo" onchange="renderMiDashboard()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff">
+            <option value="7">Últimos 7 días</option>
+            <option value="30" selected>Últimos 30 días</option>
+            <option value="90">Últimos 90 días</option>
+            <option value="365">Este año</option>
+            <option value="9999">Todo</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="midash-hello" style="font-size:13px;color:var(--muted);margin-bottom:16px"></div>
+
+      <!-- KPIs principales -->
+      <div id="midash-kpis" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px"></div>
+
+      <!-- Ventas + Embudo -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-h">📈 Mis ventas por período</div>
+          <div class="card-b"><canvas id="midash-chart-ventas" height="200"></canvas></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-h">🎯 Embudo de conversión</div>
+          <div class="card-b"><div id="midash-embudo"></div></div>
+        </div>
+      </div>
+
+      <!-- Producto + Pipeline -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card" style="margin-bottom:0">
+          <div class="card-h">🪟 Mis productos más vendidos</div>
+          <div class="card-b"><div id="midash-productos"></div></div>
+        </div>
+        <div class="card" style="margin-bottom:0">
+          <div class="card-h">⚙️ Estado de mis pedidos</div>
+          <div class="card-b"><div id="midash-pipeline"></div></div>
+        </div>
+      </div>
+
+      <!-- Cotizaciones para seguir -->
+      <div class="card" style="margin-bottom:18px">
+        <div class="card-h" style="background:#fff7ed;color:#9a5b00">🔔 Cotizaciones para seguir — pendientes de cierre</div>
+        <div class="card-b" style="padding:0">
+          <table class="lt"><thead><tr>
+            <th>N°</th><th>Cliente</th><th>Monto</th><th>Estado</th><th>Antigüedad</th><th></th>
+          </tr></thead><tbody id="midash-seguir"></tbody></table>
+        </div>
+      </div>
+
+      <!-- Mis mejores clientes -->
+      <div class="card">
+        <div class="card-h">🏆 Mis mejores clientes</div>
+        <div class="card-b" style="padding:0">
+          <table class="lt"><thead><tr>
+            <th>#</th><th>Cliente</th><th>Pedidos</th><th>Cotizaciones</th><th>Total vendido</th><th>Último</th>
+          </tr></thead><tbody id="midash-clientes"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+
   </div>
 
 </div>
@@ -3646,6 +3713,10 @@ function buildNav(){
     // Admin y Vendedor: cotizaciones + pedidos
     tabs.push({ id:'pg-cot', label:'📄 Cotizaciones' });
     tabs.push({ id:'pg-ped', label:'📦 Pedidos' });
+    if(ME.role!=='admin'){
+      // Vendedor: su dashboard personal
+      tabs.push({ id:'pg-mividash', label:'📊 Mi Dashboard' });
+    }
     if(ME.role==='admin'){
       tabs.push({ id:'pg-fab',       label:'🏭 Fábrica' });
       tabs.push({ id:'pg-clientes',  label:'👥 Clientes' });
@@ -4075,6 +4146,7 @@ function switchPage(id){
     catch(e){ console.error('[Stock] Error refreshStockHoyWidget:', e); }
   }
   if(id==='pg-dashboard') renderDashboard();
+  if(id==='pg-mividash') renderMiDashboard();
 }
 
 /* ════════════════════════════
@@ -14033,8 +14105,165 @@ function renderDashboard(){
   }
 }
 
-function renderChartVentas(docs, dias){
-  const canvas = document.getElementById('chart-ventas');
+// ════════════════════════════════════════════════════════════
+// V297 — MI DASHBOARD (vendedor): estadísticas personales
+// ════════════════════════════════════════════════════════════
+function _misDocs(){
+  return getDocs().filter(d=>{
+    if(ME.role==='admin'||ME.role==='fabrica') return true; // por si un admin lo abre
+    if(ME.profile && d.vendedor_id) return d.vendedor_id===ME.id;
+    return d.vendedor===ME.name;
+  });
+}
+
+function renderMiDashboard(){
+  const dias = parseInt(document.getElementById('midash-periodo')?.value||30);
+  const now = new Date();
+  const desde = new Date(now); desde.setDate(now.getDate()-dias); desde.setHours(0,0,0,0);
+  const desdePrev = new Date(desde); desdePrev.setDate(desde.getDate()-dias);
+  const enPeriodo = d => new Date(d.fecha) >= desde;
+  const enPrev    = d => new Date(d.fecha) >= desdePrev && new Date(d.fecha) < desde;
+
+  const mis = _misDocs();
+  const pedidos   = mis.filter(d=>d.type==='order');
+  const cotiz     = mis.filter(d=>d.type==='quote');
+  const pedPer    = pedidos.filter(enPeriodo);
+  const pedPrev   = pedidos.filter(enPrev);
+  const cotPer    = cotiz.filter(enPeriodo);
+  const cotPrev   = cotiz.filter(enPrev);
+
+  const ventasPer  = pedPer.reduce((s,d)=>s+(d.total||0),0);
+  const ventasPrev = pedPrev.reduce((s,d)=>s+(d.total||0),0);
+  const ticket     = pedPer.length ? ventasPer/pedPer.length : 0;
+  // Cotizaciones aprobadas en el período (las que cerraron)
+  const cotAprob   = cotPer.filter(d=>(d.estado||'')==='Aprobada').length;
+  const conv       = cotPer.length ? Math.round((cotAprob/cotPer.length)*100) : 0;
+  // Pipeline: cotizaciones abiertas (sin cerrar) — plata en juego (todas, no solo período)
+  const abiertas   = cotiz.filter(d=>['Cotización','Enviada'].includes(d.estado||'Cotización'));
+  const pipelineVal= abiertas.reduce((s,d)=>s+(d.total||0),0);
+  // Items vendidos (cortinas/productos) en pedidos del período
+  const itemsVend  = pedPer.reduce((s,d)=>s+(d.items||[]).reduce((ss,it)=>ss+(parseInt(it.cant)||1),0),0);
+
+  const trend = (cur,prev)=>{
+    if(!prev) return cur>0 ? '<span class="trend-up">↑ nuevo</span>' : '<span class="trend-flat">→ sin datos previos</span>';
+    const pct = Math.round(((cur-prev)/prev)*100);
+    return pct>0 ? `<span class="trend-up">↑ ${pct}% vs período ant.</span>`
+         : pct<0 ? `<span class="trend-dn">↓ ${Math.abs(pct)}% vs período ant.</span>`
+                 : `<span class="trend-flat">= igual al período ant.</span>`;
+  };
+
+  // Saludo
+  const hello = document.getElementById('midash-hello');
+  if(hello) hello.innerHTML = `Hola <strong style="color:var(--ink)">${ME.name}</strong> 👋 — acá están tus números. Todo lo que ves es <strong>solo tuyo</strong>.`;
+
+  // KPIs (6 cards)
+  document.getElementById('midash-kpis').innerHTML = [
+    { lbl:'Ventas confirmadas', num:fmtM(ventasPer), tr:trend(ventasPer,ventasPrev) },
+    { lbl:'Pedidos nuevos', num:pedPer.length, tr:trend(pedPer.length,pedPrev.length) },
+    { lbl:'Cotizaciones emitidas', num:cotPer.length, tr:trend(cotPer.length,cotPrev.length) },
+    { lbl:'Tasa de conversión', num:conv+'%', tr:`<span class="trend-flat">${cotAprob} de ${cotPer.length} aprobadas</span>` },
+    { lbl:'Ticket promedio', num:fmtM(ticket), tr:'' },
+    { lbl:'Pipeline abierto', num:fmtM(pipelineVal), tr:`<span class="trend-flat">${abiertas.length} cotiz. sin cerrar</span>` },
+  ].map(k=>`<div class="dash-kpi"><div class="num">${k.num}</div><div class="lbl">${k.lbl}</div>${k.tr?`<div class="trend">${k.tr}</div>`:''}</div>`).join('');
+
+  // Ventas por período (reusa el motor de gráfico, con mis pedidos)
+  renderChartVentas(mis, dias, 'midash-chart-ventas');
+
+  // Embudo de conversión (período)
+  const totalCot = cotPer.length;
+  const enviadas = cotPer.filter(d=>['Enviada','Aprobada'].includes(d.estado||'')).length;
+  const aprob    = cotAprob;
+  const etapas = [
+    { lbl:'Cotizadas', n:totalCot, c:'var(--blue)' },
+    { lbl:'Enviadas',  n:enviadas, c:'var(--accent)' },
+    { lbl:'Aprobadas', n:aprob,    c:'var(--green)' },
+  ];
+  const maxEt = Math.max(totalCot,1);
+  document.getElementById('midash-embudo').innerHTML = `<div class="bar-chart-wrap">${
+    etapas.map((e,i)=>{
+      const pctBar = Math.round(e.n/maxEt*100);
+      const pctConv = i>0 && etapas[i-1].n ? Math.round(e.n/etapas[i-1].n*100) : null;
+      return `<div class="bar-row">
+        <div class="bar-label">${e.lbl}</div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.max(4,pctBar)}%;background:${e.c}"></div></div>
+        <div class="bar-val">${e.n}${pctConv!=null?` <span style="color:var(--muted);font-size:10px">(${pctConv}%)</span>`:''}</div>
+      </div>`;
+    }).join('')
+  }</div><div style="font-size:10.5px;color:var(--muted);margin-top:8px;font-style:italic">El % muestra cuántas pasaron a la siguiente etapa.</div>`;
+
+  // Productos más vendidos (items de mis pedidos del período)
+  const prod = {};
+  pedPer.forEach(d=>(d.items||[]).forEach(it=>{ const t=getTelaLabel(it.tela)||it.tela||'Otro'; prod[t]=(prod[t]||0)+(parseInt(it.cant)||1); }));
+  const maxP = Math.max(...Object.values(prod),1);
+  const pColors = ['var(--brand)','var(--accent)','var(--blue)','var(--green)','var(--purple)','#e67e22'];
+  document.getElementById('midash-productos').innerHTML = `<div class="bar-chart-wrap">${
+    Object.entries(prod).sort((a,b)=>b[1]-a[1]).slice(0,8).map(([t,c],i)=>`
+      <div class="bar-row">
+        <div class="bar-label">${t.length>16?t.slice(0,14)+'…':t}</div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.max(4,Math.round(c/maxP*100))}%;background:${pColors[i%pColors.length]}"></div></div>
+        <div class="bar-val">${c} und.</div>
+      </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Sin pedidos en el período</div>'
+  }</div>`;
+
+  // Estado de mis pedidos (todos)
+  const estados = { 'Pendiente':0,'Aprobado':0,'En Fabricación':0,'Necesita Revisión':0,'Parcialmente terminado':0,'Finalizado':0,'Cancelado':0 };
+  pedidos.forEach(d=>{ if(estados[d.estado]!==undefined) estados[d.estado]++; });
+  const maxE = Math.max(...Object.values(estados),1);
+  const eColors = {'Pendiente':'var(--amber)','Aprobado':'var(--blue)','En Fabricación':'var(--purple)','Necesita Revisión':'#e67e22','Parcialmente terminado':'#0ea5e9','Finalizado':'var(--green)','Cancelado':'var(--red)'};
+  document.getElementById('midash-pipeline').innerHTML = `<div class="bar-chart-wrap">${
+    Object.entries(estados).filter(([e,c])=>c>0).map(([e,c])=>`
+      <div class="bar-row">
+        <div class="bar-label">${e}</div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.max(4,Math.round(c/maxE*100))}%;background:${eColors[e]||'var(--muted)'}"></div></div>
+        <div class="bar-val">${c}</div>
+      </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Sin pedidos aún</div>'
+  }</div>`;
+
+  // Cotizaciones para seguir (abiertas, ordenadas por monto desc)
+  const hoy = new Date();
+  const seguir = abiertas
+    .map(d=>({ d, dias: Math.floor((hoy-new Date(d.fecha))/86400000) }))
+    .sort((a,b)=>(b.d.total||0)-(a.d.total||0))
+    .slice(0,12);
+  document.getElementById('midash-seguir').innerHTML = seguir.length
+    ? seguir.map(({d,dias})=>{
+        const badge = dias>14 ? `<span style="color:#c0392b;font-weight:700">⏳ ${dias} días</span>`
+                    : dias>7  ? `<span style="color:#9a5b00">${dias} días</span>`
+                              : `<span style="color:var(--muted)">${dias} días</span>`;
+        return `<tr style="cursor:pointer" onclick="openDocFromList('${d.id}')">
+          <td style="font-weight:700">#${d.numero||'—'}</td>
+          <td>${d.cliente||'—'}</td>
+          <td style="font-weight:700;font-family:'Manrope',sans-serif">${fmtM(d.total||0)}</td>
+          <td><span class="badge ${(d.estado||'')==='Enviada'?'b-enviada':''}">${d.estado||'—'}</span></td>
+          <td>${badge}</td>
+          <td style="text-align:right"><span style="color:var(--accent);font-size:12px">Ver →</span></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" class="empty-st" style="padding:24px">🎉 No tenés cotizaciones pendientes de cierre</td></tr>';
+
+  // Mis mejores clientes
+  const cli = {};
+  mis.forEach(d=>{
+    const k=(d.cliente||'').trim(); if(!k) return;
+    if(!cli[k]) cli[k]={ peds:0, cots:0, total:0, ultimo:'' };
+    if(d.type==='quote') cli[k].cots++;
+    if(d.type==='order'){ cli[k].peds++; cli[k].total+=d.total||0; if(d.fecha>cli[k].ultimo) cli[k].ultimo=d.fecha; }
+  });
+  const topCli = Object.entries(cli).sort((a,b)=>b[1].total-a[1].total).slice(0,10);
+  document.getElementById('midash-clientes').innerHTML = topCli.length
+    ? topCli.map(([nombre,c],i)=>`<tr>
+        <td style="font-weight:700;color:var(--muted);text-align:center">${i+1}</td>
+        <td style="font-weight:600">${nombre}</td>
+        <td style="text-align:center">${c.peds}</td>
+        <td style="text-align:center">${c.cots}</td>
+        <td style="font-weight:700">${fmtM(c.total)}</td>
+        <td style="font-size:12px;color:var(--muted)">${c.ultimo?fmtD(c.ultimo):'—'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" class="empty-st" style="padding:24px">Sin clientes aún</td></tr>';
+}
+
+function renderChartVentas(docs, dias, canvasId){
+  const canvas = document.getElementById(canvasId || 'chart-ventas');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
   const W = canvas.parentElement.offsetWidth - 40;

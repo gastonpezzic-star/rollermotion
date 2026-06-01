@@ -1,5 +1,40 @@
 # Changelog
 
+## V297 — 2026-05-31
+
+### Mi Dashboard — estadísticas personales del vendedor
+
+Nueva pestaña **📊 Mi Dashboard** para vendedores (cada uno ve SOLO lo suyo, vía RLS + filtro `vendedor_id`). Incluye:
+
+- **6 KPIs** con tendencia vs período anterior: Ventas confirmadas, Pedidos nuevos, Cotizaciones emitidas, Tasa de conversión, Ticket promedio, Pipeline abierto ($ en cotizaciones sin cerrar).
+- **Gráfico de ventas** por período (reusa el motor del dashboard admin, parametrizado por canvas).
+- **Embudo de conversión**: Cotizadas → Enviadas → Aprobadas, con % de paso entre etapas.
+- **Productos más vendidos** (items por tipo, del período).
+- **Estado de mis pedidos** (pipeline por estado).
+- **🔔 Cotizaciones para seguir**: las abiertas ordenadas por monto, con antigüedad en días (rojo si >14 días) — accionable, clic para abrir.
+- **Mis mejores clientes** (top 10 por total vendido).
+
+Selector de período: 7 / 30 / 90 días / año / todo.
+
+## V296 — 2026-05-31
+
+### Mi Perfil + cierre de seguridad (Fase C)
+
+- **Mi Perfil** (⚙ arriba a la derecha): cada usuario edita su nombre, email de notificaciones, teléfono, dirección, CUIT, y **cambia su contraseña**. El rol no es editable por el propio usuario (blindado con trigger en DB).
+- **Fase C de seguridad**: eliminadas todas las políticas `anon` abiertas. Ahora **nadie accede a los datos sin iniciar sesión**. RLS activado en `novedades`. Removido el login de respaldo `LOCAL_USERS`. Apaga la alerta de seguridad de Supabase.
+
+## V295 — 2026-05-29
+
+### Auth real de Supabase + multi-usuario por rol (Fase A y B)
+
+Migración del login (antes era un chequeo en JavaScript con usuarios escritos en el código) a **Supabase Auth real** con sesión verdadera y **Row Level Security** por rol:
+
+- **Roles**: `admin` (ve y edita todo), `fabrica` (solo pedidos, fábrica y stock — sin cotizaciones ni precios), `vendedor` (solo sus cotizaciones/pedidos, ve precios de venta, no toca lista de precios ni administración).
+- **7 usuarios** creados. Cada cotización/pedido tiene dueño (`vendedor_id`); cada vendedor ve solo lo suyo, los admin ven todo.
+- Políticas RLS en todas las tablas (documentos, items, config, proveedores, recibos, stock, profiles, novedades). Recibos también por vendedor (linkeados a su cotización).
+- `profiles` extendida con datos de contacto del vendedor.
+- Restauración de sesión: al recargar, si ya estabas logueado no vuelve a pedir login.
+
 ## V292.1 — 2026-05-15
 
 ### Roller Doble en planilla: dos cortinas separadas con tag de pareja
