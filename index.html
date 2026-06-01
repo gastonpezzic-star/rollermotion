@@ -519,6 +519,18 @@ body{
 .dash-kpi.kpi-primary .trend-flat{color:rgba(255,255,255,.6);background:rgba(255,255,255,.10)}
 @media(max-width:980px){ .dash-kpi .num{font-size:24px} }
 
+/* Control de período (presets + rango) V305 */
+.dash-period{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:18px;box-shadow:0 1px 2px rgba(20,20,20,.03)}
+.dash-presets{display:flex;gap:6px;flex-wrap:wrap}
+.dash-chip{font:inherit;font-size:12px;font-weight:600;padding:6px 13px;border-radius:20px;border:1.5px solid var(--border);background:#fff;color:var(--ink2);cursor:pointer;transition:all .14s;white-space:nowrap}
+.dash-chip:hover{border-color:var(--accent);color:var(--accent2)}
+.dash-chip.active{background:var(--brand);border-color:var(--brand);color:#fff}
+.dash-range{display:flex;align-items:center;gap:7px;font-size:11px;color:var(--muted);font-weight:600}
+.dash-range input[type=date]{font:inherit;font-size:12px;padding:6px 9px;border:1.5px solid var(--border);border-radius:7px;background:#fff;color:var(--ink);font-family:'DM Sans',sans-serif;cursor:pointer}
+.dash-range input[type=date]:focus{outline:none;border-color:var(--accent)}
+.dash-rango-lbl{font-size:12px;color:var(--muted);margin:-6px 0 16px;font-weight:500}
+.dash-rango-lbl strong{color:var(--ink)}
+
 /* ══ CLIENTES ══ */
 .cli-avatar{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;background:var(--brand);color:#fff}
 .stk-stab{padding:11px 18px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s;text-transform:uppercase;letter-spacing:.05em}
@@ -1986,16 +1998,27 @@ button:not([disabled]):active,
     <div class="wrap">
       <div class="sh">
         <h2>📊 Dashboard</h2>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="dash-periodo" onchange="renderDashboard()" style="padding:8px 12px;border:1.5px solid var(--border);border-radius:6px;font-family:'DM Sans',sans-serif;font-size:13px;background:#fff">
-            <option value="7">Últimos 7 días</option>
-            <option value="30" selected>Últimos 30 días</option>
-            <option value="90">Últimos 90 días</option>
-            <option value="365">Este año</option>
-          </select>
-          <button class="btn btn-outline btn-sm" onclick="exportDashboardExcel()">📊 Exportar</button>
+        <button class="btn btn-outline btn-sm" onclick="exportDashboardExcel()">📊 Exportar</button>
+      </div>
+
+      <!-- Control de período: presets + rango personalizado -->
+      <div class="dash-period">
+        <div class="dash-presets" id="dash-presets">
+          <button class="dash-chip" data-preset="mes" onclick="setDashPreset('mes')">Este mes</button>
+          <button class="dash-chip" data-preset="mespasado" onclick="setDashPreset('mespasado')">Mes pasado</button>
+          <button class="dash-chip" data-preset="semana" onclick="setDashPreset('semana')">Esta semana</button>
+          <button class="dash-chip" data-preset="semanapasada" onclick="setDashPreset('semanapasada')">Semana pasada</button>
+          <button class="dash-chip" data-preset="30" onclick="setDashPreset('30')">Últimos 30 días</button>
+          <button class="dash-chip" data-preset="anio" onclick="setDashPreset('anio')">Este año</button>
+        </div>
+        <div class="dash-range">
+          <label for="dash-desde">Desde</label>
+          <input type="date" id="dash-desde" onchange="onDashDateChange()">
+          <label for="dash-hasta">Hasta</label>
+          <input type="date" id="dash-hasta" onchange="onDashDateChange()">
         </div>
       </div>
+      <div class="dash-rango-lbl" id="dash-rango-lbl"></div>
 
       <!-- KPIs principales -->
       <div id="dash-kpis" style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px"></div>
@@ -14120,16 +14143,50 @@ async function autoCalculatePuntoPedido(){
   } catch(e){ toast('⚠ Error: '+e.message,'err'); }
 }
 
+// V305 — helpers de período (presets + rango personalizado)
+function _ymd(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function setDashPreset(preset){
+  const now=new Date(); let desde, hasta=new Date(now);
+  if(preset==='mes'){ desde=new Date(now.getFullYear(),now.getMonth(),1); }
+  else if(preset==='mespasado'){ desde=new Date(now.getFullYear(),now.getMonth()-1,1); hasta=new Date(now.getFullYear(),now.getMonth(),0); }
+  else if(preset==='semana'){ const day=(now.getDay()+6)%7; desde=new Date(now); desde.setDate(now.getDate()-day); }
+  else if(preset==='semanapasada'){ const day=(now.getDay()+6)%7; const lun=new Date(now); lun.setDate(now.getDate()-day-7); desde=lun; hasta=new Date(lun); hasta.setDate(lun.getDate()+6); }
+  else if(preset==='30'){ desde=new Date(now); desde.setDate(now.getDate()-29); }
+  else if(preset==='anio'){ desde=new Date(now.getFullYear(),0,1); }
+  else { desde=new Date(now.getFullYear(),now.getMonth(),1); }
+  const di=document.getElementById('dash-desde'), hi=document.getElementById('dash-hasta');
+  if(di) di.value=_ymd(desde); if(hi) hi.value=_ymd(hasta);
+  document.querySelectorAll('#dash-presets .dash-chip').forEach(b=>b.classList.toggle('active', b.dataset.preset===preset));
+  renderDashboard();
+}
+function onDashDateChange(){
+  document.querySelectorAll('#dash-presets .dash-chip').forEach(b=>b.classList.remove('active'));
+  renderDashboard();
+}
+
 function renderDashboard(){
-  const dias = parseInt(document.getElementById('dash-periodo')?.value||30);
-  const now = new Date();
-  const desde = new Date(now); desde.setDate(now.getDate()-dias); desde.setHours(0,0,0,0);
-  const desdePrev = new Date(desde); desdePrev.setDate(desde.getDate()-dias);
+  const di=document.getElementById('dash-desde'), hi=document.getElementById('dash-hasta');
+  // Default: este mes (si no hay fechas cargadas todavía)
+  if(di && !di.value){ setDashPreset('mes'); return; }
+  const desde = new Date((di?.value||'')+'T00:00:00');
+  const hasta = new Date((hi?.value||'')+'T23:59:59');
+  if(isNaN(desde.getTime()) || isNaN(hasta.getTime())){ setDashPreset('mes'); return; }
+  // Período anterior = misma duración, justo antes
+  const msLen = hasta.getTime() - desde.getTime();
+  const desdePrev = new Date(desde.getTime() - msLen - 1000);
+  const hastaPrev = new Date(desde.getTime() - 1000);
+  const inR = (d,a,b)=>{ const t=new Date(d.fecha).getTime(); return t>=a.getTime() && t<=b.getTime(); };
+
+  // Etiqueta del rango (toque profesional: siempre se sabe qué se está viendo)
+  const fmtRango = d => d.toLocaleDateString('es-AR',{day:'numeric',month:'long',year:'numeric'});
+  const diasRango = Math.max(1, Math.round(msLen/86400000)+1);
+  const lbl = document.getElementById('dash-rango-lbl');
+  if(lbl) lbl.innerHTML = `Mostrando <strong>${fmtRango(desde)}</strong> → <strong>${fmtRango(hasta)}</strong> · ${diasRango} día${diasRango!==1?'s':''}`;
 
   const docs = getDocs();
-  const pedidosPeriodo = docs.filter(d=>d.type==='order' && new Date(d.fecha)>=desde);
-  const pedidosPrev    = docs.filter(d=>d.type==='order' && new Date(d.fecha)>=desdePrev && new Date(d.fecha)<desde);
-  const cotPeriodo     = docs.filter(d=>d.type==='quote' && new Date(d.fecha)>=desde);
+  const pedidosPeriodo = docs.filter(d=>d.type==='order' && inR(d,desde,hasta));
+  const pedidosPrev    = docs.filter(d=>d.type==='order' && inR(d,desdePrev,hastaPrev));
+  const cotPeriodo     = docs.filter(d=>d.type==='quote' && inR(d,desde,hasta));
 
   const ventasPeriodo  = pedidosPeriodo.reduce((s,d)=>s+(d.total||0),0);
   const ventasPrev     = pedidosPrev.reduce((s,d)=>s+(d.total||0),0);
@@ -14160,8 +14217,8 @@ function renderDashboard(){
       ${k.tr?`<div class="trend">${k.tr}</div>`:''}
     </div>`).join('');
 
-  // Chart ventas (canvas barras simples)
-  renderChartVentas(docs, dias);
+  // Chart ventas (canvas barras simples) — pasa el rango exacto
+  renderChartVentas(docs, desde, hasta);
 
   // Por vendedor
   const vendedores = {};
@@ -14419,7 +14476,13 @@ function renderMiDashboard(){
     : '<tr><td colspan="6" class="empty-st" style="padding:24px">Sin clientes aún</td></tr>';
 }
 
-function renderChartVentas(docs, dias, canvasId){
+function renderChartVentas(docs, a, b, canvasId){
+  // V305: flexible — admite (docs, desde:Date, hasta:Date) o el modo viejo (docs, dias:number, canvasId)
+  let desde, hasta;
+  if(a instanceof Date){ desde=new Date(a); hasta=(b instanceof Date)?new Date(b):new Date(); }
+  else { const dias=parseInt(a)||30; hasta=new Date(); desde=new Date(); desde.setDate(hasta.getDate()-dias+1); if(typeof b==='string') canvasId=b; }
+  desde.setHours(0,0,0,0); hasta.setHours(23,59,59,999);
+
   const canvas = document.getElementById(canvasId || 'chart-ventas');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
@@ -14427,20 +14490,18 @@ function renderChartVentas(docs, dias, canvasId){
   canvas.width = W; canvas.height = 180;
   ctx.clearRect(0,0,W,180);
 
-  // Agrupar por semanas o días
-  const now = new Date();
+  // Agrupar el rango en buckets (días si es corto, semanas/meses si es largo)
+  const dias = Math.max(1, Math.round((hasta-desde)/86400000)+1);
   const buckets = [];
-  const nBuckets = dias<=14 ? dias : dias<=90 ? Math.ceil(dias/7) : 12;
-  const bucketSize = dias/nBuckets;
-  for(let i=nBuckets-1;i>=0;i--){
-    const fin = new Date(now); fin.setDate(now.getDate()-i*bucketSize); fin.setHours(23,59,59);
-    const ini = new Date(now); ini.setDate(now.getDate()-(i+1)*bucketSize); ini.setHours(0,0,0,0);
+  const nBuckets = dias<=14 ? dias : dias<=92 ? Math.ceil(dias/7) : 12;
+  const stepMs = (hasta-desde)/nBuckets;
+  for(let i=0;i<nBuckets;i++){
+    const ini = new Date(desde.getTime() + i*stepMs); ini.setHours(0,0,0,0);
+    const fin = new Date(desde.getTime() + (i+1)*stepMs - 1);
     const total = docs.filter(d=>d.type==='order'&&new Date(d.fecha)>=ini&&new Date(d.fecha)<=fin).reduce((s,d)=>s+(d.total||0),0);
-    const lbl = dias<=14
+    const lbl = dias<=92
       ? `${ini.getDate()}/${ini.getMonth()+1}`
-      : dias<=90
-        ? `${ini.getDate()}/${ini.getMonth()+1}`
-        : ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][ini.getMonth()];
+      : ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][ini.getMonth()];
     buckets.push({ lbl, total });
   }
 
