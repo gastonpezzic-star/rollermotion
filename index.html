@@ -72,6 +72,7 @@
 
   --radius:     6px;
   --radius-lg:  10px;
+  --ease-out:   cubic-bezier(.23,1,.32,1); /* curva de salida fuerte — UI polish */
   --shadow:     0 1px 8px rgba(0,0,0,0.06);
   --shadow-md:  0 4px 20px rgba(0,0,0,0.10);
 }
@@ -961,6 +962,22 @@ body{
   .inicio-hero-actions .btn{ flex:1 }
   .inicio-item{ flex-wrap:wrap; padding:10px 16px }
   .inicio-item-name{ font-size:12.5px }
+}
+
+/* ═══════════ UI polish — skill emil-design-eng (feedback de pulsado + transiciones) ═══════════ */
+/* (1) Transiciones explícitas con curva fuerte --ease-out (reemplazan los transition:all) */
+.btn, .btn-out, .btn-t, .add-row, .stk-stab, .paginacion-ctrl button, .ic-btn{
+  transition: background-color .15s ease, color .15s ease, border-color .15s ease, transform .12s var(--ease-out);
+}
+/* (2) Feedback de pulsado en todo lo presionable (clave en iPad táctil) */
+button:not([disabled]):active,
+.btn:active, .btn-out:active, .btn-t:active, .add-row:active, .stk-stab:active{
+  transform: scale(.97);
+}
+/* (3) Accesibilidad: respeta el ajuste "reducir movimiento" del sistema */
+@media (prefers-reduced-motion: reduce){
+  button:not([disabled]):active,
+  .btn:active, .btn-out:active, .btn-t:active, .add-row:active, .stk-stab:active{ transform: none; }
 }
 
 </style>
@@ -3185,6 +3202,46 @@ async function syncPendingDocs(){
   updateSyncIndicator();
 }
 
+// ════════════════════════════════════════════════════════════
+// V298 — AUTO-SYNC: sincronización 100% automática (sin botones)
+// Reintenta documentos/eliminaciones pendientes en varios disparadores:
+//   cada 25s · al volver la conexión · al volver a la pestaña · al renovar sesión.
+// El vendedor nunca tiene que hacer nada manual.
+// ════════════════════════════════════════════════════════════
+let _autoSyncStarted = false;
+let _autoSyncRunning = false;
+function _hayPendientes(){
+  try {
+    if(getDocsLocal().some(d=>d._pendingSync)) return true;
+    if((JSON.parse(localStorage.getItem('rm_pending_deletes')||'[]')).length>0) return true;
+  } catch(e){}
+  return false;
+}
+async function autoSyncNow(){
+  if(!ME || _autoSyncRunning) return;
+  if(!_hayPendientes()){ updateSyncIndicator(); return; }
+  _autoSyncRunning = true;
+  try { await syncPendingDocs(); } catch(e){}
+  try { await syncPendingDeletes(); } catch(e){}
+  _autoSyncRunning = false;
+}
+function startAutoSync(){
+  if(_autoSyncStarted) return;
+  _autoSyncStarted = true;
+  // 1) Reintento periódico (cada 25s) — solo trabaja si hay algo pendiente
+  setInterval(autoSyncNow, 25000);
+  // 2) Cuando vuelve la conexión a internet
+  window.addEventListener('online', autoSyncNow);
+  // 3) Cuando el usuario vuelve a la pestaña/app
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) autoSyncNow(); });
+  // 4) Cuando Supabase renueva el token o re-inicia sesión (recupera de sesión vencida)
+  try {
+    _sb.auth.onAuthStateChange((event)=>{
+      if(event==='TOKEN_REFRESHED' || event==='SIGNED_IN') autoSyncNow();
+    });
+  } catch(e){}
+}
+
 function updateSyncIndicator(){
   const el = document.getElementById('sync-indicator');
   if(!el) return;
@@ -3544,6 +3601,8 @@ function enterApp(){
   loadProveedores();
   // Activar Realtime — escucha cambios de otros usuarios
   setupRealtime();
+  // V298 — sincronización automática de pendientes (sin intervención del usuario)
+  startAutoSync();
 }
 
 // loadProfileAndEnter(): carga el perfil (rol, nombre) desde la tabla profiles y entra
