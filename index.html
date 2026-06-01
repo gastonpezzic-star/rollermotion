@@ -3221,9 +3221,12 @@ async function autoSyncNow(){
   if(!ME || _autoSyncRunning) return;
   if(!_hayPendientes()){ updateSyncIndicator(); return; }
   _autoSyncRunning = true;
+  // V301: asegurar sesión vigente antes de reintentar (recupera de token vencido)
+  try { await _sb.auth.getSession(); } catch(e){}
   try { await syncPendingDocs(); } catch(e){}
   try { await syncPendingDeletes(); } catch(e){}
   _autoSyncRunning = false;
+  updateSyncIndicator();
 }
 function startAutoSync(){
   if(_autoSyncStarted) return;
@@ -7609,7 +7612,10 @@ async function saveDoc(andPreview){
   }
 
   // Intentar sincronizar docs pendientes en segundo plano
-  setTimeout(syncPendingDocs, 2000);
+  // V301: reintento inmediato + reintentos rápidos (no esperar el ciclo de 25s)
+  autoSyncNow();
+  setTimeout(autoSyncNow, 3000);
+  setTimeout(autoSyncNow, 9000);
 
   if(!andPreview){
     setTimeout(()=>{ goBack(); },600);
@@ -7774,7 +7780,9 @@ async function duplicateDoc(id){
     console.error('Error duplicando en Supabase:', e);
     newDoc._pendingSync = true;
     saveDocLocal(newDoc);
-    toast(`📋 Duplicada local: ${newDoc.numero} — pendiente sincronizar`, 'err');
+    toast(`📋 Duplicada local: ${newDoc.numero} — sincronizando…`, 'err');
+    // V301: reintento inmediato + rápido
+    autoSyncNow(); setTimeout(autoSyncNow, 3000); setTimeout(autoSyncNow, 9000);
   }
   updateSyncIndicator();
 }
