@@ -6943,6 +6943,10 @@ function goBack(){
 function resetForm(){
   const num = editId ? (getDocs().find(x=>x.id===editId)||{}).numero : autoNum(currentType);
   document.getElementById('f-num').value = num||'';
+  // V300: si es nuevo, pedir el número GLOBAL real al servidor (corrige el provisional local)
+  if(!editId){
+    nextNumero(currentType).then(n=>{ const el=document.getElementById('f-num'); if(n && el && !editId) el.value = n; });
+  }
   ['f-cuit','f-cli','f-dir','f-obra','f-cont','f-tel1','f-tel2','f-obs','f-pago','f-tiempo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   ['f-pago-sel','f-tiempo-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-fecha').value = today();
@@ -7001,6 +7005,18 @@ function autoNum(type){
     }, 0);
   const next = docMax + 1;
   return `${prefix}-${String(next).padStart(4,'0')}`;
+}
+
+// V300 — número GLOBAL: con RLS, cada vendedor solo ve sus docs, así que el máximo
+// local no sirve para numerar (se pisarían entre vendedores). Esta función pide al
+// servidor el próximo número mirando TODOS los documentos (vía RPC SECURITY DEFINER).
+// Si el RPC falla (offline / función no creada aún), cae al autoNum local como respaldo.
+async function nextNumero(type){
+  try {
+    const { data, error } = await _sb.rpc('next_doc_numero', { p_tipo: type });
+    if(!error && data) return data;
+  } catch(e){ /* fallback */ }
+  return autoNum(type);
 }
 
 // Set "válido hasta" = today + 7 days automatically
@@ -7731,7 +7747,9 @@ async function duplicateDoc(id){
 
   const newDoc = JSON.parse(JSON.stringify(orig));
   newDoc.id = uid();
-  newDoc.numero = autoNum('quote');
+  newDoc.numero = await nextNumero('quote');  // V300: número global (no se pisa entre vendedores)
+  // V300: el duplicado pertenece al usuario que lo crea (no hereda dueño ajeno)
+  if(ME && ME.profile){ newDoc.vendedor_id = ME.id; newDoc.vendedor = ME.name; }
   newDoc.fecha = new Date().toISOString().split('T')[0];
   newDoc.estado = 'Cotización';
   newDoc.type = 'quote';
