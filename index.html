@@ -3651,6 +3651,7 @@ async function loadProfileAndEnter(session){
     role:  rolRaw === 'vendedor' ? 'vendor' : rolRaw,  // 'admin' | 'fabrica' | 'vendor'
     email: session.user.email,
     profile: prof || {},
+    accesoFabrica: !!(prof && prof.acceso_fabrica),  // V303: vendedor con permiso extra de Fábrica (rol gerencial)
   };
   enterApp();
 }
@@ -3805,6 +3806,8 @@ function buildNav(){
     tabs.push({ id:'pg-cot', label:'📄 Cotizaciones' });
     tabs.push({ id:'pg-ped', label:'📦 Pedidos' });
     if(ME.role!=='admin'){
+      // V303: vendedor con acceso de Fábrica (rol gerencial) → ve la pestaña Fábrica
+      if(ME.accesoFabrica) tabs.push({ id:'pg-fab', label:'🏭 Fábrica' });
       // Vendedor: su dashboard personal
       tabs.push({ id:'pg-mividash', label:'📊 Mi Dashboard' });
     }
@@ -7903,11 +7906,15 @@ function filterDocs(type, qId, sId){
     if(d.type!==type) return false;
     // V295: vendedor solo ve lo suyo. Con auth real filtramos por vendedor_id (coincide con RLS);
     // en modo fallback local (sin perfil) usamos el nombre como antes.
+    // V303: vendedor con acceso de Fábrica ve TODOS los pedidos (no las cotizaciones ajenas).
     if(ME.role!=='admin' && ME.role!=='fabrica'){
-      if(ME.profile && d.vendedor_id){
-        if(d.vendedor_id !== ME.id) return false;
-      } else if(d.vendedor !== ME.name){
-        return false;
+      const veTodosPedidos = ME.accesoFabrica && type==='order';
+      if(!veTodosPedidos){
+        if(ME.profile && d.vendedor_id){
+          if(d.vendedor_id !== ME.id) return false;
+        } else if(d.vendedor !== ME.name){
+          return false;
+        }
       }
     }
     if(st&&d.estado!==st) return false;
