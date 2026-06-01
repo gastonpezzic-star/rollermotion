@@ -9937,10 +9937,11 @@ async function printDoc(){
   const isMobile = /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
                    window.innerWidth < 900;
 
-  // Nombre del archivo: "Cliente Numero Roller Motion" (sin guiones bajos)
+  // Nombre del archivo: "COT-XXX Cliente Roller Motion" — número primero para que
+  // los PDFs queden ordenados por número al descargarse (V302).
   const cliPdf = (_overlayDoc?.cliente||'Cliente').replace(/[\\/:*?"<>|]/g,'').trim();
   const numPdf = (_overlayDoc?.numero||'').toString().trim();
-  const tituloPdf = `${cliPdf} ${numPdf} Roller Motion`.replace(/\s+/g,' ').trim();
+  const tituloPdf = `${numPdf} ${cliPdf} Roller Motion`.replace(/\s+/g,' ').trim();
 
   if(isMobile){
     // En mobile: imprimir directamente desde la ventana actual usando @media print
