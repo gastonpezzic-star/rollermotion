@@ -979,6 +979,21 @@ button:not([disabled]):active,
   button:not([disabled]):active,
   .btn:active, .btn-out:active, .btn-t:active, .add-row:active, .stk-stab:active{ transform: none; }
 }
+/* (4) Sin "hover pegado" en táctil (iPad): en touch puro, los :hover vuelven al estado base.
+       Escritorio e iPad+trackpad (puntero real) conservan sus hovers intactos. */
+@media (hover: none){
+  .btn-primary:hover{ background:var(--accent) }
+  .btn-dark:hover{ background:var(--brand2) }
+  .btn-outline:hover{ border-color:var(--border); color:var(--ink2); background:none }
+  .btn-ghost:hover{ color:var(--muted) }
+  .btn-out:hover{ background:transparent; color:rgba(255,255,255,.6); border-color:rgba(255,255,255,.15) }
+  .ic-btn:hover{ background:rgba(255,255,255,.10) }
+  .add-row:hover{ border-color:var(--border); color:var(--muted); background:none }
+  .btn-t:hover{ background:none; border-color:var(--border); color:var(--ink) }
+  .paginacion-ctrl button:hover:not(:disabled){ background:#fff; border-color:var(--border) }
+  .stk-stab:hover{ color:var(--muted) }
+  .inicio-kpi:hover{ transform:none }
+}
 
 </style>
 </head>
