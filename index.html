@@ -483,18 +483,41 @@ body{
 .stk-alerta{display:flex;align-items:center;gap:10px;background:#fff8e6;border:1.5px solid #f0c040;border-radius:8px;padding:10px 14px;margin-bottom:8px;font-size:12px}
 .stk-alerta .stk-icon{font-size:18px;flex-shrink:0}
 
-/* ══ DASHBOARD CHARTS ══ */
-.bar-chart-wrap{display:flex;flex-direction:column;gap:8px}
-.bar-row{display:flex;align-items:center;gap:8px;font-size:12px}
-.bar-label{width:110px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);font-weight:600;text-align:right}
-.bar-outer{flex:1;height:18px;background:var(--surface2);border-radius:4px;overflow:hidden}
-.bar-inner{height:100%;border-radius:4px;transition:width .4s cubic-bezier(.34,1.3,.64,1)}
-.bar-val{min-width:60px;text-align:right;font-weight:700;font-size:11px;color:var(--ink2)}
-.dash-kpi{background:var(--surface);border-radius:var(--radius-lg);padding:16px 18px;box-shadow:var(--shadow);border:1px solid var(--border)}
-.dash-kpi .num{font-family:'DM Serif Display',serif;font-size:26px;color:var(--brand);line-height:1;margin-bottom:4px}
-.dash-kpi .lbl{font-size:10px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.06em}
-.dash-kpi .trend{font-size:11px;margin-top:4px}
-.trend-up{color:var(--green)}.trend-dn{color:var(--red)}.trend-flat{color:var(--muted)}
+/* ══ DASHBOARD CHARTS ══ (V304 — diseño refinado) */
+.bar-chart-wrap{display:flex;flex-direction:column;gap:10px}
+.bar-row{display:flex;align-items:center;gap:10px;font-size:12px}
+.bar-label{width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2);font-weight:600;text-align:right}
+.bar-outer{flex:1;height:13px;background:var(--surface2);border-radius:20px;overflow:hidden;box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)}
+.bar-inner{height:100%;border-radius:20px;transition:width .55s cubic-bezier(.22,1,.36,1);background-image:linear-gradient(90deg,rgba(255,255,255,.12),rgba(255,255,255,0))}
+.bar-val{min-width:62px;text-align:right;font-weight:700;font-size:11.5px;color:var(--ink);font-family:'Manrope',sans-serif;font-variant-numeric:tabular-nums}
+
+/* KPI cards */
+.dash-kpi{
+  position:relative;background:var(--surface);border-radius:14px;padding:16px 18px;
+  border:1px solid var(--border);
+  box-shadow:0 1px 2px rgba(20,20,20,.04), 0 4px 14px rgba(20,20,20,.035);
+  transition:transform .16s ease, box-shadow .16s ease;
+}
+.dash-kpi:hover{ transform:translateY(-2px); box-shadow:0 2px 4px rgba(20,20,20,.05), 0 12px 26px rgba(20,20,20,.08) }
+.dash-kpi .kpi-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:14px}
+.dash-kpi .lbl{font-size:9.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.09em;line-height:1.3}
+.dash-kpi .kpi-ic{width:30px;height:30px;border-radius:9px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:15px;background:var(--surface2)}
+.dash-kpi .num{font-family:'DM Serif Display',serif;font-size:28px;color:var(--ink);line-height:1;margin-bottom:9px;letter-spacing:-.01em}
+.dash-kpi .trend{font-size:11px;margin-top:0}
+/* KPI "héroe" — la métrica principal domina visualmente (fondo oscuro de marca) */
+.dash-kpi.kpi-primary{background:linear-gradient(150deg,#1c1c1c 0%, #2c2a27 100%);border-color:#1c1c1c}
+.dash-kpi.kpi-primary .num{color:#fff}
+.dash-kpi.kpi-primary .lbl{color:rgba(255,255,255,.55)}
+.dash-kpi.kpi-primary .kpi-ic{background:rgba(240,150,32,.22)}
+/* Chips de tendencia (en vez de texto suelto) */
+.trend-up,.trend-dn,.trend-flat{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:700;padding:3px 9px;border-radius:20px;letter-spacing:.005em;white-space:nowrap}
+.trend-up{color:#1a6640;background:rgba(26,102,64,.12)}
+.trend-dn{color:#a32020;background:rgba(138,26,26,.12)}
+.trend-flat{color:#777;background:rgba(120,120,120,.10)}
+.dash-kpi.kpi-primary .trend-up{color:#7bd1a4;background:rgba(123,209,164,.16)}
+.dash-kpi.kpi-primary .trend-dn{color:#f0a0a0;background:rgba(240,160,160,.16)}
+.dash-kpi.kpi-primary .trend-flat{color:rgba(255,255,255,.6);background:rgba(255,255,255,.10)}
+@media(max-width:980px){ .dash-kpi .num{font-size:24px} }
 
 /* ══ CLIENTES ══ */
 .cli-avatar{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;background:var(--brand);color:#fff}
@@ -14115,23 +14138,27 @@ function renderDashboard(){
   const cortTotal      = pedidosPeriodo.reduce((s,d)=>(d.items||[]).filter(it=>it.ancho&&it.alto).reduce((ss,it)=>ss+(parseInt(it.cant)||1),s),0);
 
   const trend = (cur,prev)=>{
-    if(!prev) return '<span class="trend-flat">→ sin datos</span>';
+    if(!prev) return '<span class="trend-flat">sin previo</span>';
     const pct = Math.round(((cur-prev)/prev)*100);
     return pct>0
-      ? `<span class="trend-up">↑ ${pct}% vs período ant.</span>`
+      ? `<span class="trend-up" title="vs período anterior">↑ ${pct}%</span>`
       : pct<0
-        ? `<span class="trend-dn">↓ ${Math.abs(pct)}% vs período ant.</span>`
-        : `<span class="trend-flat">= igual al período ant.</span>`;
+        ? `<span class="trend-dn" title="vs período anterior">↓ ${Math.abs(pct)}%</span>`
+        : `<span class="trend-flat">= igual</span>`;
   };
 
   // KPIs
   document.getElementById('dash-kpis').innerHTML = [
-    { lbl:'Ventas período', num:fmtM(ventasPeriodo), tr:trend(ventasPeriodo,ventasPrev) },
-    { lbl:'Pedidos nuevos',  num:pedidosPeriodo.length, tr:trend(pedidosPeriodo.length,pedidosPrev.length) },
-    { lbl:'Ticket promedio', num:fmtM(ticketProm), tr:'' },
-    { lbl:'Cortinas fabricadas', num:cortTotal, tr:'' },
-    { lbl:'Tasa de conversión', num:tasaConv+'%', tr:`<span class="trend-flat">${cotPeriodo.length} cotizaciones</span>` },
-  ].map(k=>`<div class="dash-kpi"><div class="num">${k.num}</div><div class="lbl">${k.lbl}</div>${k.tr?`<div class="trend">${k.tr}</div>`:''}</div>`).join('');
+    { lbl:'Ventas período', num:fmtM(ventasPeriodo), tr:trend(ventasPeriodo,ventasPrev), ic:'💰', primary:true },
+    { lbl:'Pedidos nuevos',  num:pedidosPeriodo.length, tr:trend(pedidosPeriodo.length,pedidosPrev.length), ic:'📦' },
+    { lbl:'Ticket promedio', num:fmtM(ticketProm), tr:'', ic:'🎟️' },
+    { lbl:'Cortinas fabricadas', num:cortTotal, tr:'', ic:'🪟' },
+    { lbl:'Tasa de conversión', num:tasaConv+'%', tr:`<span class="trend-flat">${cotPeriodo.length} cotizaciones</span>`, ic:'🎯' },
+  ].map(k=>`<div class="dash-kpi${k.primary?' kpi-primary':''}">
+      <div class="kpi-top"><div class="lbl">${k.lbl}</div><div class="kpi-ic">${k.ic||''}</div></div>
+      <div class="num">${k.num}</div>
+      ${k.tr?`<div class="trend">${k.tr}</div>`:''}
+    </div>`).join('');
 
   // Chart ventas (canvas barras simples)
   renderChartVentas(docs, dias);
@@ -14144,7 +14171,7 @@ function renderDashboard(){
     Object.entries(vendedores).sort((a,b)=>b[1]-a[1]).map(([v,t])=>`
       <div class="bar-row">
         <div class="bar-label">${v}</div>
-        <div class="bar-outer"><div class="bar-inner" style="width:${Math.round(t/maxV*100)}%;background:var(--brand)"></div></div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.round(t/maxV*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
         <div class="bar-val">${fmtM(t)}</div>
       </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Sin datos</div>'
   }</div>`;
@@ -14271,11 +14298,11 @@ function renderMiDashboard(){
   const itemsVend  = pedPer.reduce((s,d)=>s+(d.items||[]).reduce((ss,it)=>ss+(parseInt(it.cant)||1),0),0);
 
   const trend = (cur,prev)=>{
-    if(!prev) return cur>0 ? '<span class="trend-up">↑ nuevo</span>' : '<span class="trend-flat">→ sin datos previos</span>';
+    if(!prev) return cur>0 ? '<span class="trend-up">↑ nuevo</span>' : '<span class="trend-flat">sin previo</span>';
     const pct = Math.round(((cur-prev)/prev)*100);
-    return pct>0 ? `<span class="trend-up">↑ ${pct}% vs período ant.</span>`
-         : pct<0 ? `<span class="trend-dn">↓ ${Math.abs(pct)}% vs período ant.</span>`
-                 : `<span class="trend-flat">= igual al período ant.</span>`;
+    return pct>0 ? `<span class="trend-up" title="vs período anterior">↑ ${pct}%</span>`
+         : pct<0 ? `<span class="trend-dn" title="vs período anterior">↓ ${Math.abs(pct)}%</span>`
+                 : `<span class="trend-flat">= igual</span>`;
   };
 
   // Saludo
@@ -14284,13 +14311,17 @@ function renderMiDashboard(){
 
   // KPIs (6 cards)
   document.getElementById('midash-kpis').innerHTML = [
-    { lbl:'Ventas confirmadas', num:fmtM(ventasPer), tr:trend(ventasPer,ventasPrev) },
-    { lbl:'Pedidos nuevos', num:pedPer.length, tr:trend(pedPer.length,pedPrev.length) },
-    { lbl:'Cotizaciones emitidas', num:cotPer.length, tr:trend(cotPer.length,cotPrev.length) },
-    { lbl:'Tasa de conversión', num:conv+'%', tr:`<span class="trend-flat">${cotAprob} de ${cotPer.length} aprobadas</span>` },
-    { lbl:'Ticket promedio', num:fmtM(ticket), tr:'' },
-    { lbl:'Pipeline abierto', num:fmtM(pipelineVal), tr:`<span class="trend-flat">${abiertas.length} cotiz. sin cerrar</span>` },
-  ].map(k=>`<div class="dash-kpi"><div class="num">${k.num}</div><div class="lbl">${k.lbl}</div>${k.tr?`<div class="trend">${k.tr}</div>`:''}</div>`).join('');
+    { lbl:'Ventas confirmadas', num:fmtM(ventasPer), tr:trend(ventasPer,ventasPrev), ic:'💰', primary:true },
+    { lbl:'Pedidos nuevos', num:pedPer.length, tr:trend(pedPer.length,pedPrev.length), ic:'📦' },
+    { lbl:'Cotizaciones emitidas', num:cotPer.length, tr:trend(cotPer.length,cotPrev.length), ic:'📄' },
+    { lbl:'Tasa de conversión', num:conv+'%', tr:`<span class="trend-flat">${cotAprob} de ${cotPer.length} aprobadas</span>`, ic:'🎯' },
+    { lbl:'Ticket promedio', num:fmtM(ticket), tr:'', ic:'🎟️' },
+    { lbl:'Pipeline abierto', num:fmtM(pipelineVal), tr:`<span class="trend-flat">${abiertas.length} cotiz. sin cerrar</span>`, ic:'🔔' },
+  ].map(k=>`<div class="dash-kpi${k.primary?' kpi-primary':''}">
+      <div class="kpi-top"><div class="lbl">${k.lbl}</div><div class="kpi-ic">${k.ic||''}</div></div>
+      <div class="num">${k.num}</div>
+      ${k.tr?`<div class="trend">${k.tr}</div>`:''}
+    </div>`).join('');
 
   // Ventas por período (reusa el motor de gráfico, con mis pedidos)
   renderChartVentas(mis, dias, 'midash-chart-ventas');
