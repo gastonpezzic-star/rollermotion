@@ -1,5 +1,65 @@
 # Changelog
 
+## V302 — 2026-06-01
+
+### UI polish — feedback de pulsado, transiciones y soporte táctil
+
+Pulido de interacción en toda la plataforma (skill *emil-design-eng*, basado en la filosofía de Emil Kowalski). La base entró mezclada en V298; esta versión la completa.
+
+- **Feedback de pulsado**: todos los botones (`.btn` y `<button>`) se hunden apenas (`scale(.97)`) al apretar — responde al toque, clave en iPad. Antes solo el login lo tenía.
+- **Transiciones explícitas** con curva fuerte `--ease-out` (`cubic-bezier(.23,1,.32,1)`) en vez de `transition: all`, en `.btn`, `.btn-out`, `.btn-t`, `.add-row`, `.stk-stab`, paginación e `.ic-btn`.
+- **Sin "hover pegado" en táctil**: `@media (hover: none)` devuelve los `:hover` al estado base en iPad táctil. Escritorio e iPad con trackpad (puntero real) conservan los hovers.
+- **Accesibilidad**: `@media (prefers-reduced-motion: reduce)` quita el movimiento para quienes lo configuran.
+
+## V301 — 2026-06-01
+
+### Sincronización inmediata tras guardar (no esperar el ciclo de 25s)
+
+El guardado funciona OK en el servidor; las raras veces que queda "sin sincronizar" es por un parpadeo de sesión/red. Ahora se recupera al instante:
+
+- `saveDoc` y `duplicateDoc`: tras guardar disparan `autoSyncNow()` inmediato + reintentos a los 3s y 9s (antes un solo intento a los 2s).
+- `autoSyncNow`: refresca la sesión (`getSession`) antes de reintentar, recuperando de un token vencido; actualiza el indicador al terminar.
+
+Resultado: si un guardado no sube al toque, sube solo en 1–3 segundos, sin intervención.
+
+## V300 — 2026-06-01
+
+### Numeración global de cotizaciones/pedidos (no se pisan entre vendedores)
+
+**Problema**: con RLS cada vendedor solo ve sus docs → `autoNum` (máximo local) calculaba desde su propia vista → distintos vendedores generaban el mismo número (ya había 35 duplicados; `numero` no es único, por eso no rompía el guardado, pero confundía).
+
+**Fix**:
+- `nextNumero(type)`: pide al servidor el próximo número mirando TODOS los documentos vía RPC `next_doc_numero` (SECURITY DEFINER, bypassa RLS). Fallback a `autoNum` local si no está.
+- `resetForm`: al abrir form nuevo muestra el número provisional local y lo corrige con el global del servidor.
+- `duplicateDoc`: usa `nextNumero('quote')` y asigna el duplicado a quien lo crea (`vendedor_id = ME.id`).
+- **Requiere SQL** (aparte): función `next_doc_numero` + policy admin insert.
+
+## V299 — 2026-06-01
+
+### Fix crítico — editar/duplicar cotización existente no sincronizaba
+
+**Causa raíz**: al editar una cotización existente (o un duplicado), `saveDoc` armaba el documento sin `vendedor_id` (el form solo tiene el nombre). El upsert escribía `vendedor_id=null` y la política RLS "Vendedor crea documentos" (`WITH CHECK vendedor_id = auth.uid()`) lo rechazaba con 42501. Por eso crear NUEVA andaba pero EDITAR fallaba → quedaba pendiente.
+
+**Fix (app)**: `saveDoc` ahora incluye `vendedor_id`:
+- Al editar: preserva el `vendedor_id` original (sigue siendo del vendedor dueño, aunque lo edite un admin).
+- Al crear: usa el id del usuario logueado.
+- **Requiere SQL** (aparte): policy `"Admin inserta documentos"` con `WITH CHECK (is_admin())`.
+
+## V298 — 2026-06-01
+
+### Auto-sync 100% automático de documentos pendientes
+
+**Problema**: si un guardado fallaba (sesión vencida o parpadeo de red), el doc quedaba "pendiente" en localStorage y solo se reintentaba al recargar manualmente. Un vendedor podía no darse cuenta.
+
+**Solución** (sin botones, todo automático):
+- `startAutoSync()` arranca al iniciar sesión (`enterApp`).
+- Reintenta `syncPendingDocs` + `syncPendingDeletes` en 4 disparadores: cada 25s (solo si hay pendientes), evento `online`, `visibilitychange`, y `onAuthStateChange` (TOKEN_REFRESHED/SIGNED_IN).
+- Guardas: `_autoSyncRunning` evita solapamiento; `_hayPendientes()` evita trabajo innecesario; no spammea toasts.
+
+Resultado: cualquier cotización que quede local se sube sola en segundos.
+
+> **Nota**: en este commit entró también, mezclada, la base del *UI polish* (feedback de pulsado, transiciones `--ease-out`, reduce-motion). Documentado en V302.
+
 ## V297 — 2026-05-31
 
 ### Mi Dashboard — estadísticas personales del vendedor
