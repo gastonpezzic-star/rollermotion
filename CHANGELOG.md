@@ -1,5 +1,22 @@
 # Changelog
 
+## V304 — 2026-06-01
+
+### UI polish (3) — entrada suave de modales/overlays
+
+Antes los modales/overlays aparecían de golpe (no había ninguna animación de entrada en todo el archivo). Ahora, al abrirse (clase `.on`), el fondo hace un fade y la tarjeta (`.pbox`) entra con un `scale(.97→1)` + leve subida.
+
+- CSS puro con `@keyframes` — se dispara solo al pasar a visible, **sin tocar el JS** de abrir/cerrar.
+- Respeta `prefers-reduced-motion`.
+- Cubre el patrón `.overlay`/`.pbox` (documentos, recibos, planillas, telas, etc.).
+
+## V303 — 2026-06-01
+
+### UI polish (2) — hover táctil completo + limpieza de `transition: all`
+
+- `@media (hover: none)`: se sumaron filas de tabla (`.lt`, `.dtbl`), tabs (`.ntab`), items del menú e items del inicio → **ningún `:hover` queda "pegado"** al tocar en iPad. Escritorio e iPad con trackpad conservan los hovers.
+- `.ntab` pasó a transiciones explícitas; los 2 botones con estilo inline (`btn-usar-tela`, tags de cliente) dejaron de usar `transition: all`.
+
 ## V302 — 2026-06-01
 
 ### UI polish — feedback de pulsado, transiciones y soporte táctil
