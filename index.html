@@ -7559,6 +7559,10 @@ async function saveDoc(andPreview){
     instalacion_units: getInstalUnits(),
     instal_manual_qty: getInstalManualQty(),
     instal_motor_qty:  getInstalMotorQty(),
+    // V299: preservar el dueño del documento al editar (sino el upsert manda vendedor_id=null y RLS lo rechaza).
+    // Al editar uno existente, mantiene su vendedor_id original; si es nuevo, queda el del usuario logueado.
+    vendedor_id: editId ? ((getDocs().find(x=>x.id===editId)||{}).vendedor_id || ((ME&&ME.profile)?ME.id:null))
+                        : ((ME&&ME.profile)?ME.id:null),
   };
 
   try {
