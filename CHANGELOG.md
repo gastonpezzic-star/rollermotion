@@ -1,5 +1,19 @@
 # Changelog
 
+## V307 — 2026-06-02
+
+### Fix — el Soporte (y cadena/color de mecanismo) no llegaba a la planilla de fábrica
+
+Al pasar una cortina a fabricación se elegía el soporte (ej. **Largo**), pero la **nota de fabricación salía con el default (Corto)**. Causa: dos vocabularios de campos. El overlay de confirmación y la planilla usaban nombres largos (`soporte`/`cadena`/`colorMec`), pero la capa de guardado en Supabase solo leía/escribía los nombres cortos (`sop`/`cad`/`mecColor`). El valor se veía bien en la pantalla del que confirmaba (en memoria), pero **nunca se guardaba en la base**, así que cuando fábrica abría el pedido recargado, el campo venía vacío y caía al default.
+
+- `confirmarPedido`: al leer los selects ahora **espeja** el valor a los nombres cortos (`it.sop = it.soporte`, etc.) tanto en cortina simple como en Roller Doble, para que la persistencia lo capture.
+- `normalizeItem` (Supabase → app): expone **alias largos** (`soporte`/`cadena`/`colorMec`) además de los cortos, para que la planilla muestre el dato correcto al recargar.
+- Mismo arreglo cubre, de paso, el **color de cadena del mecanismo** y el **color de mecanismo**, que tenían el mismo desajuste (menos visible porque casi siempre quedaban en el default).
+
+### Fix (base de datos) — el vendedor no podía eliminar sus cotizaciones
+
+Faltaba la política RLS de borrado para vendedores: al eliminar una cotización desaparecía localmente pero **reaparecía al volver a entrar** (el `DELETE` no afectaba filas en el servidor y no devolvía error). Se agregó la política `"Vendedor elimina sus documentos"` (`DELETE … USING vendedor_id = auth.uid()`).
+
 ## V304 — 2026-06-01
 
 ### UI polish (3) — entrada suave de modales/overlays

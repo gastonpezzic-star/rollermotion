@@ -3457,9 +3457,12 @@ function normalizeItem(it){
     sent:         it.sentido||'',
     zoc:          it.zocalo||'',
     sop:          it.soporte||'',
+    soporte:      it.soporte||'',      // V307: alias largo — lo leen el overlay de fábrica y la planilla
     cad:          it.cadena||'',
+    cadena:       it.cadena||'',       // V307: alias largo
     cadColor:     it.color_cadena||'',
     mecColor:     it.color_mecanismo||'',
+    colorMec:     it.color_mecanismo||'',  // V307: alias largo
     ladoMec:      it.lado_mecanismo||'',
     adic:         it.adicionales||'',
     col:          it.colocacion||'Sí',
@@ -8355,6 +8358,8 @@ async function confirmarPedido(){
       it.sc = readSet('sc');
       // Para compatibilidad con código que lee los campos planos: usar los del BK como "principales"
       Object.assign(it, it.bk);
+      // V307: espejar a nombres cortos para que la persistencia (sop/cad/mecColor) capture el dato
+      it.sop = it.soporte; it.cad = it.cadena; it.mecColor = it.colorMec;
     } else {
       it.sent     = document.querySelector(`.ped-sent[data-idx="${i}"]`)?.value || 'Detrás';
       it.ladoMec  = document.querySelector(`.ped-lado[data-idx="${i}"]`)?.value || 'Derecha';
@@ -8362,6 +8367,9 @@ async function confirmarPedido(){
       it.cadena   = document.querySelector(`.ped-cad[data-idx="${i}"]`)?.value  || 'Blanca';
       it.zoc      = document.querySelector(`.ped-zoc[data-idx="${i}"]`)?.value  || 'Bolsillo';
       it.soporte  = document.querySelector(`.ped-sop[data-idx="${i}"]`)?.value  || 'Corto';
+      // V307: la persistencia usa nombres cortos (sop/cad/mecColor). Espejamos para que el dato
+      // se guarde en Supabase y la planilla lo muestre cuando fábrica abre el pedido recargado.
+      it.sop = it.soporte; it.cad = it.cadena; it.mecColor = it.colorMec;
     }
   });
 
