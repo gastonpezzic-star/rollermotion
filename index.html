@@ -8122,9 +8122,11 @@ function convertToOrder(idOrDoc){
   const rieles    = (src.items||[]).filter(it => it.tela==='riel_manual'||it.tela==='riel_motorizado'||it.tela==='riel_motorizado_celtic');
   // V292: cambio de tela (Roller o Bandas) — solo pide caída + zócalo, no requiere mecanismo/eje/aluminio
   const cambioTelaItems = (src.items||[]).filter(it => it.tela==='cambiotela'||it.tela==='cambiotela_bv');
+  // V313: DUO Zebra (tercerizada) — pide datos para el pedido al proveedor (lado mec, color tela, perfilería, cajón)
+  const duoItems = (src.items||[]).filter(it => it.tela==='duozebra');
 
   // Si no hay nada para configurar técnicamente → no mostrar overlay
-  if(!cortinas.length && !motores.length && !confItems.length && !rieles.length && !cambioTelaItems.length){
+  if(!cortinas.length && !motores.length && !confItems.length && !rieles.length && !cambioTelaItems.length && !duoItems.length){
     return { skipOverlay: true };
   }
 
@@ -8280,6 +8282,35 @@ function convertToOrder(idOrDoc){
           </select></div>
         </div>
         <div style="margin-top:10px;font-size:11px;color:#1f6e9c;background:#e8f1f7;border-radius:5px;padding:6px 10px">ℹ️ Cambio de tela: solo se confecciona la tela nueva, se reutiliza el mecanismo / eje / aluminio existente.</div>
+      </div>`;
+    }).join('');
+  }
+
+  // V313: ── CORTINAS DUO ZEBRA (tercerizadas) ── datos para pedírselas al proveedor
+  if(duoItems.length){
+    const prevHay = cortinas.length || cambioTelaItems.length;
+    html += `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:${prevHay?'20px':'0'} 0 10px">📦 Cortinas DUO Zebra — Datos para el proveedor</div>`;
+    html += duoItems.map((it,di)=>{
+      const cant = parseInt(it.cant)||1;
+      const ladoVal = it.ladoMec || 'Derecha';
+      const esc = s => (s||'').replace(/"/g,'&quot;');
+      return `<div style="border:1.5px solid #cdb8e0;border-radius:8px;padding:14px 18px;margin-bottom:10px;background:#faf6ff">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+          <div style="background:#6a3a9a;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">📦 ${di+1}</div>
+          <div style="font-size:13px;font-weight:700;color:#4a2a6a">Roller DUO Zebra</div>
+          <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
+          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+          <div>${lbl('Lado del mecanismo')}<select class="ped-duo-lado" data-didx="${di}" ${sel()}>
+            <option${ladoVal==='Derecha'?' selected':''}>Derecha</option>
+            <option${ladoVal==='Izquierda'?' selected':''}>Izquierda</option>
+          </select></div>
+          <div>${lbl('Color de la tela')}<input type="text" class="ped-duo-tela" data-didx="${di}" value="${esc(it.color)}" placeholder="Ej: Beige claro" ${sel()}></div>
+          <div>${lbl('Color de perfilería')}<input type="text" class="ped-duo-perfil" data-didx="${di}" value="${esc(it.mecColor)}" placeholder="Ej: Blanco" ${sel()}></div>
+          <div>${lbl('Color del cajón')}<input type="text" class="ped-duo-cajon" data-didx="${di}" value="${esc(it.cadColor)}" placeholder="Ej: Blanco" ${sel()}></div>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:#6a3a9a;background:#f0e8f7;border-radius:5px;padding:6px 10px">ℹ️ Producto tercerizado: estos datos salen en la nota de recepción para pedírselo al proveedor.</div>
       </div>`;
     }).join('');
   }
@@ -8491,6 +8522,17 @@ async function confirmarPedido(){
       // Ya tenía " · X" — reemplazar el color
       it.color = telaName.replace(/\s·\s.+$/, ` · ${it.colorTela}`);
     }
+  });
+
+  // V313: Cortinas DUO Zebra (tercerizadas) — datos para el pedido al proveedor.
+  // Se guardan en columnas existentes: lado_mecanismo, color, color_mecanismo (perfilería), color_cadena (cajón).
+  const duoItems = (src.items||[]).filter(it => it.tela==='duozebra');
+  duoItems.forEach((it,di)=>{
+    it.ladoMec  = document.querySelector(`.ped-duo-lado[data-didx="${di}"]`)?.value   || it.ladoMec || 'Derecha';
+    const _tela = document.querySelector(`.ped-duo-tela[data-didx="${di}"]`)?.value;
+    if(_tela) it.color = _tela;
+    it.mecColor = document.querySelector(`.ped-duo-perfil[data-didx="${di}"]`)?.value || it.mecColor || '';
+    it.cadColor = document.querySelector(`.ped-duo-cajon[data-didx="${di}"]`)?.value  || it.cadColor || '';
   });
 
   // Rieles (manual + motorizado)
@@ -11026,10 +11068,13 @@ function openPlanilla(d){
           <th style="color:#4a2a6a;text-align:center;width:48px">Recibido</th>
           <th style="color:#4a2a6a;width:22px">#</th>
           <th style="color:#4a2a6a">Producto</th>
-          <th style="color:#4a2a6a">Color / Detalle</th>
+          <th style="color:#4a2a6a">Tela / Color</th>
           <th style="color:#4a2a6a;text-align:center">Medidas (mm)</th>
-          <th style="color:#4a2a6a;text-align:center;width:60px">Cant.</th>
-          <th style="color:#4a2a6a;width:60px">Ref.</th>
+          <th style="color:#4a2a6a;text-align:center">Lado mec.</th>
+          <th style="color:#4a2a6a;text-align:center">Perfilería</th>
+          <th style="color:#4a2a6a;text-align:center">Cajón</th>
+          <th style="color:#4a2a6a;text-align:center;width:50px">Cant.</th>
+          <th style="color:#4a2a6a;width:54px">Ref.</th>
         </tr></thead>
         <tbody>
           ${tercItems.map((it,i)=>{
@@ -11041,6 +11086,9 @@ function openPlanilla(d){
               <td style="font-size:11px;font-weight:700;color:#3a1a5a">${getTelaLabel(it.tela)}</td>
               <td style="font-size:10.5px">${it.color||'—'}</td>
               <td style="text-align:center"><span class="fcut">${med}</span></td>
+              <td style="text-align:center;font-size:10px">${it.ladoMec||'—'}</td>
+              <td style="text-align:center;font-size:10px">${it.mecColor||'—'}</td>
+              <td style="text-align:center;font-size:10px">${it.cadColor||'—'}</td>
               <td style="text-align:center;font-weight:700;font-family:'Manrope',sans-serif">${cant}</td>
               <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
             </tr>`;

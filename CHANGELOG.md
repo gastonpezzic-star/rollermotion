@@ -1,5 +1,21 @@
 # Changelog
 
+## V313 — 2026-06-02
+
+### Las cortinas DUO ahora piden datos al confirmar el pedido
+
+Las DUO se tercerizan, pero igual hay que especificarle al proveedor cómo armarlas. Antes el pedido de DUO se saltaba la pantalla de confirmación; ahora la muestra y pide:
+
+- **Lado del mecanismo** (Derecha / Izquierda)
+- **Color de la tela**
+- **Color de la perfilería**
+- **Color del cajón**
+
+Estos datos salen impresos en la **Nota de Recepción** (nuevas columnas Lado mec. / Perfilería / Cajón), así el operario tiene todo para pedirle la cortina al proveedor.
+
+- Los accesorios sueltos (mecanismo, eje, etc.) siguen sin pedir configuración, como corresponde.
+- Se guardan reutilizando columnas existentes (no hace falta correr SQL).
+
 ## V312 — 2026-06-02
 
 ### Canal de origen del cliente + gráfico de ventas por canal
