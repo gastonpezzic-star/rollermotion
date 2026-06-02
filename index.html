@@ -8301,14 +8301,13 @@ function convertToOrder(idOrDoc){
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
           ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
           <div>${lbl('Lado del mecanismo')}<select class="ped-duo-lado" data-didx="${di}" ${sel()}>
             <option${ladoVal==='Derecha'?' selected':''}>Derecha</option>
             <option${ladoVal==='Izquierda'?' selected':''}>Izquierda</option>
           </select></div>
           <div>${lbl('Color de la tela')}<input type="text" class="ped-duo-tela" data-didx="${di}" value="${esc(it.color)}" placeholder="Ej: Beige claro" ${sel()}></div>
-          <div>${lbl('Color de perfilería')}<input type="text" class="ped-duo-perfil" data-didx="${di}" value="${esc(it.mecColor)}" placeholder="Ej: Blanco" ${sel()}></div>
-          <div>${lbl('Color del cajón')}<input type="text" class="ped-duo-cajon" data-didx="${di}" value="${esc(it.cadColor)}" placeholder="Ej: Blanco" ${sel()}></div>
+          <div>${lbl('Color de perfilería y cajón')}<input type="text" class="ped-duo-perfil" data-didx="${di}" value="${esc(it.mecColor)}" placeholder="Ej: Blanco" ${sel()}></div>
         </div>
         <div style="margin-top:10px;font-size:11px;color:#6a3a9a;background:#f0e8f7;border-radius:5px;padding:6px 10px">ℹ️ Producto tercerizado: estos datos salen en la nota de recepción para pedírselo al proveedor.</div>
       </div>`;
@@ -8524,15 +8523,14 @@ async function confirmarPedido(){
     }
   });
 
-  // V313: Cortinas DUO Zebra (tercerizadas) — datos para el pedido al proveedor.
-  // Se guardan en columnas existentes: lado_mecanismo, color, color_mecanismo (perfilería), color_cadena (cajón).
+  // V313/V314: Cortinas DUO Zebra (tercerizadas) — datos para el pedido al proveedor.
+  // Se guardan en columnas existentes: lado_mecanismo, color, color_mecanismo (perfilería = cajón, mismo color).
   const duoItems = (src.items||[]).filter(it => it.tela==='duozebra');
   duoItems.forEach((it,di)=>{
     it.ladoMec  = document.querySelector(`.ped-duo-lado[data-didx="${di}"]`)?.value   || it.ladoMec || 'Derecha';
     const _tela = document.querySelector(`.ped-duo-tela[data-didx="${di}"]`)?.value;
     if(_tela) it.color = _tela;
     it.mecColor = document.querySelector(`.ped-duo-perfil[data-didx="${di}"]`)?.value || it.mecColor || '';
-    it.cadColor = document.querySelector(`.ped-duo-cajon[data-didx="${di}"]`)?.value  || it.cadColor || '';
   });
 
   // Rieles (manual + motorizado)
@@ -11071,8 +11069,7 @@ function openPlanilla(d){
           <th style="color:#4a2a6a">Tela / Color</th>
           <th style="color:#4a2a6a;text-align:center">Medidas (mm)</th>
           <th style="color:#4a2a6a;text-align:center">Lado mec.</th>
-          <th style="color:#4a2a6a;text-align:center">Perfilería</th>
-          <th style="color:#4a2a6a;text-align:center">Cajón</th>
+          <th style="color:#4a2a6a;text-align:center">Perfilería / Cajón</th>
           <th style="color:#4a2a6a;text-align:center;width:50px">Cant.</th>
           <th style="color:#4a2a6a;width:54px">Ref.</th>
         </tr></thead>
@@ -11088,7 +11085,6 @@ function openPlanilla(d){
               <td style="text-align:center"><span class="fcut">${med}</span></td>
               <td style="text-align:center;font-size:10px">${it.ladoMec||'—'}</td>
               <td style="text-align:center;font-size:10px">${it.mecColor||'—'}</td>
-              <td style="text-align:center;font-size:10px">${it.cadColor||'—'}</td>
               <td style="text-align:center;font-weight:700;font-family:'Manrope',sans-serif">${cant}</td>
               <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
             </tr>`;

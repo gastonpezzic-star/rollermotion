@@ -1,5 +1,11 @@
 # Changelog
 
+## V314 — 2026-06-02
+
+### DUO: se unifica perfilería y cajón en un solo campo
+
+La perfilería y el cajón siempre van del mismo color, así que se quitó el campo "Color del cajón". Ahora el campo es **"Color de perfilería y cajón"** (uno solo). En la Nota de Recepción la columna pasa a llamarse **"Perfilería / Cajón"**. Se mantienen el lado del mecanismo, el color de tela y la nota de recepción.
+
 ## V313 — 2026-06-02
 
 ### Las cortinas DUO ahora piden datos al confirmar el pedido
