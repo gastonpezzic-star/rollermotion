@@ -1,5 +1,17 @@
 # Changelog
 
+## V309 — 2026-06-02
+
+### Mecanismos VTX cotizables sueltos (Accesorios generales)
+
+Los mecanismos VTX ya estaban en el catálogo pero no aparecían en el cotizador. Ahora se pueden cotizar solos desde **Accesorios generales**:
+
+- Mecanismo VTX10 32mm — $15.620
+- Mecanismo VTX20 38mm — $19.880
+- Mecanismo VTX30 50mm — $39.760
+
+Se agregaron a la lista de "Accesorios generales" y se marcaron como cotizables en el catálogo (`en_cotizador`).
+
 ## V308 — 2026-06-02
 
 ### Nota de recepción para productos tercerizados (DUO y otros)
