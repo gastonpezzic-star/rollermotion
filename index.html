@@ -1446,7 +1446,6 @@ button:not([disabled]):active,
             <div class="f s2"><label>Nombre del cliente</label><input type="text" id="f-cli" placeholder="Nombre completo o empresa" style="font-size:14px"></div>
             <div class="f"><label>Dirección <span style="color:var(--muted);font-weight:400">(opcional)</span></label><input type="text" id="f-dir" placeholder="Calle, número, localidad"></div>
             <div class="f"><label>Obra <span style="color:var(--muted);font-weight:400">(opcional)</span></label><input type="text" id="f-obra" placeholder="Nombre o referencia de la obra"></div>
-            <div class="f s2"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-terc" style="width:17px;height:17px;cursor:pointer;flex:none">📦 Producto tercerizado <span style="color:var(--muted);font-weight:400">— lleva nota de recepción, no lo fabricamos (las DUO se detectan solas)</span></label></div>
             <!-- Campos exclusivos de pedido -->
             <div class="f pedido-only" style="display:none"><label>Contacto</label><input type="text" id="f-cont"></div>
             <div class="f pedido-only" style="display:none"><label>Teléfono</label><input type="text" id="f-tel1"></div>
@@ -3487,8 +3486,6 @@ function normalizeDoc(d){
     cotizacionOrigen: d.cotizacion_origen||'',
     // V291 — destacada (para seguimiento en Centro de Operaciones)
     destacada:        d.destacada === true,
-    // V308 — producto tercerizado (manual; las DUO se detectan por item)
-    tercerizado:      d.tercerizado === true,
     // Flags de tracking mixto (roller + confección) — ahora persistidos en Supabase
     conf_recibida:    d.conf_recibida === true,
     roller_terminado: d.roller_terminado === true,
@@ -3603,15 +3600,6 @@ async function saveDocToSupabase(doc){
   if(docErr) {
     console.error('❌ Error Supabase documentos:', JSON.stringify(docErr));
     throw docErr;
-  }
-
-  // V308 — tercerizado: update aparte para no romper el upsert si todavía falta la columna.
-  // (Las DUO se detectan por item, así que esto solo importa para el check manual.)
-  if(doc.tercerizado !== undefined){
-    try{
-      const { error: tErr } = await _sb.from('documentos').update({ tercerizado: !!doc.tercerizado }).eq('id', doc.id);
-      if(tErr) console.warn('[Tercerizado] Supabase rechazó (¿falta columna?):', tErr.message);
-    }catch(e){ console.warn('[Tercerizado]', e); }
   }
 
   // Eliminar items viejos y reinsertar
@@ -6891,10 +6879,10 @@ function _calcToldoOpcionesTela(A, S){
 }
 function isRollerTela(t){ return TIPOS_ROLLER.includes((t||'').toLowerCase()); }
 function isRollerDoble(t){ const k=(t||'').toLowerCase(); return k==='rollerdoble' || k==='doble'; }
-// V308 — Productos TERCERIZADOS: no los fabricamos, los recibimos de un proveedor.
-// DUO Zebra es siempre tercerizado; además un pedido puede marcarse manual (doc.tercerizado).
-// Llevan "Nota de recepción" (con código de barras) en vez de planilla de fábrica; al escanear
-// el código cuando el producto llega, el pedido pasa a Finalizado.
+// V308/V311 — Productos TERCERIZADOS: no los fabricamos, los recibimos de un proveedor.
+// Detección AUTOMÁTICA por producto (DUO Zebra). Es info interna: no hay marca manual en el
+// formulario (los vendedores no ven que tercerizamos). Llevan "Nota de recepción" (con código
+// de barras) en vez de planilla de fábrica; al escanear el código cuando llega, pasa a Finalizado.
 function esItemTercerizado(it){ return (it && (it.tela||'').toLowerCase()) === 'duozebra'; }
 function esDocTercerizado(d){
   if(!d) return false;
@@ -7102,7 +7090,6 @@ function resetForm(){
     nextNumero(currentType).then(n=>{ const el=document.getElementById('f-num'); if(n && el && !editId) el.value = n; });
   }
   ['f-cuit','f-cli','f-dir','f-obra','f-cont','f-tel1','f-tel2','f-obs','f-pago','f-tiempo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-  { const _t=document.getElementById('f-terc'); if(_t) _t.checked=false; }
   ['f-pago-sel','f-tiempo-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-fecha').value = today();
   document.getElementById('f-vend').value  = ME?ME.name:'';
@@ -7722,7 +7709,6 @@ async function saveDoc(andPreview){
     obs:      document.getElementById('f-obs').value,
     descuento: { activo: _descuentoActivo, pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
     corporativo: _corpActivo,
-    tercerizado: !!(document.getElementById('f-terc')||{}).checked,
     pago:     document.getElementById('f-pago').value,
     tiempo:   document.getElementById('f-tiempo').value,
     estado:   editId?(getDocs().find(x=>x.id===editId)||{}).estado||defaultStatus:defaultStatus,
@@ -7801,7 +7787,6 @@ function buildDocFromForm(){
     obs:      document.getElementById('f-obs').value,
     descuento: { activo: _descuentoActivo, pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
     corporativo: _corpActivo,
-    tercerizado: !!(document.getElementById('f-terc')||{}).checked,
     pago:     document.getElementById('f-pago').value,
     tiempo:   document.getElementById('f-tiempo').value,
     estado:   editId?(getDocs().find(x=>x.id===editId)||{}).estado||defaultStatus:defaultStatus,
@@ -7843,7 +7828,6 @@ function editDoc(id){
   document.getElementById('f-cuit').value  = doc.cuit||'';
   document.getElementById('f-dir').value   = doc.dir||'';
   const obraEl = document.getElementById('f-obra'); if(obraEl) obraEl.value = doc.obra||'';
-  const tercEl = document.getElementById('f-terc'); if(tercEl) tercEl.checked = !!doc.tercerizado;
   document.getElementById('f-cont').value  = doc.cont||'';
   document.getElementById('f-tel1').value  = doc.tel1||'';
   document.getElementById('f-tel2').value  = doc.tel2||'';

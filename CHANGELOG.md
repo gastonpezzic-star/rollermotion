@@ -1,5 +1,15 @@
 # Changelog
 
+## V311 — 2026-06-02
+
+### Se quita el tilde "Producto tercerizado" del formulario (info interna)
+
+El tercerizado es información interna — los vendedores no tienen por qué ver que algunos productos se tercerizan. Se sacó el checkbox manual de cotizaciones y pedidos.
+
+- La detección de tercerizados es ahora **100% automática por producto** (DUO Zebra). Sin marca manual visible.
+- Sigue funcionando todo lo demás: la **Nota de Recepción** con código de barras y el **escaneo → Finalizado** al recibir el producto.
+- Se quitó también la persistencia del flag manual (columna `documentos.tercerizado` ya no se usa; no hace falta correr ningún SQL).
+
 ## V310 — 2026-06-02
 
 ### Aumento general de lista de precios + precios por fecha (solo admin)
