@@ -1,5 +1,29 @@
 # Changelog
 
+## V315 — 2026-06-02
+
+### Administración: panel de descuentos por cuenta (base de la red de distribuidores) — Etapa A
+
+- Se **quitó la tabla "Todos los Pedidos"** de Administración (ya se ve en Fábrica).
+- En su lugar, **panel "Descuentos por cuenta (distribuidores)"**: un desplegable con todas las cuentas y, debajo, la lista de productos con un campo de **% de descuento** por cada uno (Roller Blackout/Sunscreen 5-3-1%, DUO, Doble, Bandas, Paneles, Veneciana Aluminio/Madera/Símil, Toldos, Confección, Motores, Rieles, Accesorios, Instalación).
+- Se guardan en `profiles.descuentos` (por cuenta). Nuevo rol **distribuidor** (se comporta como vendedor: ve solo lo suyo, pero con descuentos).
+- **Etapa A (esto):** estructura + carga/guardado. Todo sigue funcionando igual — los descuentos todavía NO modifican los precios.
+- **Etapa B (próxima):** que esos % efectivamente descuenten los precios cuando un distribuidor cotiza (toca el motor de precios; se hace y prueba aparte).
+
+### Base de datos
+
+```sql
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS descuentos jsonb DEFAULT '{}'::jsonb;
+
+DROP POLICY IF EXISTS "Admin lee todos los perfiles" ON profiles;
+CREATE POLICY "Admin lee todos los perfiles" ON profiles
+  FOR SELECT TO authenticated USING ( is_admin() );
+
+DROP POLICY IF EXISTS "Admin edita todos los perfiles" ON profiles;
+CREATE POLICY "Admin edita todos los perfiles" ON profiles
+  FOR UPDATE TO authenticated USING ( is_admin() ) WITH CHECK ( is_admin() );
+```
+
 ## V314 — 2026-06-02
 
 ### DUO: se unifica perfilería y cajón en un solo campo

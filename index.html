@@ -1782,28 +1782,18 @@ button:not([disabled]):active,
         <div class="stat-card"><div class="num" id="st-cot">0</div><div class="lbl">Cotizaciones</div></div>
       </div>
 
-      <!-- ALL PEDIDOS -->
+      <!-- V315: DESCUENTOS POR CUENTA (distribuidores) — reemplaza la tabla de Pedidos (que se ve en Fábrica) -->
       <div class="card">
-        <div class="card-h">📦 Todos los Pedidos</div>
-        <div class="card-b" style="padding:0">
-          <div style="padding:14px 16px;border-bottom:1px solid var(--border)">
-            <div class="srow" style="margin:0">
-              <input type="text" id="aq" placeholder="Buscar…" oninput="renderAdmin()">
-              <select id="aq-s" onchange="renderAdmin()">
-                <option value="">Todos los estados</option>
-                <option value="Pendiente">Pendiente</option><option value="Aprobado">Aprobado</option>
-                <option value="En Fabricación">En Fabricación</option><option value="Finalizado">Finalizado</option><option value="Cancelado">Cancelado</option>
-              </select>
-              <select id="aq-v" onchange="renderAdmin()">
-                <option value="">Todos los vendedores</option>
-                <option>Ventas</option>
-              </select>
-            </div>
+        <div class="card-h">🏷️ Descuentos por cuenta (distribuidores)</div>
+        <div class="card-b">
+          <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Elegí una cuenta y cargá el % de descuento sobre la lista de precios por cada producto. Cuando ese usuario cotice, va a ver los precios con su descuento ya aplicado. Dejá en blanco (o 0) los productos sin descuento.</p>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+            <select id="desc-cuenta" onchange="onSelectCuentaDescuento()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;min-width:300px;background:#fff;font-family:'DM Sans',sans-serif;outline:none">
+              <option value="">— Elegí una cuenta —</option>
+            </select>
+            <button class="btn btn-primary btn-sm" id="desc-guardar-btn" onclick="guardarDescuentos()" style="display:none">💾 Guardar descuentos</button>
           </div>
-          <table class="lt"><thead><tr>
-            <th>N°</th><th>Tipo</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Items</th><th>Total</th><th>Estado</th><th style="width:120px;min-width:120px">Acciones</th>
-          </tr></thead><tbody id="admin-tbody"></tbody></table>
-          <div id="admin-empty" class="empty-st" style="display:none"><div class="ei">📋</div><div>Sin registros.</div></div>
+          <div id="desc-productos"></div>
         </div>
       </div>
 
@@ -3777,10 +3767,13 @@ async function loadProfileAndEnter(session){
   ME = {
     id:    session.user.id,
     name:  prof?.nombre || (session.user.email||'').split('@')[0],
-    role:  rolRaw === 'vendedor' ? 'vendor' : rolRaw,  // 'admin' | 'fabrica' | 'vendor'
+    // V315: distribuidor se comporta como vendedor (ve solo lo suyo), pero con descuentos por producto
+    role:  (rolRaw === 'vendedor' || rolRaw === 'distribuidor') ? 'vendor' : rolRaw,  // 'admin' | 'fabrica' | 'vendor'
     email: session.user.email,
     profile: prof || {},
     accesoFabrica: !!(prof && prof.acceso_fabrica),  // V303: vendedor con permiso extra de Fábrica (rol gerencial)
+    esDistribuidor: rolRaw === 'distribuidor',  // V315
+    descuentos: (prof && prof.descuentos) || {},  // V315 — % por producto (se aplican en Etapa B)
   };
   enterApp();
 }
@@ -4337,7 +4330,7 @@ function switchPage(id){
   const tab = document.querySelector(`[data-pg="${id}"]`);
   if(tab) tab.classList.add('on');
   if(id==='pg-inicio') renderInicio();
-  if(id==='pg-admin'){ renderAdmin(); updateStats(); }
+  if(id==='pg-admin'){ renderAdmin(); updateStats(); renderDescuentosPanel(); }
   if(id==='pg-cot') renderCot();
   if(id==='pg-ped'){ renderPed(); renderRecibos(); }
   if(id==='pg-fab') renderFab();
@@ -8841,8 +8834,98 @@ function renderPed(){
   _renderPagination('ped-pagination', data.length, _pagePed, '_gotoPagePed');
 }
 
+// ── V315: DESCUENTOS POR CUENTA (distribuidores) ──
+// Catálogo de productos con su clave interna (se mapean a las telas del cotizador en Etapa B).
+const PRODUCTS_DESC = [
+  {key:'blackout',    label:'Roller Blackout'},
+  {key:'sunscreen5',  label:'Roller Sunscreen 5%'},
+  {key:'sunscreen3',  label:'Roller Sunscreen 3%'},
+  {key:'sunscreen1',  label:'Roller Sunscreen 1%'},
+  {key:'duozebra',    label:'Roller DUO Zebra'},
+  {key:'rollerdoble', label:'Roller Doble'},
+  {key:'bandas',      label:'Bandas Verticales'},
+  {key:'paneles',     label:'Paneles Orientales'},
+  {key:'ven_alum',    label:'Veneciana Aluminio'},
+  {key:'ven_madera',  label:'Veneciana Madera'},
+  {key:'ven_simil',   label:'Veneciana Símil Madera'},
+  {key:'toldos',      label:'Toldos'},
+  {key:'confeccion',  label:'Cortinas de confección'},
+  {key:'motores',     label:'Motores'},
+  {key:'rieles',      label:'Rieles'},
+  {key:'accesorios',  label:'Accesorios'},
+  {key:'instalacion', label:'Instalación / Colocación'},
+];
+let _descProfiles = [];
+
+async function renderDescuentosPanel(){
+  if(!ME || ME.role!=='admin') return;
+  const sel = document.getElementById('desc-cuenta');
+  if(!sel) return;
+  try{
+    const { data, error } = await _sb.from('profiles').select('id,nombre,email,rol,descuentos').order('rol');
+    if(error) throw error;
+    _descProfiles = data||[];
+  }catch(e){ console.warn('[Descuentos] no se pudieron leer perfiles:', e.message); }
+  const prev = sel.value;
+  sel.innerHTML = '<option value="">— Elegí una cuenta —</option>' + _descProfiles
+    .slice().sort((a,b)=>(a.nombre||a.email||'').localeCompare(b.nombre||b.email||''))
+    .map(p=>`<option value="${p.id}">${p.nombre||p.email||p.id} — ${p.rol||'vendedor'}</option>`).join('');
+  if(prev) sel.value = prev;
+  onSelectCuentaDescuento();
+}
+
+function onSelectCuentaDescuento(){
+  const sel = document.getElementById('desc-cuenta');
+  const wrap = document.getElementById('desc-productos');
+  const btn = document.getElementById('desc-guardar-btn');
+  if(!sel||!wrap) return;
+  const id = sel.value;
+  if(!id){ wrap.innerHTML=''; if(btn) btn.style.display='none'; return; }
+  const prof = _descProfiles.find(p=>p.id===id) || {};
+  const desc = prof.descuentos || {};
+  if(btn) btn.style.display='';
+  wrap.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;max-width:560px">
+      <div style="display:grid;grid-template-columns:1fr 130px;background:#f5f4f1;padding:9px 14px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">
+        <div>Producto</div><div style="text-align:center">% Descuento</div>
+      </div>
+      ${PRODUCTS_DESC.map(p=>`
+        <div style="display:grid;grid-template-columns:1fr 130px;align-items:center;padding:6px 14px;border-top:1px solid var(--hair)">
+          <div style="font-size:13px;font-weight:600">${p.label}</div>
+          <div style="text-align:center">
+            <input type="number" min="0" max="100" step="0.5" class="desc-input" data-key="${p.key}" value="${desc[p.key]!=null?desc[p.key]:''}" placeholder="0"
+              style="width:78px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-weight:700;text-align:center;font-family:'DM Sans',sans-serif;outline:none">
+            <span style="font-size:13px;color:var(--muted);font-weight:700">%</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+}
+
+async function guardarDescuentos(){
+  const sel = document.getElementById('desc-cuenta');
+  if(!sel||!sel.value){ toast('Elegí una cuenta','err'); return; }
+  const id = sel.value;
+  const desc = {};
+  document.querySelectorAll('#desc-productos .desc-input').forEach(inp=>{
+    const v = parseFloat(inp.value);
+    if(v>0) desc[inp.dataset.key] = v;
+  });
+  try{
+    const { error } = await _sb.from('profiles').update({ descuentos: desc }).eq('id', id);
+    if(error) throw error;
+    const p = _descProfiles.find(x=>x.id===id); if(p) p.descuentos = desc;
+    if(ME && ME.id===id) ME.descuentos = desc;
+    const n = Object.keys(desc).length;
+    toast(n ? `✅ ${n} descuento(s) guardados` : '✅ Descuentos limpiados', 'ok');
+  }catch(e){
+    console.error('[Descuentos]', e);
+    toast('⚠ No se pudo guardar (¿falta correr el SQL de descuentos?)','err');
+  }
+}
+
 function renderAdmin(){
   if(!ME||ME.role!=='admin') return;
+  if(!document.getElementById('aq')) return; // V315: la tabla de Pedidos se quitó de Administración (se ve en Fábrica)
   const q=(document.getElementById('aq').value||'').toLowerCase();
   const st=document.getElementById('aq-s').value;
   const vn=document.getElementById('aq-v').value;
