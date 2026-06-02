@@ -2090,6 +2090,14 @@ button:not([disabled]):active,
         </div>
       </div>
 
+      <!-- V312: Canal de origen de clientes (ventas $ por canal) -->
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-h">📣 Origen de clientes — ventas por canal</div>
+        <div class="card-b">
+          <div id="chart-origen"></div>
+        </div>
+      </div>
+
       <!-- Clientes con saldo pendiente -->
       <div class="card" style="margin-bottom:18px">
         <div class="card-h" style="background:#fee2e2;color:#991b1b">⚠️ Clientes con saldo pendiente</div>
@@ -2410,6 +2418,20 @@ button:not([disabled]):active,
     </div>
     <div style="padding:24px 28px">
       <p style="font-size:12px;color:var(--muted);margin-bottom:20px">Completá los datos técnicos de cada cortina antes de enviar a fabricación. Los valores se completan automáticamente según el color de tela seleccionado.</p>
+      <!-- V312: origen del cliente (opcional, para estadística de canales) -->
+      <div style="background:#f7f5ff;border:1px solid #e0d8f5;border-radius:10px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:#6a3a9a">📣 ¿Cómo llegó este cliente? <span style="color:var(--muted);font-weight:400;text-transform:none;letter-spacing:0">(opcional)</span></div>
+          <div style="font-size:12px;color:var(--ink);margin-top:2px">Para medir de dónde vienen las ventas (redes, Google, recomendación…)</div>
+        </div>
+        <select id="ped-origen" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;font-family:'DM Sans',sans-serif;min-width:210px;outline:none">
+          <option value="">— Sin especificar —</option>
+          <option>Redes sociales</option>
+          <option>Google</option>
+          <option>Recomendación</option>
+          <option>Otros</option>
+        </select>
+      </div>
       <div id="pedido-items-wrap"></div>
     </div>
   </div>
@@ -3486,6 +3508,8 @@ function normalizeDoc(d){
     cotizacionOrigen: d.cotizacion_origen||'',
     // V291 — destacada (para seguimiento en Centro de Operaciones)
     destacada:        d.destacada === true,
+    // V312 — canal de origen del cliente (para estadística de ventas por canal)
+    origen:           d.origen || '',
     // Flags de tracking mixto (roller + confección) — ahora persistidos en Supabase
     conf_recibida:    d.conf_recibida === true,
     roller_terminado: d.roller_terminado === true,
@@ -3600,6 +3624,14 @@ async function saveDocToSupabase(doc){
   if(docErr) {
     console.error('❌ Error Supabase documentos:', JSON.stringify(docErr));
     throw docErr;
+  }
+
+  // V312 — origen del cliente: update aparte para no romper el upsert si falta la columna
+  if(doc.origen){
+    try{
+      const { error: oErr } = await _sb.from('documentos').update({ origen: doc.origen }).eq('id', doc.id);
+      if(oErr) console.warn('[Origen] Supabase rechazó (¿falta columna?):', oErr.message);
+    }catch(e){ console.warn('[Origen]', e); }
   }
 
   // Eliminar items viejos y reinsertar
@@ -7709,6 +7741,7 @@ async function saveDoc(andPreview){
     obs:      document.getElementById('f-obs').value,
     descuento: { activo: _descuentoActivo, pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
     corporativo: _corpActivo,
+    origen:   editId ? ((getDocs().find(x=>x.id===editId)||{}).origen||'') : '',
     pago:     document.getElementById('f-pago').value,
     tiempo:   document.getElementById('f-tiempo').value,
     estado:   editId?(getDocs().find(x=>x.id===editId)||{}).estado||defaultStatus:defaultStatus,
@@ -7787,6 +7820,7 @@ function buildDocFromForm(){
     obs:      document.getElementById('f-obs').value,
     descuento: { activo: _descuentoActivo, pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
     corporativo: _corpActivo,
+    origen:   editId ? ((getDocs().find(x=>x.id===editId)||{}).origen||'') : '',
     pago:     document.getElementById('f-pago').value,
     tiempo:   document.getElementById('f-tiempo').value,
     estado:   editId?(getDocs().find(x=>x.id===editId)||{}).estado||defaultStatus:defaultStatus,
@@ -8098,6 +8132,7 @@ function convertToOrder(idOrDoc){
     ? `Confirmar Pedido — ${src.numero||'—'} · ${src.cliente}`
     : `Confirmar Pedido — Cotización #${src.numero||'—'} · ${src.cliente}`;
   document.getElementById('pedido-overlay-title').textContent = titulo;
+  { const _oel=document.getElementById('ped-origen'); if(_oel) _oel.value = src.origen||''; } // V312
 
   const sel = () => `style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;background:#fff;font-family:'DM Sans',sans-serif"`;
   const lbl = txt => `<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:5px">${txt}</div>`;
@@ -8528,6 +8563,8 @@ async function confirmarPedido(){
     };
   }
   const srcId = src.id;
+  // V312: canal de origen del cliente (opcional) — para estadística de ventas por canal
+  order.origen = (document.getElementById('ped-origen')||{}).value || src.origen || '';
 
   try {
     await saveDocToSupabase(order);
@@ -14491,6 +14528,21 @@ function renderDashboard(){
         <div class="bar-outer"><div class="bar-inner" style="width:${Math.round(t/maxV*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
         <div class="bar-val">${fmtM(t)}</div>
       </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Sin datos</div>'
+  }</div>`;
+
+  // V312: Por canal de origen (ventas $ + cantidad de pedidos)
+  const origenes = {};
+  pedidosPeriodo.forEach(d=>{ const o=(d.origen||'').trim()||'Sin especificar'; if(!origenes[o]) origenes[o]={total:0,count:0}; origenes[o].total+=(d.total||0); origenes[o].count++; });
+  const maxO = Math.max(...Object.values(origenes).map(o=>o.total),1);
+  const oColors = {'Redes sociales':'#8a5cc4','Google':'#1a4a7a','Recomendación':'#1a6640','Otros':'#d4820e','Sin especificar':'#bbb'};
+  const chartOrigenEl = document.getElementById('chart-origen');
+  if(chartOrigenEl) chartOrigenEl.innerHTML = `<div class="bar-chart-wrap">${
+    Object.entries(origenes).sort((a,b)=>b[1].total-a[1].total).map(([o,v])=>`
+      <div class="bar-row">
+        <div class="bar-label">${o}</div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.max(4,Math.round(v.total/maxO*100))}%;background:${oColors[o]||'var(--muted)'}"></div></div>
+        <div class="bar-val">${fmtM(v.total)} <span style="color:var(--muted);font-weight:400">· ${v.count} ped.</span></div>
+      </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Sin datos en el período</div>'
   }</div>`;
 
   // Por tela

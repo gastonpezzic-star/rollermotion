@@ -1,5 +1,23 @@
 # Changelog
 
+## V312 — 2026-06-02
+
+### Canal de origen del cliente + gráfico de ventas por canal
+
+Para medir de dónde llegan los clientes y cuánto rinde cada canal (pautas):
+
+- **Al confirmar un pedido** aparece un desplegable **"📣 ¿Cómo llegó este cliente?"** (opcional): Redes sociales, Google, Recomendación, Otros. No es obligatorio.
+- En el **Dashboard** (admin) hay un gráfico nuevo **"Origen de clientes — ventas por canal"**: muestra cuánto **$** y cuántos pedidos vinieron de cada canal en el período elegido. Respeta el filtro de fechas del dashboard.
+- Se guarda en el pedido (campo `origen`) con persistencia tolerante (si falta la columna, el pedido igual se guarda sin romper nada).
+
+### Base de datos
+
+```sql
+ALTER TABLE documentos ADD COLUMN IF NOT EXISTS origen text;
+```
+
+(Sin este SQL la app funciona igual, pero el canal no se guarda — todos aparecen como "Sin especificar" hasta correrlo.)
+
 ## V311 — 2026-06-02
 
 ### Se quita el tilde "Producto tercerizado" del formulario (info interna)
