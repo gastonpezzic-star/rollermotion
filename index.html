@@ -1413,6 +1413,7 @@ button:not([disabled]):active,
             <div class="f s2"><label>Nombre del cliente</label><input type="text" id="f-cli" placeholder="Nombre completo o empresa" style="font-size:14px"></div>
             <div class="f"><label>Dirección <span style="color:var(--muted);font-weight:400">(opcional)</span></label><input type="text" id="f-dir" placeholder="Calle, número, localidad"></div>
             <div class="f"><label>Obra <span style="color:var(--muted);font-weight:400">(opcional)</span></label><input type="text" id="f-obra" placeholder="Nombre o referencia de la obra"></div>
+            <div class="f s2"><label style="display:flex;align-items:center;gap:9px;cursor:pointer;font-weight:600;color:var(--ink);text-transform:none;letter-spacing:0"><input type="checkbox" id="f-terc" style="width:17px;height:17px;cursor:pointer;flex:none">📦 Producto tercerizado <span style="color:var(--muted);font-weight:400">— lleva nota de recepción, no lo fabricamos (las DUO se detectan solas)</span></label></div>
             <!-- Campos exclusivos de pedido -->
             <div class="f pedido-only" style="display:none"><label>Contacto</label><input type="text" id="f-cont"></div>
             <div class="f pedido-only" style="display:none"><label>Teléfono</label><input type="text" id="f-tel1"></div>
@@ -3437,6 +3438,8 @@ function normalizeDoc(d){
     cotizacionOrigen: d.cotizacion_origen||'',
     // V291 — destacada (para seguimiento en Centro de Operaciones)
     destacada:        d.destacada === true,
+    // V308 — producto tercerizado (manual; las DUO se detectan por item)
+    tercerizado:      d.tercerizado === true,
     // Flags de tracking mixto (roller + confección) — ahora persistidos en Supabase
     conf_recibida:    d.conf_recibida === true,
     roller_terminado: d.roller_terminado === true,
@@ -3551,6 +3554,15 @@ async function saveDocToSupabase(doc){
   if(docErr) {
     console.error('❌ Error Supabase documentos:', JSON.stringify(docErr));
     throw docErr;
+  }
+
+  // V308 — tercerizado: update aparte para no romper el upsert si todavía falta la columna.
+  // (Las DUO se detectan por item, así que esto solo importa para el check manual.)
+  if(doc.tercerizado !== undefined){
+    try{
+      const { error: tErr } = await _sb.from('documentos').update({ tercerizado: !!doc.tercerizado }).eq('id', doc.id);
+      if(tErr) console.warn('[Tercerizado] Supabase rechazó (¿falta columna?):', tErr.message);
+    }catch(e){ console.warn('[Tercerizado]', e); }
   }
 
   // Eliminar items viejos y reinsertar
@@ -6830,6 +6842,16 @@ function _calcToldoOpcionesTela(A, S){
 }
 function isRollerTela(t){ return TIPOS_ROLLER.includes((t||'').toLowerCase()); }
 function isRollerDoble(t){ const k=(t||'').toLowerCase(); return k==='rollerdoble' || k==='doble'; }
+// V308 — Productos TERCERIZADOS: no los fabricamos, los recibimos de un proveedor.
+// DUO Zebra es siempre tercerizado; además un pedido puede marcarse manual (doc.tercerizado).
+// Llevan "Nota de recepción" (con código de barras) en vez de planilla de fábrica; al escanear
+// el código cuando el producto llega, el pedido pasa a Finalizado.
+function esItemTercerizado(it){ return (it && (it.tela||'').toLowerCase()) === 'duozebra'; }
+function esDocTercerizado(d){
+  if(!d) return false;
+  if(d.tercerizado === true) return true;
+  return (d.items||[]).some(esItemTercerizado);
+}
 // V292.4: helper para detectar cambio de tela (Roller o Bandas)
 function isCambioTela(t){ const k=(t||'').toLowerCase(); return k==='cambiotela' || k==='cambiotela_bv'; }
 
@@ -7031,6 +7053,7 @@ function resetForm(){
     nextNumero(currentType).then(n=>{ const el=document.getElementById('f-num'); if(n && el && !editId) el.value = n; });
   }
   ['f-cuit','f-cli','f-dir','f-obra','f-cont','f-tel1','f-tel2','f-obs','f-pago','f-tiempo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  { const _t=document.getElementById('f-terc'); if(_t) _t.checked=false; }
   ['f-pago-sel','f-tiempo-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-fecha').value = today();
   document.getElementById('f-vend').value  = ME?ME.name:'';
@@ -7650,6 +7673,7 @@ async function saveDoc(andPreview){
     obs:      document.getElementById('f-obs').value,
     descuento: { activo: _descuentoActivo, pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
     corporativo: _corpActivo,
+    tercerizado: !!(document.getElementById('f-terc')||{}).checked,
     pago:     document.getElementById('f-pago').value,
     tiempo:   document.getElementById('f-tiempo').value,
     estado:   editId?(getDocs().find(x=>x.id===editId)||{}).estado||defaultStatus:defaultStatus,
@@ -7728,6 +7752,7 @@ function buildDocFromForm(){
     obs:      document.getElementById('f-obs').value,
     descuento: { activo: _descuentoActivo, pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
     corporativo: _corpActivo,
+    tercerizado: !!(document.getElementById('f-terc')||{}).checked,
     pago:     document.getElementById('f-pago').value,
     tiempo:   document.getElementById('f-tiempo').value,
     estado:   editId?(getDocs().find(x=>x.id===editId)||{}).estado||defaultStatus:defaultStatus,
@@ -7769,6 +7794,7 @@ function editDoc(id){
   document.getElementById('f-cuit').value  = doc.cuit||'';
   document.getElementById('f-dir').value   = doc.dir||'';
   const obraEl = document.getElementById('f-obra'); if(obraEl) obraEl.value = doc.obra||'';
+  const tercEl = document.getElementById('f-terc'); if(tercEl) tercEl.checked = !!doc.tercerizado;
   document.getElementById('f-cont').value  = doc.cont||'';
   document.getElementById('f-tel1').value  = doc.tel1||'';
   document.getElementById('f-tel2').value  = doc.tel2||'';
@@ -8985,6 +9011,7 @@ function renderFab(){
     <td style="vertical-align:middle;white-space:nowrap">
       <div style="display:flex;gap:5px;align-items:center">
         ${tieneRoller?`<button class="btn-t" onclick="abrirDocFab('${d.id}','planilla')" title="Planilla de armado (Roller)">📋</button>`:''}
+        ${(esDocTercerizado(d) && !tieneRoller)?`<button class="btn-t" style="border-color:#6a3a9a;color:#6a3a9a" onclick="abrirDocFab('${d.id}','planilla')" title="Nota de recepción (producto tercerizado)">📦</button>`:''}
         ${tieneConf?`<button class="btn-t" style="border-color:#2c6e49;color:#2c6e49" onclick="abrirDocFab('${d.id}','planilla-conf')" title="Planilla de confección (telas tradicionales)">🧵</button>`:''}
         <button class="btn-t" onclick="abrirDocFab('${d.id}','etiquetas')" title="Imprimir etiquetas">🏷</button>
         <button class="btn-t" onclick="editDoc('${d.id}')" title="Editar pedido">✏️</button>
@@ -9953,14 +9980,12 @@ ${content}
 <script>
 // Regenerar códigos de barra
 window.onload = function(){
-  ['fab-barcode-hoja1','fab-barcode-hoja2'].forEach(function(id){
-    var wrap = document.getElementById(id);
-    if(!wrap) return;
+  document.querySelectorAll('[data-pednum]').forEach(function(wrap){
     wrap.innerHTML = '';
     try{
       var svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
       wrap.appendChild(svg);
-      JsBarcode(svg, wrap.dataset.pednum || id, {
+      JsBarcode(svg, wrap.dataset.pednum, {
         format:'CODE128', width:1.3, height:36, displayValue:true,
         fontOptions:'bold', fontSize:10, margin:2,
         lineColor:'#141414', background:'transparent'
@@ -10264,7 +10289,14 @@ function getCadenaTag(cadena){
 function openPlanilla(d){
   if(!d) return;
 
-  const allItems = d.items||[];
+  // V308 — separar productos TERCERIZADOS (DUO Zebra, o pedido marcado manual) de los que SÍ
+  // fabricamos. Los tercerizados van en una "Nota de recepción" aparte (sin cortes ni armado),
+  // así que redefinimos allItems = solo lo fabricable y dejamos tercItems para su propia hoja.
+  const _allItemsRaw = d.items||[];
+  const _tercManual  = d.tercerizado === true;
+  const esTercItem   = it => _tercManual || esItemTercerizado(it);
+  const tercItems    = _allItemsRaw.filter(esTercItem);
+  const allItems     = _allItemsRaw.filter(it => !esTercItem(it));
 
   // Items roller (blackout/sunscreen/etc con eje) + cambio de tela
   // V292.5: incluir explícitamente cambio de tela. El filtro genérico ya los tomaba
@@ -10349,7 +10381,7 @@ function openPlanilla(d){
     return false;
   });
 
-  if(!rollerItems.length && !confItems.length && !libreItems.length){
+  if(!rollerItems.length && !confItems.length && !libreItems.length && !tercItems.length){
     toast('Sin cortinas con medidas para generar planilla','err'); return;
   }
 
@@ -10643,7 +10675,7 @@ function openPlanilla(d){
 
   // V294: si solo hay libreItems (sin roller ni conf), cuenta como 1 hoja para el "Hoja N de M"
   const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && confItems.length === 0;
-  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (confItems.length > 0 ? 2 : 0) + (hayLibreSolo ? 1 : 0);
+  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (confItems.length > 0 ? 2 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
   let hojaNum = 0;
 
   let html = `<div class="fab-doc">`;
@@ -10807,6 +10839,52 @@ function openPlanilla(d){
     </div>`;
   }
 
+  // ── V308: Productos TERCERIZADOS — Nota de recepción (con código de barras para escanear al llegar) ──
+  if(tercItems.length > 0){
+    hojaNum++;
+    const breakTerc = (rollerItems.length > 0 || confItems.length > 0 || libreItems.length > 0) ? ' fab-page-break' : '';
+    html += `
+    <div class="fab-sheet${breakTerc}">
+    ${headerHtml(`Nota de Recepción — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-terc')}
+    <div class="fab-section">
+      <div class="sec-hdr" style="background:#f0e8f7;border:1px solid #cdb8e0;border-bottom:none">
+        <div class="sec-circle" style="background:#6a3a9a">📦</div>
+        <div class="sec-ttl" style="color:#4a2a6a">Producto Tercerizado — Recepción</div>
+        <span class="sec-sub" style="color:#4a2a6a">No se fabrica acá &nbsp;·&nbsp; Al llegar del proveedor, escaneá el código de barras para marcar el pedido como recibido</span>
+      </div>
+      <table class="fab-table">
+        <thead style="background:#e6d8f2"><tr>
+          <th style="color:#4a2a6a;text-align:center;width:48px">Recibido</th>
+          <th style="color:#4a2a6a;width:22px">#</th>
+          <th style="color:#4a2a6a">Producto</th>
+          <th style="color:#4a2a6a">Color / Detalle</th>
+          <th style="color:#4a2a6a;text-align:center">Medidas (mm)</th>
+          <th style="color:#4a2a6a;text-align:center;width:60px">Cant.</th>
+          <th style="color:#4a2a6a;width:60px">Ref.</th>
+        </tr></thead>
+        <tbody>
+          ${tercItems.map((it,i)=>{
+            const cant = parseInt(it.cant)||1;
+            const med = (it.ancho||it.alto) ? `${it.ancho||'?'} × ${it.alto||'?'}` : '—';
+            return `<tr>
+              <td style="text-align:center;border-right:2px solid #cdb8e0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
+              <td><span class="fnum" style="background:#6a3a9a">${i+1}</span></td>
+              <td style="font-size:11px;font-weight:700;color:#3a1a5a">${getTelaLabel(it.tela)}</td>
+              <td style="font-size:10.5px">${it.color||'—'}</td>
+              <td style="text-align:center"><span class="fcut">${med}</span></td>
+              <td style="text-align:center;font-weight:700;font-family:'Manrope',sans-serif">${cant}</td>
+              <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      <div style="margin:12px 14px 0;padding:10px 14px;background:#faf6ff;border:1px dashed #cdb8e0;border-radius:6px;font-size:10.5px;color:#4a2a6a;line-height:2.2">
+        <strong>Proveedor / pedido externo:</strong> ________________________________ &nbsp;&nbsp;&nbsp; <strong>Fecha de recepción:</strong> ____ /____ /______ &nbsp;&nbsp;&nbsp; <strong>Recibió:</strong> ______________________
+      </div>
+    </div>
+    </div>`;
+  }
+
   html += `</div>`;
 
   document.getElementById('overlay-title').textContent = `Planilla — ${pedNum}`;
@@ -10815,23 +10893,21 @@ function openPlanilla(d){
   _isPlanilla = true;
   document.getElementById('overlay').classList.add('on');
 
-  // Generar códigos de barra
-  const barcodeIds = ['fab-barcode-hoja1','fab-barcode-hoja2','fab-barcode-conf1','fab-barcode-conf2'];
+  // Generar códigos de barra — V308: todos los wrappers con data-pednum (roller, confección, libre, tercerizado)
   setTimeout(()=>{
-    barcodeIds.forEach(id=>{
-      const wrap = document.getElementById(id);
-      if(!wrap) return;
+    document.querySelectorAll('#doc-content [data-pednum]').forEach(wrap=>{
+      const code = wrap.dataset.pednum || pedNum;
       wrap.innerHTML = '';
       try{
         const svg = document.createElementNS('http://www.w3.org/2000/svg','svg');
         wrap.appendChild(svg);
-        JsBarcode(svg, pedNum, {
+        JsBarcode(svg, code, {
           format:'CODE128', width:1.3, height:36, displayValue:true,
-          text:pedNum, fontOptions:'bold', fontSize:10, margin:2,
+          text:code, fontOptions:'bold', fontSize:10, margin:2,
           lineColor:'#141414', background:'transparent'
         });
       } catch(e){
-        wrap.innerHTML = `<code style="font-size:11px;font-weight:700;background:#f0f0ee;padding:3px 7px;border-radius:3px">${pedNum}</code>`;
+        wrap.innerHTML = `<code style="font-size:11px;font-weight:700;background:#f0f0ee;padding:3px 7px;border-radius:3px">${code}</code>`;
       }
     });
   }, 200);
@@ -11665,6 +11741,13 @@ function _computeScanTransition(doc, isConfScan){
   const confRecibida = !!doc.conf_recibida;
   const rollerTerm   = !!doc.roller_terminado;
   const estado       = doc.estado;
+
+  // V308 — Producto tercerizado puro (sin roller ni confección): no se fabrica, se recibe.
+  // Al escanear el código cuando llega del proveedor → Finalizado.
+  if(esDocTercerizado(doc) && !tieneRoller && !tieneConf){
+    if(estado === 'Finalizado' || estado === 'Cancelado') return { error:`Pedido ya está ${estado}` };
+    return { next:'Finalizado', flags:{}, label:'Recibido (tercerizado)' };
+  }
 
   if(isConfScan){
     if(!tieneConf) return { error:'Este pedido no tiene cortinas de confección' };

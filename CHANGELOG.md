@@ -1,5 +1,27 @@
 # Changelog
 
+## V308 — 2026-06-02
+
+### Nota de recepción para productos tercerizados (DUO y otros)
+
+Las cortinas **DUO Zebra** (y cualquier producto que se tercerice) no se fabrican en RollerMotion, así que la planilla de fábrica con cortes/armado no aplica. Antes, como la DUO tiene medidas, caía en la sección de cortes de roller (eje, caña, soporte, aluminio) con datos sin sentido — y para un pedido solo de DUO directamente **no aparecía ningún botón de impresión**.
+
+Ahora:
+
+- **Detección**: las DUO Zebra se marcan como tercerizadas **automáticamente**. Además, hay un checkbox **"📦 Producto tercerizado"** en el formulario del pedido para marcar a mano otros productos que se tercericen.
+- **Nota de recepción**: los productos tercerizados salen en una **hoja propia** ("Nota de Recepción") con producto, color, medidas, cantidad y **código de barras** — sin cortes ni armado. Incluye espacio para anotar proveedor, fecha de recepción y quién recibió. Ya no ensucian las hojas de corte de roller.
+- **Botón 📦** en la fila de pedidos (Fábrica) para imprimir la nota de recepción de pedidos tercerizados.
+- **Escaneo al llegar**: cuando el producto llega del proveedor, se escanea el código de barras y el pedido pasa directo a **Finalizado** (recibido). No pasa por "En Fabricación" porque no se fabrica.
+- **Código de barras en todas las hojas**: de paso, ahora el código se genera en **todas** las hojas al imprimir (confección y productos personalizados antes no lo mostraban en la ventana de impresión).
+
+### Base de datos
+
+Para que el **check manual** se guarde (las DUO automáticas no lo necesitan), correr:
+
+```sql
+ALTER TABLE documentos ADD COLUMN IF NOT EXISTS tercerizado BOOLEAN DEFAULT false;
+```
+
 ## V307 — 2026-06-02
 
 ### Fix — el Soporte (y cadena/color de mecanismo) no llegaba a la planilla de fábrica
