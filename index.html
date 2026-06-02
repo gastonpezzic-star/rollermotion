@@ -1357,6 +1357,39 @@ button:not([disabled]):active,
           <button class="btn btn-primary btn-sm" onclick="guardarDesperdicio()">Guardar</button>
         </div>
       </div>
+
+      <!-- V310: Generar aumento general de lista (admin) -->
+      <div style="background:var(--surface);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;gap:20px;border-left:4px solid var(--green)">
+        <div>
+          <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">📈 Generar aumento de lista de precios</div>
+          <div style="font-size:12px;color:var(--ink);margin-top:3px">Sube el % indicado a <strong>TODA</strong> la lista: grilla de cortinas roller + todos los insumos. Se guarda una versión con la fecha de hoy y se sincroniza para todos.</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+          <input type="number" id="inp-aumento" min="0" max="200" step="0.5" placeholder="5"
+            style="width:80px;padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:15px;font-weight:700;text-align:center;font-family:'DM Sans',sans-serif;outline:none"
+            onfocus="this.style.borderColor='var(--green)'" onblur="this.style.borderColor='var(--border)'">
+          <span style="font-size:15px;font-weight:700;color:var(--muted)">%</span>
+          <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="aplicarAumentoLista()">Aplicar aumento</button>
+        </div>
+      </div>
+
+      <!-- V310: Llevar precios a una fecha anterior (historial · solo admin) -->
+      <div style="background:var(--surface);border-radius:var(--radius-lg);padding:16px 20px;margin-bottom:20px;box-shadow:var(--shadow);border-left:4px solid var(--blue)">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap">
+          <div>
+            <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">📅 Llevar precios a una fecha</div>
+            <div style="font-size:12px;color:var(--ink);margin-top:3px">Cargá una lista de precios anterior para cotizar (ej. un trabajo viejo). <strong>Solo afecta tu sesión</strong> — los demás siguen con los precios actuales.</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;flex-shrink:0">
+            <input type="date" id="inp-fecha-precios"
+              style="padding:8px 10px;border:1.5px solid var(--border);border-radius:var(--radius);font-size:13px;font-family:'DM Sans',sans-serif;outline:none">
+            <button class="btn btn-sm" style="background:var(--blue);color:#fff;border:none" onclick="llevarPreciosAFecha()">Llevar a esos precios</button>
+          </div>
+        </div>
+        <div id="banner-precios-hist"></div>
+        <div id="hist-precios-list"></div>
+      </div>
+
       <!-- Coeficiente de cuotas -->
       <div style="margin-bottom:18px">
         <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.06em">
@@ -2975,6 +3008,15 @@ function getFactorDesperdicio(){
 function setFactorDesperdicio(v){
   localStorage.setItem('rm_desperdicio', String(v));
 }
+// V310 — Factor de ajuste para las TABLAS de precio hardcodeadas (grilla roller + venecianas).
+// Los insumos se reescriben directo; las tablas grandes se multiplican por este factor.
+function getTablasFactor(){ return parseFloat(localStorage.getItem('rm_tablas_factor')||'1')||1; }
+function setTablasFactor(v){ localStorage.setItem('rm_tablas_factor', String(v||1)); }
+// V310 — Historial de versiones de lista de precios (solo admin). Cada aumento guarda una versión.
+function getPriceHistory(){ try{ return JSON.parse(localStorage.getItem('rm_price_history')||'[]'); }catch(e){ return []; } }
+function setPriceHistoryLocal(arr){ localStorage.setItem('rm_price_history', JSON.stringify(arr||[])); }
+// Flag de sesión: cuando el admin está viendo una versión vieja (local, NO afecta a otros usuarios).
+let _preciosHistoricos = null; // { fecha, label } o null
 
 function getEjeId(anchoMm){
   const a = parseInt(anchoMm)||0;
@@ -3080,7 +3122,7 @@ function lookupPrice(priceKey, anchoMm, altoMm) {
   const venRecargo = 1.3;
   if(venMap[priceKey] !== undefined) {
     const m2 = (a/1000)*(h/1000);
-    return Math.round(m2 * venMap[priceKey] * venRecargo);
+    return Math.round(m2 * venMap[priceKey] * venRecargo * getTablasFactor());
   }
 
   // Roller tables → interpolación al intervalo de 100mm más cercano
@@ -3097,7 +3139,7 @@ function lookupPrice(priceKey, anchoMm, altoMm) {
   const stepW = tbl.widths.find(w => w >= a) || tbl.widths[tbl.widths.length-1];
   const stepH = tbl.heights.find(h2 => h2 >= h) || tbl.heights[tbl.heights.length-1];
   const val = (tbl.prices[String(stepH)] || {})[String(stepW)];
-  const lista = val || 0;
+  const lista = (val || 0) * getTablasFactor();
   const precio = lista ? Math.round(lista * 1.21 * getCoefCuotas()) : 0;
   // Adjuntar info de redondeo al resultado para que la UI pueda mostrarlo
   lookupPrice._lastStepW = stepW;
@@ -3372,6 +3414,10 @@ async function loadConfigFromSupabase(){
         setCoefCuotas(row.value.v);
       } else if(row.key === 'insumos' && Array.isArray(row.value)){
         setInsumos(row.value);
+      } else if(row.key === 'tablas_factor' && row.value?.v != null){
+        setTablasFactor(row.value.v);
+      } else if(row.key === 'price_history' && Array.isArray(row.value)){
+        setPriceHistoryLocal(row.value);
       }
     });
     // Re-render config UI con valores frescos
@@ -9047,6 +9093,7 @@ function renderInsumosAdmin(){
   if(inp) inp.value = Math.round((getFactorDesperdicio()-1)*100);
   const inpCoef = document.getElementById('inp-coef-cuotas');
   if(inpCoef) inpCoef.value = getCoefCuotas();
+  renderHistorialPrecios(); // V310 — banner + lista de versiones de precios
   const wrap = document.getElementById('insumos-admin-wrap');
   if(!wrap) return;
 
@@ -9259,6 +9306,104 @@ async function guardarInsumos(){
   } catch(e){
     console.error('Error sincronizando insumos:', e);
     toast('⚠️ Precios guardados local — sin conexión','err');
+  }
+}
+
+// ── V310: AUMENTO GENERAL + HISTORIAL DE PRECIOS (solo admin — pg-lista es admin-only) ──
+async function aplicarAumentoLista(){
+  if(_preciosHistoricos){ toast('Primero volvé a los precios de hoy para aplicar un aumento','err'); return; }
+  const inp = document.getElementById('inp-aumento');
+  const pct = parseFloat(inp?.value);
+  if(!pct || pct <= 0){ toast('Ingresá un % válido (ej: 5)','err'); return; }
+  if(!confirm(`¿Aplicar +${pct}% a TODA la lista de precios (cortinas roller + insumos)?\n\nCambia los precios para todos los usuarios y guarda una versión con la fecha de hoy.`)) return;
+  const m = 1 + pct/100;
+  let hist = getPriceHistory();
+  // Primera vez: guardar la lista actual como "base" para poder volver atrás
+  if(hist.length === 0){
+    hist.push({ fecha: today(), ts: Date.now(), label:'Lista base', pct:0,
+      insumos: JSON.parse(JSON.stringify(getInsumos())), tablasFactor: getTablasFactor() });
+  }
+  // Insumos: se reescriben los precios
+  const insumos = getInsumos().map(x => ({ ...x, precio: Math.round((parseFloat(x.precio)||0) * m) }));
+  setInsumos(insumos);
+  _insumosBuffer = null; // descartar edición pendiente para que no pise el aumento
+  // Tablas hardcodeadas (roller + venecianas): vía factor
+  const nf = Math.round(getTablasFactor() * m * 1e6) / 1e6;
+  setTablasFactor(nf);
+  // Nueva versión
+  hist.push({ fecha: today(), ts: Date.now(), label:`+${pct}%`, pct,
+    insumos: JSON.parse(JSON.stringify(insumos)), tablasFactor: nf });
+  setPriceHistoryLocal(hist);
+  // Sincronizar global
+  try{
+    await _sb.from('config').upsert([
+      { key:'insumos',       value: insumos },
+      { key:'tablas_factor', value: { v: nf } },
+      { key:'price_history', value: hist },
+    ], { onConflict:'key' });
+    toast(`✅ Aumento +${pct}% aplicado a toda la lista y sincronizado`,'ok');
+  }catch(e){
+    console.error('Error sincronizando aumento:', e);
+    toast('⚠️ Aumento aplicado local — sin conexión','err');
+  }
+  if(inp) inp.value = '';
+  renderInsumosAdmin();
+}
+
+function llevarPreciosAFecha(){
+  const f = (document.getElementById('inp-fecha-precios')||{}).value;
+  if(!f){ toast('Elegí una fecha','err'); return; }
+  const hist = getPriceHistory().slice().sort((a,b)=>a.ts-b.ts);
+  if(!hist.length){ toast('Todavía no hay versiones guardadas (se crean al aplicar un aumento)','err'); return; }
+  const previas = hist.filter(v => (v.fecha||'') <= f);
+  const v = previas.length ? previas[previas.length-1] : hist[0];
+  aplicarVersionLocal(v);
+}
+
+function aplicarVersionGuardada(ts){
+  const v = getPriceHistory().find(x => x.ts === ts);
+  if(v) aplicarVersionLocal(v);
+}
+
+// Carga una versión vieja SOLO en esta sesión (no toca Supabase → otros usuarios no se enteran)
+function aplicarVersionLocal(v){
+  if(!v) return;
+  setInsumos(v.insumos);
+  _insumosBuffer = null; // descartar edición pendiente
+  setTablasFactor(v.tablasFactor != null ? v.tablasFactor : 1);
+  _preciosHistoricos = { fecha: v.fecha, label: v.label };
+  renderInsumosAdmin();
+  toast(`📅 Usando precios de ${fmtD(v.fecha)} (${v.label}) — solo en tu sesión`,'ok');
+}
+
+async function volverPreciosHoy(){
+  _preciosHistoricos = null;
+  _insumosBuffer = null;
+  await loadConfigFromSupabase(); // restaura insumos + factor actuales desde Supabase
+  renderInsumosAdmin();
+  toast('✅ Volviste a los precios actuales','ok');
+}
+
+function renderHistorialPrecios(){
+  const banner = document.getElementById('banner-precios-hist');
+  if(banner){
+    banner.innerHTML = _preciosHistoricos
+      ? `<div style="background:#fff3cd;border:1px solid #ffc107;border-radius:8px;padding:10px 14px;margin-top:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap">
+           <span style="font-size:13px;font-weight:700;color:#856404">⚠ Estás viendo precios de ${fmtD(_preciosHistoricos.fecha)} (${_preciosHistoricos.label}) — solo en tu sesión</span>
+           <button class="btn btn-primary btn-sm" onclick="volverPreciosHoy()">Volver a precios de hoy</button>
+         </div>`
+      : '';
+  }
+  const list = document.getElementById('hist-precios-list');
+  if(list){
+    const hist = getPriceHistory().slice().sort((a,b)=>b.ts-a.ts);
+    list.innerHTML = hist.length
+      ? `<div style="font-size:11px;color:var(--muted);margin-top:12px;margin-bottom:2px;font-weight:700;text-transform:uppercase;letter-spacing:.06em">Versiones guardadas</div>`
+        + hist.map(v=>`<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--hair);font-size:12.5px">
+            <span><strong>${fmtD(v.fecha)}</strong> &nbsp;·&nbsp; ${v.label}</span>
+            <button class="btn btn-outline btn-sm" onclick="aplicarVersionGuardada(${v.ts})">Usar estos</button>
+          </div>`).join('')
+      : `<div style="font-size:11px;color:var(--muted);margin-top:10px">Todavía no hay versiones. La primera se crea cuando aplicás un aumento.</div>`;
   }
 }
 

@@ -1,5 +1,25 @@
 # Changelog
 
+## V310 — 2026-06-02
+
+### Aumento general de lista de precios + precios por fecha (solo admin)
+
+Dos herramientas nuevas en **Lista de Precios** (la página ya es admin-only), debajo del factor de desperdicio:
+
+**📈 Generar aumento de lista de precios**
+- Campo `%` + "Aplicar aumento". Sube ese % a **TODA** la lista: la grilla de cortinas roller (vía un factor de tablas) y todos los insumos (se reescriben los precios).
+- Se sincroniza a Supabase (`config`), así que todos los usuarios quedan con la lista nueva.
+- Cada aumento guarda una **versión con fecha** en el historial. La primera vez guarda también la "Lista base" para poder volver.
+- Pensado para combinar con el panel de **Anuncios**: aplicás el aumento y avisás a los vendedores.
+
+**📅 Llevar precios a una fecha**
+- Elegís una fecha y carga la versión de precios vigente en ese momento, para cotizar un trabajo con una lista anterior.
+- **Solo afecta tu sesión** (no toca Supabase) — los demás vendedores siguen viendo los precios actuales y no se enteran.
+- Aparece un cartel "⚠ Estás viendo precios de DD/MM" con botón **"Volver a precios de hoy"**. También se vuelve a lo actual al recargar.
+- Lista de versiones guardadas con botón "Usar estos" en cada una.
+
+Detalle técnico: `tablas_factor` (multiplicador de la grilla roller/venecianas) y `price_history` (versiones) se guardan en `config`. Las telas de confección son costo de proveedor (se importan aparte), así que no entran en este aumento.
+
 ## V309 — 2026-06-02
 
 ### Mecanismos VTX cotizables sueltos (Accesorios generales)
