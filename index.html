@@ -2177,6 +2177,30 @@ button:not([disabled]):active,
     </div>
   </div>
 
+  <!-- ════ CUENTA CORRIENTE (admin) ════ -->
+  <div class="pg" id="pg-cc">
+    <div class="wrap">
+      <div class="sh"><h2>💳 Cuentas corrientes — Distribuidores</h2></div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px">El <strong>débito</strong> se carga solo cuando un pedido del distribuidor pasa a <strong>Aprobado</strong>. Los <strong>pagos</strong> (créditos) los registrás vos. Saldo en rojo = el distribuidor adeuda.</p>
+      <div style="display:grid;grid-template-columns:280px 1fr;gap:18px;align-items:start">
+        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)">
+          <div style="padding:9px 14px;background:#f5f4f1;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Distribuidores</div>
+          <div id="cc-dist-list"></div>
+        </div>
+        <div id="cc-ledger" style="min-height:200px"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ MI CUENTA CORRIENTE (distribuidor) ════ -->
+  <div class="pg" id="pg-mi-cc">
+    <div class="wrap">
+      <div class="sh"><h2>💳 Mi cuenta corriente</h2></div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px">Resumen de tu cuenta con RollerMotion. Los pedidos se cargan al aprobarse; los pagos los acredita RollerMotion.</p>
+      <div id="mi-cc-wrap"></div>
+    </div>
+  </div>
+
   </div>
 
 </div>
@@ -3971,10 +3995,13 @@ function buildNav(){
       if(ME.accesoFabrica) tabs.push({ id:'pg-fab', label:'🏭 Fábrica' });
       // Vendedor: su dashboard personal
       tabs.push({ id:'pg-mividash', label:'📊 Mi Dashboard' });
+      // V319: distribuidor ve su cuenta corriente (solo lectura)
+      if(ME.esDistribuidor) tabs.push({ id:'pg-mi-cc', label:'💳 Mi cuenta' });
     }
     if(ME.role==='admin'){
       tabs.push({ id:'pg-fab',       label:'🏭 Fábrica' });
       tabs.push({ id:'pg-clientes',  label:'👥 Clientes' });
+      tabs.push({ id:'pg-cc',        label:'💳 Cuentas Ctes' });
       tabs.push({ id:'pg-stock',     label:'📦 Stock' });
       tabs.push({ id:'pg-dashboard', label:'📊 Dashboard' });
       tabs.push({ id:'pg-lista',     label:'📋 Lista de precios' });
@@ -4402,6 +4429,8 @@ function switchPage(id){
   }
   if(id==='pg-dashboard') renderDashboard();
   if(id==='pg-mividash') renderMiDashboard();
+  if(id==='pg-cc') renderCCAdmin();          // V319 — cuentas corrientes (admin)
+  if(id==='pg-mi-cc') renderMiCC();          // V319 — mi cuenta corriente (distribuidor)
 }
 
 /* ════════════════════════════
@@ -8980,6 +9009,131 @@ async function guardarDescuentos(){
     console.error('[Descuentos]', e);
     toast('⚠ No se pudo guardar (¿falta correr el SQL de descuentos?)','err');
   }
+}
+
+// ───────── V319: CUENTA CORRIENTE DE DISTRIBUIDORES ─────────
+let _ccCache = [];          // movimientos de cuenta corriente (débitos + créditos)
+let _distribuidores = [];   // perfiles con rol distribuidor (para imputación + panel admin)
+let _ccSelDist = null;      // distribuidor seleccionado en el panel admin
+
+async function loadDistribuidores(){
+  if(!ME || ME.role!=='admin') return;
+  try{ const { data } = await _sb.from('profiles').select('id,nombre,email,rol').eq('rol','distribuidor'); _distribuidores = data||[]; }
+  catch(e){ console.warn('[CC] distribuidores:', e.message); }
+}
+
+async function loadCC(){
+  if(!ME) return;
+  try{ const { data } = await _sb.from('cc_movimientos').select('*'); _ccCache = data||[]; }
+  catch(e){ console.warn('[CC] movimientos:', e.message); _ccCache = []; }
+}
+function ccMovs(distId){
+  return _ccCache.filter(m=>m.distribuidor_id===distId)
+    .sort((a,b)=>(a.fecha||'').localeCompare(b.fecha||'') || (a.created_at||'').localeCompare(b.created_at||''));
+}
+function ccSaldo(distId){ return ccMovs(distId).reduce((s,m)=>s + (m.tipo==='debito'?(+m.monto||0):-(+m.monto||0)), 0); }
+// Nota: la imputación (débito al aprobar) y la reversa (al cancelar) las hace un TRIGGER en la base
+// (cc_imputar_pedido), así funciona la apruebe quien la apruebe (admin o fábrica). El front solo lee/paga.
+
+// Admin registra un pago (crédito).
+async function registrarPagoCC(){
+  if(!ME || ME.role!=='admin' || !_ccSelDist) return;
+  const monto = parseFloat(document.getElementById('cc-pago-monto').value);
+  if(!monto || monto<=0){ toast('Ingresá un monto válido','err'); return; }
+  const mov = { distribuidor_id:_ccSelDist, tipo:'credito', monto,
+    concepto:(document.getElementById('cc-pago-concepto').value||'Pago'),
+    fecha:(document.getElementById('cc-pago-fecha').value||today()), created_by:ME.id };
+  try{
+    const { data, error } = await _sb.from('cc_movimientos').insert(mov).select().single();
+    if(error) throw error;
+    _ccCache.push(data);
+    toast(`✅ Pago registrado: ${fmtM(monto)}`,'ok');
+    renderCCAdmin();
+  }catch(e){ console.error('[CC] pago:', e); toast('⚠ No se pudo registrar (¿falta el SQL de cuenta corriente?)','err'); }
+}
+async function eliminarMovCC(id){
+  if(!confirm('¿Eliminar este movimiento?')) return;
+  try{ const { error } = await _sb.from('cc_movimientos').delete().eq('id', id); if(error) throw error;
+    _ccCache = _ccCache.filter(m=>m.id!==id); renderCCAdmin(); toast('🗑 Movimiento eliminado'); }
+  catch(e){ toast('⚠ No se pudo eliminar','err'); }
+}
+function _ccColor(s){ return s>0?'var(--red)':(s<0?'var(--green)':'var(--muted)'); }
+
+async function renderCCAdmin(){
+  if(!ME || ME.role!=='admin') return;
+  if(!_distribuidores.length) await loadDistribuidores();
+  await loadCC();
+  const lst = document.getElementById('cc-dist-list');
+  if(lst){
+    lst.innerHTML = _distribuidores.length ? _distribuidores.slice()
+      .sort((a,b)=>(a.nombre||a.email||'').localeCompare(b.nombre||b.email||''))
+      .map(d=>{ const s=ccSaldo(d.id);
+        return `<div onclick="selDistCC('${d.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--hair);cursor:pointer;${_ccSelDist===d.id?'background:#eef5ff':''}">
+          <span style="font-weight:600;font-size:13px">${d.nombre||d.email}</span>
+          <span style="font-weight:800;font-family:'Manrope',sans-serif;color:${_ccColor(s)}">${fmtM(s)}</span>
+        </div>`; }).join('')
+      : '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No hay cuentas de distribuidor todavía</div>';
+  }
+  renderCCLedger();
+}
+function selDistCC(id){ _ccSelDist = id; renderCCAdmin(); }
+function renderCCLedger(){
+  const wrap = document.getElementById('cc-ledger');
+  if(!wrap) return;
+  if(!_ccSelDist){ wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">Elegí un distribuidor de la izquierda</div>'; return; }
+  const dist = _distribuidores.find(d=>d.id===_ccSelDist)||{};
+  const movs = ccMovs(_ccSelDist);
+  let saldo=0;
+  const rows = movs.map(m=>{ saldo += (m.tipo==='debito'?(+m.monto||0):-(+m.monto||0));
+    return `<tr>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtD(m.fecha)}</td>
+      <td style="font-size:12.5px">${m.concepto||'—'}${m.pedido_numero?` <span style="color:var(--muted)">· ${m.pedido_numero}</span>`:''}</td>
+      <td style="text-align:right;color:var(--red);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='debito'?fmtM(+m.monto):''}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='credito'?fmtM(+m.monto):''}</td>
+      <td style="text-align:right;font-weight:800;font-family:'Manrope',sans-serif">${fmtM(saldo)}</td>
+      <td style="text-align:center">${m.tipo==='credito'?`<button class="btn-t" style="color:var(--red);border-color:#e8b4b4" onclick="eliminarMovCC('${m.id}')" title="Eliminar pago">✕</button>`:''}</td>
+    </tr>`; }).join('');
+  const sf = ccSaldo(_ccSelDist);
+  wrap.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <div style="font-size:16px;font-weight:800">${dist.nombre||dist.email||''}</div>
+      <div style="font-size:13px">Saldo: <strong style="font-family:'Manrope',sans-serif;font-size:18px;color:${_ccColor(sf)}">${fmtM(sf)}</strong> ${sf>0?'<span style="font-size:11px;color:var(--muted)">(debe)</span>':sf<0?'<span style="font-size:11px;color:var(--muted)">(a favor)</span>':''}</div>
+    </div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+      <div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Registrar pago</div>
+        <input type="number" id="cc-pago-monto" placeholder="Monto $" style="width:120px;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;outline:none"></div>
+      <input type="text" id="cc-pago-concepto" placeholder="Concepto (ej: Transferencia)" style="flex:1;min-width:140px;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;outline:none">
+      <input type="date" id="cc-pago-fecha" value="${today()}" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;outline:none">
+      <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="registrarPagoCC()">+ Cargar pago</button>
+    </div>
+    <table class="lt"><thead><tr><th>Fecha</th><th>Concepto</th><th style="text-align:right">Débito</th><th style="text-align:right">Crédito</th><th style="text-align:right">Saldo</th><th></th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Sin movimientos todavía</td></tr>'}</tbody></table>`;
+}
+
+async function renderMiCC(){
+  if(!ME) return;
+  await loadCC();
+  const wrap = document.getElementById('mi-cc-wrap');
+  if(!wrap) return;
+  const movs = ccMovs(ME.id);
+  let saldo=0;
+  const rows = movs.map(m=>{ saldo += (m.tipo==='debito'?(+m.monto||0):-(+m.monto||0));
+    return `<tr>
+      <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtD(m.fecha)}</td>
+      <td style="font-size:12.5px">${m.concepto||'—'}${m.pedido_numero?` · ${m.pedido_numero}`:''}</td>
+      <td style="text-align:right;color:var(--red);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='debito'?fmtM(+m.monto):''}</td>
+      <td style="text-align:right;color:var(--green);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='credito'?fmtM(+m.monto):''}</td>
+      <td style="text-align:right;font-weight:800;font-family:'Manrope',sans-serif">${fmtM(saldo)}</td>
+    </tr>`; }).join('');
+  const sf = ccSaldo(ME.id);
+  wrap.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 22px;margin-bottom:18px;max-width:360px">
+      <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)">Saldo actual</div>
+      <div style="font-size:30px;font-weight:800;font-family:'Manrope',sans-serif;color:${_ccColor(sf)}">${fmtM(sf)}</div>
+      <div style="font-size:12px;color:var(--muted)">${sf>0?'Es lo que adeudás a RollerMotion':sf<0?'Tenés saldo a favor':'Tu cuenta está al día'}</div>
+    </div>
+    <table class="lt"><thead><tr><th>Fecha</th><th>Detalle</th><th style="text-align:right">Débito</th><th style="text-align:right">Crédito</th><th style="text-align:right">Saldo</th></tr></thead>
+      <tbody>${rows||'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Todavía no hay movimientos</td></tr>'}</tbody></table>`;
 }
 
 function renderAdmin(){

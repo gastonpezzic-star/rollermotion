@@ -1,5 +1,17 @@
 # Changelog
 
+## V319 — 2026-06-03 — Cuenta corriente de distribuidores
+
+Sistema de cuenta corriente (débitos + créditos) para distribuidores.
+
+- **Débito automático**: cuando un pedido de un distribuidor pasa a **Aprobado**, se le carga el total (a precio de distribuidor) en su cuenta corriente. Lo hace un **trigger en la base**, así funciona la apruebe quien la apruebe (admin o fábrica). Si el pedido se **Cancela**, se revierte el débito.
+- **Pagos (créditos)**: los registran los **admins** desde el panel (oficina/transferencia). Los distribuidores **no pueden** cargar ni editar nada.
+- **Admin** → pestaña **"💳 Cuentas Ctes"**: lista de distribuidores con su saldo, ledger de cada uno (débito/crédito/saldo) y alta de pagos.
+- **Distribuidor** → pestaña **"💳 Mi cuenta"**: ve su saldo y movimientos en **solo lectura**.
+- Idempotente: un solo débito por pedido (índice único).
+
+### Base de datos (correr el SQL de cuenta corriente — tabla + RLS + trigger)
+
 ## V318 — 2026-06-03 — Condición de IVA 0% (sin IVA)
 
 Se agrega la opción **0% (sin IVA)** al selector de condición de IVA del distribuidor. Con 0%, el precio queda `lista × (1 − descuento)`, sin sumar IVA ni cuotas.
