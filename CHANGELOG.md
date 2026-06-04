@@ -1,5 +1,9 @@
 # Changelog
 
+## V322 — 2026-06-03 — El panel lista todas las cuentas (vendedores y distribuidores)
+
+El desplegable del panel (en Administración) vuelve a listar **todas las cuentas** (vendedores y distribuidores), no solo distribuidores — como el panel de descuentos original. Al elegir cualquiera se ve todo: stats + descuentos + cuenta corriente. Cada opción muestra el rol al lado del nombre.
+
 ## V321 — 2026-06-03 — El panel de Distribuidores vuelve a Administración
 
 El panel unificado de distribuidores (desplegable → mini-dashboard + cuenta corriente + descuentos) vuelve a estar **dentro de la pestaña Administración**, como se venía trabajando. Se quitó la pestaña separada "Distribuidores".

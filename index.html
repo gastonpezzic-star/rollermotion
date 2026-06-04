@@ -1784,11 +1784,11 @@ button:not([disabled]):active,
 
       <!-- V321: Panel unificado de Distribuidores (dentro de Administración) -->
       <div class="card">
-        <div class="card-h">👥 Distribuidores</div>
+        <div class="card-h">👥 Vendedores y distribuidores</div>
         <div class="card-b">
-          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Elegí un distribuidor para ver sus estadísticas, su cuenta corriente y sus descuentos en un solo lugar.</p>
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Elegí una cuenta para ver sus estadísticas, sus descuentos y su cuenta corriente en un solo lugar.</p>
           <select id="desc-cuenta" onchange="onSelectDistrib()" style="padding:11px 15px;border:1px solid var(--border);border-radius:12px;font-size:15px;min-width:320px;background:#fff;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:22px">
-            <option value="">— Elegí un distribuidor —</option>
+            <option value="">— Elegí una cuenta —</option>
           </select>
           <div id="distrib-detail"></div>
         </div>
@@ -9046,13 +9046,13 @@ async function renderDistribuidores(){
   try{ const { data } = await _sb.from('profiles').select('id,nombre,email,rol,descuentos,iva_condicion'); _descProfiles = data||[]; }
   catch(e){ console.warn('[Distrib] perfiles:', e.message); }
   await loadCC();
-  const dists = _descProfiles.filter(p=>p.rol==='distribuidor')
+  const accts = _descProfiles.filter(p=>['vendedor','distribuidor'].includes((p.rol||'vendedor')))
     .sort((a,b)=>(a.nombre||a.email||'').localeCompare(b.nombre||b.email||''));
   const sel = document.getElementById('desc-cuenta');
   if(sel){
     const prev = sel.value;
-    sel.innerHTML = '<option value="">— Elegí un distribuidor —</option>' +
-      dists.map(d=>`<option value="${d.id}">${d.nombre||d.email}</option>`).join('');
+    sel.innerHTML = '<option value="">— Elegí una cuenta —</option>' +
+      accts.map(d=>`<option value="${d.id}">${d.nombre||d.email} — ${d.rol||'vendedor'}</option>`).join('');
     if(prev) sel.value = prev;
   }
   onSelectDistrib();
@@ -9068,7 +9068,7 @@ function onSelectDistrib(){
   const prof = _descProfiles.find(p=>p.id===id)||{};
   wrap.innerHTML = `
     <div style="font-size:21px;font-weight:700;letter-spacing:-.02em">${prof.nombre||prof.email||''}</div>
-    <div style="font-size:13px;color:var(--muted);margin-bottom:22px">${prof.email||''} &nbsp;·&nbsp; Distribuidor</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:22px">${prof.email||''} &nbsp;·&nbsp; ${((prof.rol||'vendedor').charAt(0).toUpperCase()+(prof.rol||'vendedor').slice(1))}</div>
     <div id="distrib-minidash"></div>
     <div style="background:#fff;border:1px solid var(--border);border-radius:18px;padding:22px 24px;margin-bottom:18px">
       <div style="font-size:15px;font-weight:700;letter-spacing:-.01em">Cuenta corriente</div>
