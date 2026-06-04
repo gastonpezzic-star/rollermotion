@@ -1782,20 +1782,7 @@ button:not([disabled]):active,
         <div class="stat-card"><div class="num" id="st-cot">0</div><div class="lbl">Cotizaciones</div></div>
       </div>
 
-      <!-- V315: DESCUENTOS POR CUENTA (distribuidores) — reemplaza la tabla de Pedidos (que se ve en Fábrica) -->
-      <div class="card">
-        <div class="card-h">🏷️ Descuentos por cuenta (distribuidores)</div>
-        <div class="card-b">
-          <p style="font-size:12.5px;color:var(--muted);margin-bottom:14px">Elegí una cuenta y cargá el % de descuento sobre la lista de precios por cada producto. Cuando ese usuario cotice, va a ver los precios con su descuento ya aplicado. Dejá en blanco (o 0) los productos sin descuento.</p>
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap">
-            <select id="desc-cuenta" onchange="onSelectCuentaDescuento()" style="padding:9px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;min-width:300px;background:#fff;font-family:'DM Sans',sans-serif;outline:none">
-              <option value="">— Elegí una cuenta —</option>
-            </select>
-            <button class="btn btn-primary btn-sm" id="desc-guardar-btn" onclick="guardarDescuentos()" style="display:none">💾 Guardar descuentos</button>
-          </div>
-          <div id="desc-productos"></div>
-        </div>
-      </div>
+      <!-- V320: los descuentos por distribuidor se movieron a la pestaña "Distribuidores" (vista unificada) -->
 
       <!-- COSTOS LEGACY (hidden, kept for compatibility) -->
       <div style="display:none">
@@ -2177,18 +2164,15 @@ button:not([disabled]):active,
     </div>
   </div>
 
-  <!-- ════ CUENTA CORRIENTE (admin) ════ -->
+  <!-- ════ DISTRIBUIDORES (admin · vista unificada) ════ -->
   <div class="pg" id="pg-cc">
-    <div class="wrap">
-      <div class="sh"><h2>💳 Cuentas corrientes — Distribuidores</h2></div>
-      <p style="font-size:12px;color:var(--muted);margin-bottom:16px">El <strong>débito</strong> se carga solo cuando un pedido del distribuidor pasa a <strong>Aprobado</strong>. Los <strong>pagos</strong> (créditos) los registrás vos. Saldo en rojo = el distribuidor adeuda.</p>
-      <div style="display:grid;grid-template-columns:280px 1fr;gap:18px;align-items:start">
-        <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;background:var(--surface)">
-          <div style="padding:9px 14px;background:#f5f4f1;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">Distribuidores</div>
-          <div id="cc-dist-list"></div>
-        </div>
-        <div id="cc-ledger" style="min-height:200px"></div>
-      </div>
+    <div class="wrap" style="max-width:940px">
+      <div class="sh"><h2>Distribuidores</h2></div>
+      <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Elegí un distribuidor para ver sus estadísticas, su cuenta corriente y sus descuentos en un solo lugar.</p>
+      <select id="desc-cuenta" onchange="onSelectDistrib()" style="padding:11px 15px;border:1px solid var(--border);border-radius:12px;font-size:15px;min-width:320px;background:#fff;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:24px">
+        <option value="">— Elegí un distribuidor —</option>
+      </select>
+      <div id="distrib-detail"></div>
     </div>
   </div>
 
@@ -4001,7 +3985,7 @@ function buildNav(){
     if(ME.role==='admin'){
       tabs.push({ id:'pg-fab',       label:'🏭 Fábrica' });
       tabs.push({ id:'pg-clientes',  label:'👥 Clientes' });
-      tabs.push({ id:'pg-cc',        label:'💳 Cuentas Ctes' });
+      tabs.push({ id:'pg-cc',        label:'👥 Distribuidores' });
       tabs.push({ id:'pg-stock',     label:'📦 Stock' });
       tabs.push({ id:'pg-dashboard', label:'📊 Dashboard' });
       tabs.push({ id:'pg-lista',     label:'📋 Lista de precios' });
@@ -4396,7 +4380,7 @@ function switchPage(id){
   const tab = document.querySelector(`[data-pg="${id}"]`);
   if(tab) tab.classList.add('on');
   if(id==='pg-inicio') renderInicio();
-  if(id==='pg-admin'){ renderAdmin(); updateStats(); renderDescuentosPanel(); }
+  if(id==='pg-admin'){ renderAdmin(); updateStats(); }
   if(id==='pg-cot') renderCot();
   if(id==='pg-ped'){ renderPed(); renderRecibos(); }
   if(id==='pg-fab') renderFab();
@@ -4429,7 +4413,7 @@ function switchPage(id){
   }
   if(id==='pg-dashboard') renderDashboard();
   if(id==='pg-mividash') renderMiDashboard();
-  if(id==='pg-cc') renderCCAdmin();          // V319 — cuentas corrientes (admin)
+  if(id==='pg-cc') renderDistribuidores();   // V320 — panel unificado de distribuidores (admin)
   if(id==='pg-mi-cc') renderMiCC();          // V319 — mi cuenta corriente (distribuidor)
 }
 
@@ -9048,40 +9032,92 @@ async function registrarPagoCC(){
     if(error) throw error;
     _ccCache.push(data);
     toast(`✅ Pago registrado: ${fmtM(monto)}`,'ok');
-    renderCCAdmin();
+    renderCCLedger(); renderMiniDashDistrib(_ccSelDist);
   }catch(e){ console.error('[CC] pago:', e); toast('⚠ No se pudo registrar (¿falta el SQL de cuenta corriente?)','err'); }
 }
 async function eliminarMovCC(id){
   if(!confirm('¿Eliminar este movimiento?')) return;
   try{ const { error } = await _sb.from('cc_movimientos').delete().eq('id', id); if(error) throw error;
-    _ccCache = _ccCache.filter(m=>m.id!==id); renderCCAdmin(); toast('🗑 Movimiento eliminado'); }
+    _ccCache = _ccCache.filter(m=>m.id!==id); renderCCLedger(); renderMiniDashDistrib(_ccSelDist); toast('🗑 Movimiento eliminado'); }
   catch(e){ toast('⚠ No se pudo eliminar','err'); }
 }
 function _ccColor(s){ return s>0?'var(--red)':(s<0?'var(--green)':'var(--muted)'); }
 
-async function renderCCAdmin(){
+// V320 — Panel UNIFICADO de distribuidores: dropdown → mini-dashboard + cuenta corriente + descuentos.
+async function renderDistribuidores(){
   if(!ME || ME.role!=='admin') return;
-  if(!_distribuidores.length) await loadDistribuidores();
+  try{ const { data } = await _sb.from('profiles').select('id,nombre,email,rol,descuentos,iva_condicion'); _descProfiles = data||[]; }
+  catch(e){ console.warn('[Distrib] perfiles:', e.message); }
   await loadCC();
-  const lst = document.getElementById('cc-dist-list');
-  if(lst){
-    lst.innerHTML = _distribuidores.length ? _distribuidores.slice()
-      .sort((a,b)=>(a.nombre||a.email||'').localeCompare(b.nombre||b.email||''))
-      .map(d=>{ const s=ccSaldo(d.id);
-        return `<div onclick="selDistCC('${d.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 14px;border-bottom:1px solid var(--hair);cursor:pointer;${_ccSelDist===d.id?'background:#eef5ff':''}">
-          <span style="font-weight:600;font-size:13px">${d.nombre||d.email}</span>
-          <span style="font-weight:800;font-family:'Manrope',sans-serif;color:${_ccColor(s)}">${fmtM(s)}</span>
-        </div>`; }).join('')
-      : '<div style="padding:20px;text-align:center;color:var(--muted);font-size:13px">No hay cuentas de distribuidor todavía</div>';
+  const dists = _descProfiles.filter(p=>p.rol==='distribuidor')
+    .sort((a,b)=>(a.nombre||a.email||'').localeCompare(b.nombre||b.email||''));
+  const sel = document.getElementById('desc-cuenta');
+  if(sel){
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Elegí un distribuidor —</option>' +
+      dists.map(d=>`<option value="${d.id}">${d.nombre||d.email}</option>`).join('');
+    if(prev) sel.value = prev;
   }
+  onSelectDistrib();
+}
+
+function onSelectDistrib(){
+  const sel = document.getElementById('desc-cuenta');
+  const wrap = document.getElementById('distrib-detail');
+  if(!sel || !wrap) return;
+  const id = sel.value;
+  _ccSelDist = id || null;
+  if(!id){ wrap.innerHTML = '<div style="padding:60px 20px;text-align:center;color:var(--muted);font-size:14px">Elegí un distribuidor para ver su cuenta, sus descuentos y sus estadísticas.</div>'; return; }
+  const prof = _descProfiles.find(p=>p.id===id)||{};
+  wrap.innerHTML = `
+    <div style="font-size:21px;font-weight:700;letter-spacing:-.02em">${prof.nombre||prof.email||''}</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:22px">${prof.email||''} &nbsp;·&nbsp; Distribuidor</div>
+    <div id="distrib-minidash"></div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:18px;padding:22px 24px;margin-bottom:18px">
+      <div style="font-size:15px;font-weight:700;letter-spacing:-.01em">Cuenta corriente</div>
+      <div style="font-size:12.5px;color:var(--muted);margin-bottom:18px">El débito se carga solo al aprobar un pedido. Los créditos (pagos) los cargás vos.</div>
+      <div id="cc-ledger"></div>
+    </div>
+    <div style="background:#fff;border:1px solid var(--border);border-radius:18px;padding:22px 24px;margin-bottom:18px">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:16px">
+        <div>
+          <div style="font-size:15px;font-weight:700;letter-spacing:-.01em">Descuentos y condición de IVA</div>
+          <div style="font-size:12.5px;color:var(--muted)">% por producto sobre la lista. Los distribuidores no llevan cuotas.</div>
+        </div>
+        <button class="btn btn-primary btn-sm" id="desc-guardar-btn" onclick="guardarDescuentos()" style="display:none">💾 Guardar</button>
+      </div>
+      <div id="desc-productos"></div>
+    </div>`;
+  renderMiniDashDistrib(id);
+  onSelectCuentaDescuento();
   renderCCLedger();
 }
-function selDistCC(id){ _ccSelDist = id; renderCCAdmin(); }
+
+function renderMiniDashDistrib(id){
+  const el = document.getElementById('distrib-minidash');
+  if(!el) return;
+  const docs = getDocs().filter(d=>d.vendedor_id===id);
+  const peds = docs.filter(d=>d.type==='order');
+  const cots = docs.filter(d=>d.type==='quote');
+  const facturado = peds.reduce((s,d)=>s+(+d.total||0),0);
+  const saldo = ccSaldo(id);
+  const kpis = [
+    { lbl:'Saldo actual',    val:fmtM(saldo),     color:_ccColor(saldo), sub: saldo>0?'adeuda':saldo<0?'a favor':'al día' },
+    { lbl:'Total facturado', val:fmtM(facturado), color:'var(--ink)',    sub:`${peds.length} pedido${peds.length===1?'':'s'}` },
+    { lbl:'Cotizaciones',    val:cots.length,     color:'var(--ink)',    sub:'generadas' },
+    { lbl:'Pedidos',         val:peds.length,     color:'var(--ink)',    sub:'confirmados' },
+  ];
+  el.innerHTML = `<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px">` +
+    kpis.map(k=>`<div style="background:#fff;border:1px solid var(--border);border-radius:16px;padding:15px 17px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted)">${k.lbl}</div>
+      <div style="font-size:23px;font-weight:700;font-family:'Manrope',sans-serif;letter-spacing:-.02em;color:${k.color};margin-top:3px">${k.val}</div>
+      <div style="font-size:11px;color:var(--muted)">${k.sub}</div>
+    </div>`).join('') + `</div>`;
+}
 function renderCCLedger(){
   const wrap = document.getElementById('cc-ledger');
   if(!wrap) return;
-  if(!_ccSelDist){ wrap.innerHTML = '<div style="padding:40px;text-align:center;color:var(--muted)">Elegí un distribuidor de la izquierda</div>'; return; }
-  const dist = _distribuidores.find(d=>d.id===_ccSelDist)||{};
+  if(!_ccSelDist){ wrap.innerHTML = ''; return; }
   const movs = ccMovs(_ccSelDist);
   let saldo=0;
   const rows = movs.map(m=>{ saldo += (m.tipo==='debito'?(+m.monto||0):-(+m.monto||0));
@@ -9093,13 +9129,8 @@ function renderCCLedger(){
       <td style="text-align:right;font-weight:800;font-family:'Manrope',sans-serif">${fmtM(saldo)}</td>
       <td style="text-align:center">${m.tipo==='credito'?`<button class="btn-t" style="color:var(--red);border-color:#e8b4b4" onclick="eliminarMovCC('${m.id}')" title="Eliminar pago">✕</button>`:''}</td>
     </tr>`; }).join('');
-  const sf = ccSaldo(_ccSelDist);
   wrap.innerHTML = `
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px">
-      <div style="font-size:16px;font-weight:800">${dist.nombre||dist.email||''}</div>
-      <div style="font-size:13px">Saldo: <strong style="font-family:'Manrope',sans-serif;font-size:18px;color:${_ccColor(sf)}">${fmtM(sf)}</strong> ${sf>0?'<span style="font-size:11px;color:var(--muted)">(debe)</span>':sf<0?'<span style="font-size:11px;color:var(--muted)">(a favor)</span>':''}</div>
-    </div>
-    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 16px;margin-bottom:16px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+    <div style="background:#fafafa;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
       <div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Registrar pago</div>
         <input type="number" id="cc-pago-monto" placeholder="Monto $" style="width:120px;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;outline:none"></div>
       <input type="text" id="cc-pago-concepto" placeholder="Concepto (ej: Transferencia)" style="flex:1;min-width:140px;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;outline:none">

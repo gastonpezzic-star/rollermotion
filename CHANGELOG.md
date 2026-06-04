@@ -1,5 +1,16 @@
 # Changelog
 
+## V320 — 2026-06-03 — Panel unificado de Distribuidores (diseño Apple Business)
+
+Se unifica todo lo del distribuidor en una sola pestaña **"👥 Distribuidores"** (admin), con un desplegable para elegir distribuidor y ver todo junto, con un diseño limpio tipo Apple:
+
+- **Mini-dashboard** del distribuidor: saldo actual, total facturado, cantidad de pedidos y cotizaciones.
+- **Cuenta corriente**: ledger de débitos/créditos + alta de **pagos** (créditos) con concepto/descripción (ej: "Pago efectivo · cheque N° xxx") y monto.
+- **Descuentos + condición de IVA**: editables ahí mismo.
+- Se quitó el panel "Descuentos por cuenta" de Administración y la pestaña separada "Cuentas Ctes" — todo vive ahora en "Distribuidores".
+
+El **dashboard general del admin** sigue mostrando **todo** (cotizaciones y pedidos de distribuidores e internos, sin distinción). No requiere SQL nuevo.
+
 ## V319 — 2026-06-03 — Cuenta corriente de distribuidores
 
 Sistema de cuenta corriente (débitos + créditos) para distribuidores.
