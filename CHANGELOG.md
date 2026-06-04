@@ -1,5 +1,12 @@
 # Changelog
 
+## V321 — 2026-06-03 — El panel de Distribuidores vuelve a Administración
+
+El panel unificado de distribuidores (desplegable → mini-dashboard + cuenta corriente + descuentos) vuelve a estar **dentro de la pestaña Administración**, como se venía trabajando. Se quitó la pestaña separada "Distribuidores".
+
+- Administración ahora tiene: stats + Exportar Excel + editar etiqueta + el panel de Distribuidores.
+- El desplegable lista solo cuentas con rol distribuidor.
+
 ## V320 — 2026-06-03 — Panel unificado de Distribuidores (diseño Apple Business)
 
 Se unifica todo lo del distribuidor en una sola pestaña **"👥 Distribuidores"** (admin), con un desplegable para elegir distribuidor y ver todo junto, con un diseño limpio tipo Apple:

@@ -1782,7 +1782,18 @@ button:not([disabled]):active,
         <div class="stat-card"><div class="num" id="st-cot">0</div><div class="lbl">Cotizaciones</div></div>
       </div>
 
-      <!-- V320: los descuentos por distribuidor se movieron a la pestaña "Distribuidores" (vista unificada) -->
+      <!-- V321: Panel unificado de Distribuidores (dentro de Administración) -->
+      <div class="card">
+        <div class="card-h">👥 Distribuidores</div>
+        <div class="card-b">
+          <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Elegí un distribuidor para ver sus estadísticas, su cuenta corriente y sus descuentos en un solo lugar.</p>
+          <select id="desc-cuenta" onchange="onSelectDistrib()" style="padding:11px 15px;border:1px solid var(--border);border-radius:12px;font-size:15px;min-width:320px;background:#fff;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:22px">
+            <option value="">— Elegí un distribuidor —</option>
+          </select>
+          <div id="distrib-detail"></div>
+        </div>
+      </div>
+
 
       <!-- COSTOS LEGACY (hidden, kept for compatibility) -->
       <div style="display:none">
@@ -2161,18 +2172,6 @@ button:not([disabled]):active,
           </tr></thead><tbody id="midash-clientes"></tbody></table>
         </div>
       </div>
-    </div>
-  </div>
-
-  <!-- ════ DISTRIBUIDORES (admin · vista unificada) ════ -->
-  <div class="pg" id="pg-cc">
-    <div class="wrap" style="max-width:940px">
-      <div class="sh"><h2>Distribuidores</h2></div>
-      <p style="font-size:13px;color:var(--muted);margin-bottom:18px">Elegí un distribuidor para ver sus estadísticas, su cuenta corriente y sus descuentos en un solo lugar.</p>
-      <select id="desc-cuenta" onchange="onSelectDistrib()" style="padding:11px 15px;border:1px solid var(--border);border-radius:12px;font-size:15px;min-width:320px;background:#fff;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:24px">
-        <option value="">— Elegí un distribuidor —</option>
-      </select>
-      <div id="distrib-detail"></div>
     </div>
   </div>
 
@@ -3985,7 +3984,6 @@ function buildNav(){
     if(ME.role==='admin'){
       tabs.push({ id:'pg-fab',       label:'🏭 Fábrica' });
       tabs.push({ id:'pg-clientes',  label:'👥 Clientes' });
-      tabs.push({ id:'pg-cc',        label:'👥 Distribuidores' });
       tabs.push({ id:'pg-stock',     label:'📦 Stock' });
       tabs.push({ id:'pg-dashboard', label:'📊 Dashboard' });
       tabs.push({ id:'pg-lista',     label:'📋 Lista de precios' });
@@ -4380,7 +4378,7 @@ function switchPage(id){
   const tab = document.querySelector(`[data-pg="${id}"]`);
   if(tab) tab.classList.add('on');
   if(id==='pg-inicio') renderInicio();
-  if(id==='pg-admin'){ renderAdmin(); updateStats(); }
+  if(id==='pg-admin'){ renderAdmin(); updateStats(); renderDistribuidores(); }
   if(id==='pg-cot') renderCot();
   if(id==='pg-ped'){ renderPed(); renderRecibos(); }
   if(id==='pg-fab') renderFab();
@@ -4413,7 +4411,6 @@ function switchPage(id){
   }
   if(id==='pg-dashboard') renderDashboard();
   if(id==='pg-mividash') renderMiDashboard();
-  if(id==='pg-cc') renderDistribuidores();   // V320 — panel unificado de distribuidores (admin)
   if(id==='pg-mi-cc') renderMiCC();          // V319 — mi cuenta corriente (distribuidor)
 }
 
