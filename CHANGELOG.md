@@ -1,5 +1,14 @@
 # Changelog
 
+## V316 — 2026-06-03 — Etapa B: los descuentos de distribuidor bajan los precios
+
+Cuando un usuario **distribuidor** cotiza, ahora cada producto se cobra con su % de descuento cargado en el panel (Administración → Descuentos por cuenta). El descuento se aplica al precio final del item al agregarlo, así que la cotización, los totales y el PDF salen con el precio rebajado.
+
+- Mapeo producto → clave de descuento (roller blackout/sunscreen, DUO, doble, bandas, paneles, confección, venecianas alum/madera/símil, toldos, motores, rieles, accesorios).
+- `descDistribuidorPct(tela, color)` lee `ME.descuentos` del perfil logueado.
+- **Para cualquier cuenta que no sea distribuidor, o sin % cargado, los precios no cambian.**
+- Nota: por ahora el descuento se ve al **agregar** el item (la vista previa del precio todavía muestra lista; se pule en el próximo paso).
+
 ## V315 — 2026-06-02
 
 ### Administración: panel de descuentos por cuenta (base de la red de distribuidores) — Etapa A

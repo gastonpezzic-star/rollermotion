@@ -3013,6 +3013,40 @@ function getCoefCuotas(){ return parseFloat(localStorage.getItem('rm_coef_cuotas
 function setCoefCuotas(v){ localStorage.setItem('rm_coef_cuotas',String(v)); }
 function getFV(){ return IVA_FACTOR * getCoefCuotas(); }; // IVA × cuotas
 
+// V316 (Etapa B) — Descuento de distribuidor por producto.
+// Mapea la tela/color de un item a la clave del panel de descuentos (PRODUCTS_DESC).
+function _descKeyForItem(tela, color){
+  const t = (tela||'').toLowerCase(), c = (color||'').toLowerCase(), s = t+' '+c;
+  if(t==='blackout') return 'blackout';
+  if(t==='sunscreen5') return 'sunscreen5';
+  if(t==='sunscreen3') return 'sunscreen3';
+  if(t==='sunscreen1') return 'sunscreen1';
+  if(t==='duozebra') return 'duozebra';
+  if(t==='rollerdoble'||t==='doble') return 'rollerdoble';
+  if(t==='bandas_verticales') return 'bandas';
+  if(t==='paneles_orientales') return 'paneles';
+  if(t==='conf_liviana'||t==='conf_blackout') return 'confeccion';
+  if(t==='motores') return 'motores';
+  if(t.indexOf('riel')===0) return 'rieles';
+  if(t.indexOf('toldo')===0 || t==='cobertor_toldo') return 'toldos';
+  if(t==='venecianas' || s.indexOf('ven_')>=0 || s.indexOf('venec')>=0){
+    if(s.indexOf('simil')>=0) return 'ven_simil';
+    if(s.indexOf('alum')>=0)  return 'ven_alum';
+    if(s.indexOf('mad')>=0)   return 'ven_madera';
+    return 'ven_alum';
+  }
+  if(['tubos','angulos','guias','cenefas','ejes','accesorios'].indexOf(t)>=0) return 'accesorios';
+  return null; // cambio de tela, libre, unitarios → sin descuento por ahora
+}
+// Devuelve el % de descuento del usuario logueado (ME) para ese producto. 0 si no es distribuidor.
+function descDistribuidorPct(tela, color){
+  if(!ME || !ME.esDistribuidor || !ME.descuentos) return 0;
+  const k = _descKeyForItem(tela, color);
+  if(!k) return 0;
+  const v = parseFloat(ME.descuentos[k]);
+  return (v>0 && v<=100) ? v : 0;
+}
+
 function getFactorDesperdicio(){
   return parseFloat(localStorage.getItem('rm_desperdicio') || '1.20');
 }
@@ -6357,6 +6391,10 @@ function qaAgregar(){
     // Usar siempre el precio ya calculado por qaCalcPrecio — evita inconsistencias
     precio = qaCalcPrecio._lastPrecio || calcCostoRoller(ancho, alto, tela, cadColor||'Blanca', false).precio_venta;
   }
+
+  // V316 (Etapa B): descuento de distribuidor sobre el precio final del item.
+  // Solo afecta a cuentas 'distribuidor' con % cargado; para todos los demás el precio queda igual.
+  { const _dPct = descDistribuidorPct(tela, color); if(_dPct > 0) precio = Math.round(precio * (1 - _dPct/100)); }
 
   addRow({ tela, color, ancho, alto, cant, ref, zoc, sent, sop, cad, cadColor, mecColor, adic, col, precio,
            accionamiento, dobladillo, arrastre, ...(confData||{}) });
