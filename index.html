@@ -3011,7 +3011,11 @@ function getPrecio(id){ return getInsumo(id)?.precio || 0; }
 const IVA_FACTOR = 1.21;
 function getCoefCuotas(){ return parseFloat(localStorage.getItem('rm_coef_cuotas')||'1.35'); }
 function setCoefCuotas(v){ localStorage.setItem('rm_coef_cuotas',String(v)); }
-function getFV(){ return IVA_FACTOR * getCoefCuotas(); }; // IVA × cuotas
+function getFV(){
+  // V317 — Distribuidores: SIN cuotas; IVA según su condición (21% o 10,5%). Resto: IVA × coef. cuotas.
+  if(ME && ME.esDistribuidor) return 1 + ((ME.ivaCondicion != null ? ME.ivaCondicion : 21) / 100);
+  return IVA_FACTOR * getCoefCuotas();
+}; // IVA × cuotas (distribuidores: solo IVA, sin cuotas)
 
 // V316 (Etapa B) — Descuento de distribuidor por producto.
 // Mapea la tela/color de un item a la clave del panel de descuentos (PRODUCTS_DESC).
@@ -3808,6 +3812,7 @@ async function loadProfileAndEnter(session){
     accesoFabrica: !!(prof && prof.acceso_fabrica),  // V303: vendedor con permiso extra de Fábrica (rol gerencial)
     esDistribuidor: rolRaw === 'distribuidor',  // V315
     descuentos: (prof && prof.descuentos) || {},  // V315 — % por producto (se aplican en Etapa B)
+    ivaCondicion: (prof && prof.iva_condicion != null) ? parseFloat(prof.iva_condicion) : 21,  // V317 — % IVA distribuidor (21 / 10.5), SIN cuotas
   };
   enterApp();
 }
@@ -8900,7 +8905,7 @@ async function renderDescuentosPanel(){
   const sel = document.getElementById('desc-cuenta');
   if(!sel) return;
   try{
-    const { data, error } = await _sb.from('profiles').select('id,nombre,email,rol,descuentos').order('rol');
+    const { data, error } = await _sb.from('profiles').select('id,nombre,email,rol,descuentos,iva_condicion').order('rol');
     if(error) throw error;
     _descProfiles = data||[];
   }catch(e){ console.warn('[Descuentos] no se pudieron leer perfiles:', e.message); }
@@ -8921,8 +8926,17 @@ function onSelectCuentaDescuento(){
   if(!id){ wrap.innerHTML=''; if(btn) btn.style.display='none'; return; }
   const prof = _descProfiles.find(p=>p.id===id) || {};
   const desc = prof.descuentos || {};
+  const ivaVal = (prof.iva_condicion != null) ? parseFloat(prof.iva_condicion) : 21;
   if(btn) btn.style.display='';
   wrap.innerHTML = `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:14px;padding:10px 14px;background:#f0f7ff;border:1px solid #cfe3f5;border-radius:8px;max-width:560px;flex-wrap:wrap">
+      <div style="font-size:12px;font-weight:700;color:#1a4a7a">Condición de IVA</div>
+      <select id="desc-iva" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;background:#fff;outline:none">
+        <option value="21"${ivaVal===21?' selected':''}>21%</option>
+        <option value="10.5"${ivaVal===10.5?' selected':''}>10,5%</option>
+      </select>
+      <span style="font-size:11px;color:var(--muted)">Distribuidores: sin cuotas. Precio = lista − descuento + IVA.</span>
+    </div>
     <div style="border:1px solid var(--border);border-radius:10px;overflow:hidden;max-width:560px">
       <div style="display:grid;grid-template-columns:1fr 130px;background:#f5f4f1;padding:9px 14px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)">
         <div>Producto</div><div style="text-align:center">% Descuento</div>
@@ -8953,8 +8967,13 @@ async function guardarDescuentos(){
     if(error) throw error;
     const p = _descProfiles.find(x=>x.id===id); if(p) p.descuentos = desc;
     if(ME && ME.id===id) ME.descuentos = desc;
+    // V317 — condición de IVA (update aparte; si falta la columna no rompe el guardado de descuentos)
+    const ivaVal = parseFloat(document.getElementById('desc-iva')?.value) || 21;
+    const { error: ivaErr } = await _sb.from('profiles').update({ iva_condicion: ivaVal }).eq('id', id);
+    if(ivaErr){ console.warn('[IVA] ¿falta la columna iva_condicion?', ivaErr.message); }
+    else { if(p) p.iva_condicion = ivaVal; if(ME && ME.id===id) ME.ivaCondicion = ivaVal; }
     const n = Object.keys(desc).length;
-    toast(n ? `✅ ${n} descuento(s) guardados` : '✅ Descuentos limpiados', 'ok');
+    toast(n ? `✅ Guardado: ${n} descuento(s) · IVA ${ivaVal}%` : `✅ Guardado · IVA ${ivaVal}%`, 'ok');
   }catch(e){
     console.error('[Descuentos]', e);
     toast('⚠ No se pudo guardar (¿falta correr el SQL de descuentos?)','err');

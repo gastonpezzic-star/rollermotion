@@ -1,5 +1,19 @@
 # Changelog
 
+## V317 — 2026-06-03 — Distribuidores: sin cuotas + condición de IVA (21% / 10,5%)
+
+Los distribuidores no trabajan con cuotas. Su precio ahora es **lista − descuento del producto + IVA**, donde el IVA es la "condición" de cada distribuidor (21% o 10,5%).
+
+- `getFV()` para distribuidores deja de aplicar el coeficiente de cuotas y usa `1 + IVA_condición`. El resto de las cuentas (admin/vendedor) sigue igual: IVA × coef. cuotas.
+- En el panel **Descuentos por cuenta** se agrega el selector **Condición de IVA** (21% / 10,5%) por cuenta.
+- Fórmula final del distribuidor: `precio_lista × (1 − %descuento_producto) × (1 + IVA)`.
+
+### Base de datos
+```sql
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS iva_condicion numeric DEFAULT 21;
+```
+(Sin esto, los distribuidores quedan con 21% por defecto y el selector de IVA no guarda hasta correrlo.)
+
 ## V316 — 2026-06-03 — Etapa B: los descuentos de distribuidor bajan los precios
 
 Cuando un usuario **distribuidor** cotiza, ahora cada producto se cobra con su % de descuento cargado en el panel (Administración → Descuentos por cuenta). El descuento se aplica al precio final del item al agregarlo, así que la cotización, los totales y el PDF salen con el precio rebajado.
