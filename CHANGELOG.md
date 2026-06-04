@@ -1,5 +1,12 @@
 # Changelog
 
+## V318 — 2026-06-03 — Condición de IVA 0% (sin IVA)
+
+Se agrega la opción **0% (sin IVA)** al selector de condición de IVA del distribuidor. Con 0%, el precio queda `lista × (1 − descuento)`, sin sumar IVA ni cuotas.
+
+- Bugfix: al guardar 0% se guardaba como 21% (porque `0` es "falsy"). Ahora 0 se respeta correctamente.
+- El orden descuento↔IVA no afecta el resultado (es conmutativo).
+
 ## V317 — 2026-06-03 — Distribuidores: sin cuotas + condición de IVA (21% / 10,5%)
 
 Los distribuidores no trabajan con cuotas. Su precio ahora es **lista − descuento del producto + IVA**, donde el IVA es la "condición" de cada distribuidor (21% o 10,5%).

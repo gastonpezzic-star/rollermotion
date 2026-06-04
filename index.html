@@ -8934,6 +8934,7 @@ function onSelectCuentaDescuento(){
       <select id="desc-iva" style="padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;font-weight:700;background:#fff;outline:none">
         <option value="21"${ivaVal===21?' selected':''}>21%</option>
         <option value="10.5"${ivaVal===10.5?' selected':''}>10,5%</option>
+        <option value="0"${ivaVal===0?' selected':''}>0% (sin IVA)</option>
       </select>
       <span style="font-size:11px;color:var(--muted)">Distribuidores: sin cuotas. Precio = lista − descuento + IVA.</span>
     </div>
@@ -8968,7 +8969,8 @@ async function guardarDescuentos(){
     const p = _descProfiles.find(x=>x.id===id); if(p) p.descuentos = desc;
     if(ME && ME.id===id) ME.descuentos = desc;
     // V317 — condición de IVA (update aparte; si falta la columna no rompe el guardado de descuentos)
-    const ivaVal = parseFloat(document.getElementById('desc-iva')?.value) || 21;
+    const _ivaRaw = parseFloat(document.getElementById('desc-iva')?.value);
+    const ivaVal = isNaN(_ivaRaw) ? 21 : _ivaRaw;  // V318: 0% es válido (no usar || que lo pisaría con 21)
     const { error: ivaErr } = await _sb.from('profiles').update({ iva_condicion: ivaVal }).eq('id', id);
     if(ivaErr){ console.warn('[IVA] ¿falta la columna iva_condicion?', ivaErr.message); }
     else { if(p) p.iva_condicion = ivaVal; if(ME && ME.id===id) ME.ivaCondicion = ivaVal; }
