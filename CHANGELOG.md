@@ -1,5 +1,19 @@
 # Changelog
 
+## V323 — 2026-06-04 — Presupuesto distribuidor (vista + PDF) desde la cuenta corriente
+
+Cada **débito** de la cuenta corriente (un pedido aprobado) ahora tiene un link **"› ver"**: abre una ventana **limpia** con el pedido a **precios de distribuidor** — producto, medidas, cantidad, precio unitario y subtotal + total — exportable a **PDF** (botón Imprimir / Guardar PDF). Sin tarjeta, sin WhatsApp, sin cuotas.
+
+- Funciona para el **admin** (en el panel de Administración) y para el **distribuidor** (en su "Mi cuenta").
+- Para distribuidores reales el pedido ya está a precio distribuidor. (El modo comisionista de Agustín — recálculo de costo + referencia cliente/costo/comisión — es el paso 2.)
+
+### Base de datos (importante)
+El check constraint de `profiles.rol` no permitía `'distribuidor'`. Hay que actualizarlo:
+```sql
+alter table profiles drop constraint if exists profiles_rol_check;
+alter table profiles add constraint profiles_rol_check check (rol in ('admin','fabrica','vendedor','distribuidor'));
+```
+
 ## V322 — 2026-06-03 — El panel lista todas las cuentas (vendedores y distribuidores)
 
 El desplegable del panel (en Administración) vuelve a listar **todas las cuentas** (vendedores y distribuidores), no solo distribuidores — como el panel de descuentos original. Al elegir cualquiera se ve todo: stats + descuentos + cuenta corriente. Cada opción muestra el rol al lado del nombre.

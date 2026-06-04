@@ -9040,6 +9040,70 @@ async function eliminarMovCC(id){
 }
 function _ccColor(s){ return s>0?'var(--red)':(s<0?'var(--green)':'var(--muted)'); }
 
+// V323 — Presupuesto distribuidor: vista limpia + PDF de un pedido (precios de distribuidor).
+// Abrible desde la cuenta corriente (admin y distribuidor). Para distribuidores reales el pedido
+// ya está a precio distribuidor; para Agustín (comisionista) se recalculará en el paso 2.
+function verPresupuestoDist(pedidoId){
+  const doc = getDocs().find(d=>d.id===pedidoId);
+  if(!doc){ toast('No se encontró el pedido','err'); return; }
+  const items = (doc.items||[]).filter(it=>(parseFloat(it.precio)||0)>0 || (it.ancho&&it.alto));
+  const rows = items.map((it,i)=>{
+    const cant = parseInt(it.cant)||1;
+    const med  = (it.ancho||it.alto) ? `${it.ancho||'?'} × ${it.alto||'?'} mm` : '—';
+    const pu   = parseFloat(it.precio)||0;
+    return `<tr>
+      <td class="n">${i+1}</td>
+      <td><strong>${getTelaLabel(it.tela)}</strong>${it.color?`<br><span class="muted">${it.color}</span>`:''}${it.ref?`<br><span class="muted">Ref: ${it.ref}</span>`:''}</td>
+      <td class="c">${med}</td>
+      <td class="c">${cant}</td>
+      <td class="r">${fmtM(pu)}</td>
+      <td class="r"><strong>${fmtM(pu*cant)}</strong></td>
+    </tr>`;
+  }).join('');
+  const instal = parseFloat(doc.instalacion)||0;
+  const instalRow = instal>0 ? `<tr><td></td><td>Instalación / colocación</td><td class="c">—</td><td class="c">—</td><td class="r"></td><td class="r"><strong>${fmtM(instal)}</strong></td></tr>` : '';
+  const totalDoc = parseFloat(doc.total) || items.reduce((s,it)=>s+(parseFloat(it.precio)||0)*(parseInt(it.cant)||1),0);
+  const win = window.open('','_blank','width=860,height=940');
+  if(!win){ toast('Permití las ventanas emergentes para ver el PDF','err'); return; }
+  win.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Presupuesto ${doc.numero||''}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+      *{box-sizing:border-box;margin:0;padding:0}
+      body{font-family:'DM Sans',sans-serif;color:#1a1a1a;background:#f5f4f1;padding:24px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+      .sheet{max-width:760px;margin:0 auto;background:#fff;border-radius:16px;padding:34px 38px;box-shadow:0 2px 20px rgba(0,0,0,.06)}
+      .top{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #141414;padding-bottom:16px;margin-bottom:20px}
+      .brand{font-family:'Manrope',sans-serif;font-size:22px;font-weight:800;letter-spacing:-.5px}.brand span{color:#f09620}
+      .tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#888;margin-top:3px}
+      .meta{text-align:right;font-size:12.5px;color:#555;line-height:1.6}.meta b{color:#141414;font-size:15px}
+      table{width:100%;border-collapse:collapse;margin:8px 0 16px}
+      th{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#999;text-align:left;padding:8px;border-bottom:1px solid #e6e3de}
+      td{padding:10px 8px;border-bottom:1px solid #eeebe6;font-size:12.5px;vertical-align:top}
+      td.c{text-align:center}td.r{text-align:right;font-family:'Manrope',sans-serif}td.n{color:#bbb;width:22px}
+      .muted{color:#999;font-size:11px}
+      .total{display:flex;justify-content:flex-end;gap:18px;align-items:baseline}
+      .total .lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#888}
+      .total .val{font-family:'Manrope',sans-serif;font-size:26px;font-weight:800;letter-spacing:-.5px}
+      .foot{margin-top:24px;font-size:10.5px;color:#999;border-top:1px solid #eeebe6;padding-top:12px}
+      .pbtn{position:fixed;top:18px;right:22px;background:#141414;color:#fff;border:none;border-radius:10px;padding:10px 16px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
+      @media print{body{background:#fff;padding:0}.sheet{box-shadow:none;border-radius:0;max-width:none}.pbtn{display:none}}
+    </style></head><body>
+    <button class="pbtn" onclick="window.print()">🖨 Imprimir / Guardar PDF</button>
+    <div class="sheet">
+      <div class="top">
+        <div><div class="brand">Roller<span>Motion</span></div><div class="tag">Presupuesto distribuidor</div></div>
+        <div class="meta"><b>${doc.numero||'—'}</b><br>${doc.cliente||''}<br>${fmtD(doc.fecha||doc.entrega)}</div>
+      </div>
+      <table>
+        <thead><tr><th></th><th>Producto</th><th style="text-align:center">Medidas</th><th style="text-align:center">Cant.</th><th style="text-align:right">P. unit.</th><th style="text-align:right">Subtotal</th></tr></thead>
+        <tbody>${rows||'<tr><td colspan="6" style="text-align:center;color:#999;padding:20px">Sin ítems</td></tr>'}${instalRow}</tbody>
+      </table>
+      <div class="total"><span class="lbl">Total distribuidor</span><span class="val">${fmtM(totalDoc)}</span></div>
+      <div class="foot">Precios de distribuidor (IVA incluido). No incluye financiación en cuotas. Documento interno de referencia.</div>
+    </div>
+  </body></html>`);
+  win.document.close();
+}
+
 // V320 — Panel UNIFICADO de distribuidores: dropdown → mini-dashboard + cuenta corriente + descuentos.
 async function renderDistribuidores(){
   if(!ME || ME.role!=='admin') return;
@@ -9120,7 +9184,7 @@ function renderCCLedger(){
   const rows = movs.map(m=>{ saldo += (m.tipo==='debito'?(+m.monto||0):-(+m.monto||0));
     return `<tr>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtD(m.fecha)}</td>
-      <td style="font-size:12.5px">${m.concepto||'—'}${m.pedido_numero?` <span style="color:var(--muted)">· ${m.pedido_numero}</span>`:''}</td>
+      <td style="font-size:12.5px">${m.concepto||'—'}${m.pedido_numero?` <span style="color:var(--muted)">· ${m.pedido_numero}</span>`:''}${(m.tipo==='debito'&&m.pedido_id)?` <a onclick="verPresupuestoDist('${m.pedido_id}')" style="color:var(--blue);cursor:pointer;font-weight:600;font-size:11px">› ver</a>`:''}</td>
       <td style="text-align:right;color:var(--red);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='debito'?fmtM(+m.monto):''}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='credito'?fmtM(+m.monto):''}</td>
       <td style="text-align:right;font-weight:800;font-family:'Manrope',sans-serif">${fmtM(saldo)}</td>
@@ -9148,7 +9212,7 @@ async function renderMiCC(){
   const rows = movs.map(m=>{ saldo += (m.tipo==='debito'?(+m.monto||0):-(+m.monto||0));
     return `<tr>
       <td style="font-size:12px;color:var(--muted);white-space:nowrap">${fmtD(m.fecha)}</td>
-      <td style="font-size:12.5px">${m.concepto||'—'}${m.pedido_numero?` · ${m.pedido_numero}`:''}</td>
+      <td style="font-size:12.5px">${m.concepto||'—'}${m.pedido_numero?` · ${m.pedido_numero}`:''}${(m.tipo==='debito'&&m.pedido_id)?` <a onclick="verPresupuestoDist('${m.pedido_id}')" style="color:var(--blue);cursor:pointer;font-weight:600;font-size:11px">› ver</a>`:''}</td>
       <td style="text-align:right;color:var(--red);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='debito'?fmtM(+m.monto):''}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='credito'?fmtM(+m.monto):''}</td>
       <td style="text-align:right;font-weight:800;font-family:'Manrope',sans-serif">${fmtM(saldo)}</td>
