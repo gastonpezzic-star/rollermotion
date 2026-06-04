@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cotización Distribuidor — Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#16140f;        /* casi negro cálido */
+    --muted:#8c857a;      /* gris cálido */
+    --faint:#b6afa3;
+    --line:#e8e3da;       /* hairline */
+    --paper:#fffdf9;      /* papel cálido */
+    --bg:#efece4;         /* fondo */
+    --gold:#c8821a;       /* dorado marca (un toque más profundo, más premium) */
+    --gold-soft:#f4ead7;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:'DM Sans',sans-serif;
+    background:
+      radial-gradient(1200px 500px at 50% -10%, #f7f3ea, transparent),
+      var(--bg);
+    color:var(--ink);
+    padding:48px 20px;
+    -webkit-font-smoothing:antialiased;
+  }
+
+  /* ── Hoja ── */
+  .sheet{
+    max-width:740px;margin:0 auto;background:var(--paper);
+    border-radius:6px;
+    box-shadow:0 1px 1px rgba(0,0,0,.03), 0 18px 50px -18px rgba(40,30,10,.28);
+    overflow:hidden;
+    position:relative;
+  }
+  .sheet::before{ /* filo dorado superior */
+    content:'';position:absolute;top:0;left:0;right:0;height:3px;
+    background:linear-gradient(90deg,var(--gold) 0%, #e0a93f 50%, var(--gold) 100%);
+  }
+
+  /* ── Header ── */
+  .hd{display:flex;justify-content:space-between;align-items:flex-start;padding:38px 44px 26px}
+  .brand{font-family:'Manrope',sans-serif;font-weight:800;font-size:25px;letter-spacing:-.03em;color:var(--ink);line-height:1}
+  .brand span{color:var(--gold)}
+  .brand-sub{font-size:10px;color:var(--muted);margin-top:9px;line-height:1.7;letter-spacing:.01em}
+  .doc-tag{
+    display:inline-block;font-size:9.5px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;
+    color:var(--gold);background:var(--gold-soft);border-radius:999px;padding:5px 12px;margin-bottom:12px;
+  }
+  .hd-right{text-align:right}
+  .doc-kind{font-size:10px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+  .doc-num{font-family:'Fraunces',serif;font-weight:500;font-size:34px;color:var(--ink);line-height:1.05;letter-spacing:-.01em;margin-top:2px}
+  .doc-dates{font-size:11px;color:var(--muted);margin-top:10px;line-height:1.8}
+  .doc-dates b{color:var(--ink);font-weight:600}
+
+  /* ── Cliente ── */
+  .who{padding:4px 44px 26px;display:flex;gap:48px}
+  .who .lbl{font-size:9px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--faint);margin-bottom:6px}
+  .who .name{font-family:'Fraunces',serif;font-size:19px;font-weight:400;color:var(--ink);letter-spacing:-.01em}
+  .who .meta{font-size:11.5px;color:var(--muted);margin-top:3px;line-height:1.6}
+
+  .rule{height:1px;background:var(--line);margin:0 44px}
+
+  /* ── Items ── */
+  .items{padding:26px 44px 8px}
+  .items table{width:100%;border-collapse:collapse}
+  .items thead th{
+    font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);
+    text-align:left;padding:0 0 12px;border-bottom:1px solid var(--ink);
+  }
+  .items thead th.c{text-align:center}
+  .items thead th.r{text-align:right}
+  .items tbody td{padding:15px 0;border-bottom:1px solid var(--line);vertical-align:top}
+  .items tbody tr:last-child td{border-bottom:none}
+  .it-n{font-family:'Fraunces',serif;font-size:14px;color:var(--faint);width:30px}
+  .it-name{font-size:13.5px;font-weight:600;color:var(--ink);letter-spacing:-.005em}
+  .it-desc{font-size:11px;color:var(--muted);margin-top:3px;letter-spacing:.01em}
+  .it-c{text-align:center;font-size:12.5px;color:var(--ink)}
+  .it-dim{text-align:center;font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+  .it-price{text-align:right;font-family:'Manrope',sans-serif;font-size:12.5px;color:var(--muted);font-weight:500;white-space:nowrap}
+  .it-sub{text-align:right;font-family:'Manrope',sans-serif;font-size:13.5px;color:var(--ink);font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+  /* ── Total ── */
+  .totals{padding:18px 44px 6px;display:flex;justify-content:flex-end}
+  .totbox{width:300px}
+  .totrow{display:flex;justify-content:space-between;align-items:baseline;padding:7px 0;font-size:12.5px;color:var(--muted)}
+  .totrow b{color:var(--ink);font-family:'Manrope',sans-serif;font-weight:600;font-variant-numeric:tabular-nums}
+  .totrow.grand{margin-top:8px;padding-top:16px;border-top:1.5px solid var(--ink);align-items:flex-end}
+  .totrow.grand .lbl{font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+  .totrow.grand .val{font-family:'Fraunces',serif;font-weight:500;font-size:32px;color:var(--ink);letter-spacing:-.01em;line-height:1;font-variant-numeric:tabular-nums}
+
+  /* ── Nota / Footer ── */
+  .note{margin:22px 44px 0;background:#faf6ee;border:1px solid var(--line);border-radius:10px;padding:14px 18px;font-size:11px;color:var(--muted);line-height:1.7}
+  .note b{color:var(--ink);font-weight:600}
+  .ft{display:flex;justify-content:space-between;align-items:center;padding:24px 44px 34px;margin-top:6px;font-size:10.5px;color:var(--faint)}
+  .ft .l b{color:var(--muted);font-weight:600}
+  .ft .dot{color:var(--gold)}
+
+  .hint{max-width:740px;margin:14px auto 0;text-align:center;font-size:11px;color:#a59c8c}
+</style>
+</head>
+<body>
+
+  <div class="sheet">
+    <!-- HEADER -->
+    <div class="hd">
+      <div>
+        <div class="brand">Roller<span>Motion</span></div>
+        <div class="brand-sub">
+          Luis María Drago 196 · Villa Adelina, Buenos Aires<br>
+          CUIT 30-71614334-8 · info@rollermotion.com.ar
+        </div>
+      </div>
+      <div class="hd-right">
+        <div class="doc-tag">Distribuidor</div>
+        <div class="doc-kind">Cotización</div>
+        <div class="doc-num">N° 0482</div>
+        <div class="doc-dates">
+          Fecha: <b>04 / 06 / 2026</b><br>
+          Válida hasta: <b>19 / 06 / 2026</b>
+        </div>
+      </div>
+    </div>
+
+    <!-- CLIENTE -->
+    <div class="who">
+      <div>
+        <div class="lbl">Distribuidor</div>
+        <div class="name">Casa Decoración del Sur</div>
+        <div class="meta">Bariloche, Río Negro</div>
+      </div>
+      <div>
+        <div class="lbl">Referencia</div>
+        <div class="name" style="font-size:16px">Obra Mitre 1240</div>
+        <div class="meta">Living + dormitorios</div>
+      </div>
+    </div>
+
+    <div class="rule"></div>
+
+    <!-- ITEMS -->
+    <div class="items">
+      <table>
+        <thead>
+          <tr>
+            <th></th>
+            <th>Producto</th>
+            <th class="c">Medidas</th>
+            <th class="c">Cant.</th>
+            <th class="r">P. unit.</th>
+            <th class="r">Subtotal</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="it-n">01</td>
+            <td>
+              <div class="it-name">Roller Blackout</div>
+              <div class="it-desc">Beige Lino · Comando derecha · Soporte largo</div>
+            </td>
+            <td class="it-dim">1400 × 1600</td>
+            <td class="it-c">2</td>
+            <td class="it-price">$ 84.320</td>
+            <td class="it-sub">$ 168.640</td>
+          </tr>
+          <tr>
+            <td class="it-n">02</td>
+            <td>
+              <div class="it-name">Roller Sunscreen 5%</div>
+              <div class="it-desc">Gris Perla · Comando izquierda</div>
+            </td>
+            <td class="it-dim">1800 × 2100</td>
+            <td class="it-c">1</td>
+            <td class="it-price">$ 96.480</td>
+            <td class="it-sub">$ 96.480</td>
+          </tr>
+          <tr>
+            <td class="it-n">03</td>
+            <td>
+              <div class="it-name">Bandas Verticales</div>
+              <div class="it-desc">Blanco · Riel 5 vías</div>
+            </td>
+            <td class="it-dim">2400 × 2600</td>
+            <td class="it-c">1</td>
+            <td class="it-price">$ 71.200</td>
+            <td class="it-sub">$ 71.200</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TOTAL -->
+    <div class="totals">
+      <div class="totbox">
+        <div class="totrow"><span>Subtotal productos</span> <b>$ 336.320</b></div>
+        <div class="totrow"><span>Instalación / colocación</span> <b>$ 28.000</b></div>
+        <div class="totrow grand">
+          <span class="lbl">Total</span>
+          <span class="val">$ 364.320</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- NOTA -->
+    <div class="note">
+      <b>Precios de distribuidor.</b> Valores con IVA incluido, sin financiación en cuotas. Esta cotización es de uso interno entre RollerMotion y el distribuidor.
+    </div>
+
+    <!-- FOOTER -->
+    <div class="ft">
+      <div class="l"><b>RollerMotion</b> · Cortinas & Automatización</div>
+      <div>Villa Adelina, Buenos Aires <span class="dot">·</span> rollermotion.com.ar</div>
+    </div>
+  </div>
+
+  <div class="hint">Mockup de cotización en modo distribuidor — sin tarjeta, efectivo, transferencia ni cuotas.</div>
+
+</body>
+</html>
