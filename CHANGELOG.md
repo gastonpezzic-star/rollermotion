@@ -1,5 +1,13 @@
 # Changelog
 
+## V332 — 2026-06-05 — FIX CRÍTICO: editar medidas multiplicaba la cantidad de cortinas
+
+Al vincular una cotización y **editar el ancho/alto** de un pedido, al guardar se generaban muchísimas cortinas iguales (ej: ancho 1200 → 1200 unidades). Causa: los inputs de ancho/alto (agregados en V327) quedaron *antes* del input de cantidad en la fila, y 6 funciones leían la cantidad como "el primer `input[type=number]` de la fila" → tomaban el ancho como cantidad.
+
+Fix: el input de cantidad ahora tiene la clase `.it-cant` y las 6 funciones (total, getItems, instalación, descuentos, bruto) leen específicamente esa clase. Verificado en navegador: una cortina 1200×1200 con cantidad 1 ahora guarda **1 unidad** (antes 1200).
+
+**Importante:** si quedó algún pedido mal generado con cientos de cortinas, hay que eliminarlo a mano.
+
 ## V331 — 2026-06-05 — Animaciones con criterio (menú ⋮ + toast) — estilo Sonner/Emil
 
 Pulido visual aplicando el criterio de animación de Emil Kowalski (el autor de Sonner), con CSS nativo (sin librerías).

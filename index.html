@@ -6558,7 +6558,7 @@ function addRow(item){
     <td style="padding:6px 8px;text-align:center;font-weight:600">${isOrder?`<input type="number" value="${item.ancho||''}" oninput="editDim(this,'ancho')" title="Editable — no cambia el precio" style="width:58px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-weight:600;outline:none">`:(item.ancho||'—')}</td>
     <td style="padding:6px 8px;text-align:center;font-weight:600">${isOrder?`<input type="number" value="${item.alto||''}" oninput="editDim(this,'alto')" title="Editable — no cambia el precio" style="width:58px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-weight:600;outline:none">`:(item.alto||'—')}</td>`}
     <td style="padding:10px 10px;text-align:center">
-      <input type="number" value="${cant}" min="1" max="99"
+      <input type="number" class="it-cant" value="${cant}" min="1" max="99"
         style="width:48px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;outline:none"
         oninput="recalcRow(this);calcInstalacion()">
     </td>
@@ -6708,7 +6708,7 @@ function recalcTotal(){
   let total = 0, units = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     const item  = JSON.parse(tr.dataset.item||'{}');
-    const cantInput = tr.querySelector('input[type=number]');
+    const cantInput = tr.querySelector('.it-cant');
     const cant  = parseInt(cantInput?.value)||parseInt(item.cant)||1;
     const precio= parseFloat(item.precio)||0;
     total += cant * precio;
@@ -6728,7 +6728,7 @@ function recalcTotal(){
 function getItems(){
   return Array.from(document.querySelectorAll('#items-list tr')).map(tr=>{
     const base = JSON.parse(tr.dataset.item||'{}');
-    const cantInput = tr.querySelector('input[type=number]');
+    const cantInput = tr.querySelector('.it-cant');
     base.cant = parseInt(cantInput?.value)||parseInt(base.cant)||1;
     // For orders, read live values from the inline selects
     if(currentType === 'order'){
@@ -7067,7 +7067,7 @@ function getInstalAutoCounts(){
     try{
       const item = JSON.parse(tr.dataset.item||'{}');
       if(!esItemConInstalacion(item)) return;
-      const cantInput = tr.querySelector('input[type=number]');
+      const cantInput = tr.querySelector('.it-cant');
       const cant = parseInt(cantInput?.value)||parseInt(item.cant)||1;
       const tela = (item.tela||'').toLowerCase();
       // Toldos (V288.2) — instalación con precio diferenciado, motorización por flag del item
@@ -7136,7 +7136,7 @@ function recalcTotalConInstal(){
   let total = 0, units = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     const item  = JSON.parse(tr.dataset.item||'{}');
-    const cantInput = tr.querySelector('input[type=number]');
+    const cantInput = tr.querySelector('.it-cant');
     const cant  = parseInt(cantInput?.value)||parseInt(item.cant)||1;
     const precio= parseFloat(item.precio)||0;
     total += cant * precio;
@@ -13146,7 +13146,7 @@ function getDescuentoMonto(){
   let subtotal = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     const item = JSON.parse(tr.dataset.item||'{}');
-    const cant = parseInt(tr.querySelector('input[type=number]')?.value)||parseInt(item.cant)||1;
+    const cant = parseInt(tr.querySelector('.it-cant')?.value)||parseInt(item.cant)||1;
     subtotal += cant * (parseFloat(item.precio)||0);
   });
   subtotal += getAdicionalesTotal() + getInstalTotal();
@@ -13203,7 +13203,7 @@ function getTotalBruto(){
   let t = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     const item = JSON.parse(tr.dataset.item||'{}');
-    const cant = parseInt(tr.querySelector('input[type=number]')?.value)||parseInt(item.cant)||1;
+    const cant = parseInt(tr.querySelector('.it-cant')?.value)||parseInt(item.cant)||1;
     t += cant * (parseFloat(item.precio)||0);
   });
   t += getAdicionalesTotal() + getInstalTotal();
