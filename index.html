@@ -3787,7 +3787,7 @@ function enterApp(){
   document.getElementById('t-rb').textContent = ME.role==='admin'?'Administrador':(ME.role==='fabrica'?'Fábrica':'Vendedor');
   document.getElementById('t-rb').className = 't-role '+(ME.role==='admin'?'r-admin':'r-vendor');
   buildNav(); renderCost(); switchPage('pg-inicio'); renderCot(); renderPed();
-  if(ME.role==='admin'){ renderAdmin(); updateStats(); }
+  if(ME.role==='admin'){ renderAdmin(); updateStats(); loadDistribuidores(); }
   updateNavBadges();
   updateSyncIndicator();
   // Sincroniza con Supabase en segundo plano
@@ -9002,6 +9002,12 @@ async function loadDistribuidores(){
   try{ const { data } = await _sb.from('profiles').select('id,nombre,email,rol').eq('rol','distribuidor'); _distribuidores = data||[]; }
   catch(e){ console.warn('[CC] distribuidores:', e.message); }
 }
+// V324 — ¿el documento pertenece a un distribuidor? (para cotización en formato distribuidor)
+function esDocDistribuidor(d){
+  if(!d) return false;
+  if(ME && ME.esDistribuidor) return true; // distribuidor viendo lo suyo (solo ve lo propio)
+  return !!(d.vendedor_id && _distribuidores.some(x=>x.id===d.vendedor_id));
+}
 
 async function loadCC(){
   if(!ME) return;
@@ -9046,6 +9052,7 @@ function _ccColor(s){ return s>0?'var(--red)':(s<0?'var(--green)':'var(--muted)'
 function verPresupuestoDist(pedidoId){
   const doc = getDocs().find(d=>d.id===pedidoId);
   if(!doc){ toast('No se encontró el pedido','err'); return; }
+  openDoc(doc); return; // V324 — formato de cotización distribuidor unificado (reemplaza la ventana básica)
   const items = (doc.items||[]).filter(it=>(parseFloat(it.precio)||0)>0 || (it.ancho&&it.alto));
   const rows = items.map((it,i)=>{
     const cant = parseInt(it.cant)||1;
@@ -10336,6 +10343,7 @@ function openDoc(d, fromForm){
   }
 
   document.getElementById('overlay-title').textContent = isOrder ? `Pedido #${d.numero||'—'}` : `Cotización #${d.numero||'—'}`;
+  const esDist = esDocDistribuidor(d); // V324 — cotización en formato distribuidor (sin pago/cuotas/WhatsApp)
   document.getElementById('doc-content').innerHTML = `<div class="doc" style="font-family:'DM Sans',sans-serif">
 
   <!-- TOP BAND con color de marca -->
@@ -10351,7 +10359,7 @@ function openDoc(d, fromForm){
       </div>
     </div>
     <div style="text-align:right">
-      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#888;margin-bottom:4px">${isOrder?'Nota de Pedido':'Cotización'}</div>
+      <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:#888;margin-bottom:4px">${isOrder?'Nota de Pedido':'Cotización'}${esDist?` · <span style="color:#f09620">Distribuidor</span>`:''}</div>
       <div style="font-family:'Manrope',sans-serif;font-size:15px;color:#f09620;line-height:1;font-weight:600;letter-spacing:.04em">#${d.numero||'—'}</div>
       <div style="font-size:11px;color:#888;margin-top:3px">
         Fecha: ${fmtD(d.fecha)}<br>
@@ -10376,7 +10384,7 @@ function openDoc(d, fromForm){
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:3px">Estado</div>
       <div style="font-size:13px;font-weight:700;color:#333">${d.estado}</div>
     </div>
-    ${d.pago||d.tiempo?`<div>
+    ${(!esDist && (d.pago||d.tiempo))?`<div>
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:3px">Condiciones</div>
       ${d.pago?`<div style="font-size:11px;color:#333">${d.pago}</div>`:''}
       ${d.tiempo?`<div style="font-size:11px;color:#888">${d.tiempo}</div>`:''}
@@ -10436,13 +10444,22 @@ function openDoc(d, fromForm){
     <div style="font-family:'Manrope',sans-serif;font-size:18px;color:#141414;font-weight:600">${fmtM(d.total)}</div>
   </div>
 
-  ${promoHtml}
+  ${esDist?'':promoHtml}
 
   ${d.obs?`<div style="margin:0 22px 16px;border:1px solid #e0e0de;border-left:3px solid #f09620;border-radius:0 6px 6px 0;padding:10px 14px;font-size:11px;background:#fef6e8">
     <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#d4820e;margin-bottom:4px">Observaciones</div>${d.obs}
   </div>`:''}
 
-  <!-- FOOTER: dirección + WhatsApp CTA -->
+  ${esDist?`
+    <div style="margin:14px 22px 0;border:1px solid #e0e0de;border-left:3px solid #f09620;border-radius:0 6px 6px 0;padding:10px 14px;font-size:11px;color:#7a6a45;background:#fef6e8">Esta cotización es <b style="color:#5a4a25">únicamente válida para distribuidores autorizados</b>, no para clientes finales.</div>
+    <div style="margin:14px 22px 0;background:linear-gradient(180deg,#fefbf4,#f6efdf);border:1px solid #ece2cf;border-radius:18px;padding:18px 24px;display:flex;align-items:center;gap:22px;box-shadow:inset 0 1px 0 rgba(255,255,255,.92), 0 2px 6px rgba(240,150,32,.08), 0 16px 34px -13px rgba(240,150,32,.13), 0 40px 74px -30px rgba(240,150,32,.09), 0 14px 30px -16px rgba(60,45,15,.11)">
+      <img src="${logoImg}" style="height:36px;display:block;filter:drop-shadow(0 2px 5px rgba(60,45,15,.14))">
+      <div style="width:1px;align-self:stretch;background:linear-gradient(180deg,transparent,#e3dbc9 40%,#e3dbc9 60%,transparent)"></div>
+      <div style="flex:1;font-size:10.5px;color:#968f82;line-height:1.85">Luis María Drago 196<br>Villa Adelina, Buenos Aires<br>CUIT 30-71614334-8 · info@rollermotion.com.ar</div>
+      <div style="text-align:right;font-size:9.5px;color:#b3ab9c;max-width:150px;line-height:1.6">Válida por ${isOrder?'tiempo indefinido':'7 días'} · Precios sujetos a variación de medidas en obra</div>
+    </div>
+  `:`
+  <!-- FOOTER cliente: dirección + WhatsApp CTA -->
   <div style="margin:16px 22px 0;padding:16px;background:#141414;border-radius:8px;display:flex;align-items:center;justify-content:space-between">
     <div style="font-size:10px;color:rgba(255,255,255,.5);line-height:1.7">
       <div style="font-size:11px;font-weight:600;color:rgba(255,255,255,.85);margin-bottom:2px">RollerMotion</div>
@@ -10456,6 +10473,7 @@ function openDoc(d, fromForm){
       ¿Dudas? Escribinos
     </a>
   </div>
+  `}
   <div style="height:24px"></div>
 
 

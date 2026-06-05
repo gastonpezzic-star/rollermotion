@@ -1,5 +1,17 @@
 # Changelog
 
+## V324 — 2026-06-04 — Cotización en formato distribuidor (integrada)
+
+Cuando un documento es de un **distribuidor**, la cotización/pedido sale en un formato reducido y elegante:
+
+- **Igual que la de cliente** (logo real, banda dorada, tipografías de siempre, tabla negra) pero **sin** forma de pago, **sin** el bloque de cuotas/Efectivo/Transferencia y **sin** el botón de WhatsApp.
+- **Footer nuevo (B1)**: tarjeta crema con el logo, con profundidad (sombra en capas + glow naranja leve), y "Villa Adelina, Buenos Aires" en su propia línea.
+- Tag **"Cotización · Distribuidor"** en el encabezado + nota: *"Esta cotización es únicamente válida para distribuidores autorizados, no para clientes finales."*
+- Detección: `esDocDistribuidor()` (el distribuidor viendo lo suyo, o el admin viendo un doc de distribuidor — se cargan los distribuidores al entrar como admin).
+- El **"› ver"** de la cuenta corriente ahora abre este mismo formato (unificado), con su botón de Imprimir / PDF.
+
+Las cotizaciones de clientes normales quedan **exactamente igual**.
+
 ## V323 — 2026-06-04 — Presupuesto distribuidor (vista + PDF) desde la cuenta corriente
 
 Cada **débito** de la cuenta corriente (un pedido aprobado) ahora tiene un link **"› ver"**: abre una ventana **limpia** con el pedido a **precios de distribuidor** — producto, medidas, cantidad, precio unitario y subtotal + total — exportable a **PDF** (botón Imprimir / Guardar PDF). Sin tarjeta, sin WhatsApp, sin cuotas.
