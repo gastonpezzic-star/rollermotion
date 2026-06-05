@@ -1787,9 +1787,30 @@ button:not([disabled]):active,
         <div class="card-h">👥 Vendedores y distribuidores</div>
         <div class="card-b">
           <p style="font-size:13px;color:var(--muted);margin-bottom:16px">Elegí una cuenta para ver sus estadísticas, sus descuentos y su cuenta corriente en un solo lugar.</p>
-          <select id="desc-cuenta" onchange="onSelectDistrib()" style="padding:11px 15px;border:1px solid var(--border);border-radius:12px;font-size:15px;min-width:320px;background:#fff;font-family:'DM Sans',sans-serif;outline:none;margin-bottom:22px">
-            <option value="">— Elegí una cuenta —</option>
-          </select>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+            <select id="desc-cuenta" onchange="onSelectDistrib()" style="padding:11px 15px;border:1px solid var(--border);border-radius:12px;font-size:15px;min-width:300px;background:#fff;font-family:'DM Sans',sans-serif;outline:none">
+              <option value="">— Elegí una cuenta —</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="toggleNuevoDistrib()">＋ Nueva cuenta</button>
+          </div>
+          <!-- V326: alta de distribuidor/vendedor sin SQL -->
+          <div id="nuevo-distrib-form" style="display:none;background:#faf8f3;border:1px solid #ece7dd;border-radius:12px;padding:16px 18px;margin-bottom:22px;max-width:560px">
+            <div style="font-size:13px;font-weight:700;margin-bottom:12px">Crear cuenta nueva</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+              <input id="nd-nombre" placeholder="Nombre" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+              <input id="nd-email" type="email" placeholder="Email" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+              <input id="nd-pass" placeholder="Contraseña (mín. 6)" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+              <select id="nd-rol" style="padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;background:#fff;outline:none">
+                <option value="distribuidor">Distribuidor</option>
+                <option value="vendedor">Vendedor oficial</option>
+              </select>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <button class="btn btn-primary btn-sm" onclick="crearDistribuidor()">Crear cuenta</button>
+              <button class="btn btn-outline btn-sm" onclick="toggleNuevoDistrib()">Cancelar</button>
+              <span style="font-size:11px;color:var(--muted)">Los descuentos los cargás abajo, después de crearla.</span>
+            </div>
+          </div>
           <div id="distrib-detail"></div>
         </div>
       </div>
@@ -9127,6 +9148,51 @@ async function renderDistribuidores(){
     if(prev) sel.value = prev;
   }
   onSelectDistrib();
+}
+
+// V326 — Alta de distribuidor/vendedor desde el panel (sin SQL, sin Edge Function).
+function toggleNuevoDistrib(){
+  const f = document.getElementById('nuevo-distrib-form');
+  if(f) f.style.display = (f.style.display==='none' || !f.style.display) ? 'block' : 'none';
+}
+async function crearDistribuidor(){
+  if(!ME || ME.role!=='admin') return;
+  const nombre = (document.getElementById('nd-nombre').value||'').trim();
+  const email  = (document.getElementById('nd-email').value||'').trim().toLowerCase();
+  const pass   = document.getElementById('nd-pass').value||'';
+  const rol    = document.getElementById('nd-rol').value||'distribuidor';
+  if(!nombre || !email || !pass){ toast('Completá nombre, email y contraseña','err'); return; }
+  if(pass.length < 6){ toast('La contraseña debe tener al menos 6 caracteres','err'); return; }
+  const btn = event?.target; if(btn){ btn.disabled = true; btn.textContent = 'Creando…'; }
+  try{
+    // 1) Crear el usuario de Auth con un cliente TEMPORAL (persistSession:false) para NO tocar la sesión del admin
+    const tmp = supabase.createClient(
+      'https://ybqnmoqwaoecyodzgach.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlicW5tb3F3YW9lY3lvZHpnYWNoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU0MzQ5NDQsImV4cCI6MjA5MTAxMDk0NH0.0FPhl__EwKXZN0oTWnavt9Z3TkGpH_NWwjiYUGdxCkQ',
+      { auth: { persistSession:false, autoRefreshToken:false } }
+    );
+    const { data, error } = await tmp.auth.signUp({ email, password: pass });
+    if(error) throw error;
+    const uid = data?.user?.id;
+    if(!uid) throw new Error('No se pudo crear el usuario (¿email ya registrado?)');
+    // 2) Crear el perfil (como admin)
+    const { error: pErr } = await _sb.from('profiles').insert({ id: uid, nombre, email, rol, descuentos:{}, iva_condicion:21, activo:true });
+    if(pErr){
+      if(pErr.code==='42501'){ toast('⚠ Falta correr el SQL de "Admin crea perfiles" (te lo paso)','err'); }
+      throw pErr;
+    }
+    toast(`✅ Cuenta creada: ${email}`,'ok');
+    ['nd-nombre','nd-email','nd-pass'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+    toggleNuevoDistrib();
+    await renderDistribuidores();
+    const sel = document.getElementById('desc-cuenta'); if(sel){ sel.value = uid; onSelectDistrib(); }
+    alert(`✅ Cuenta creada\n\nUsuario: ${email}\nContraseña: ${pass}\nRol: ${rol}\n\nPasale estos datos al distribuidor. Anotá la contraseña — no se puede recuperar después (solo resetear).`);
+  }catch(e){
+    console.error('[Alta distrib]', e);
+    toast('⚠ No se pudo crear: '+(e.message||''),'err');
+  }finally{
+    if(btn){ btn.disabled = false; btn.textContent = 'Crear cuenta'; }
+  }
 }
 
 function onSelectDistrib(){

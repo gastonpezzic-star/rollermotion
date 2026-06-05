@@ -1,5 +1,23 @@
 # Changelog
 
+## V326 — 2026-06-04 — Alta de distribuidores/vendedores desde el panel (sin SQL)
+
+En Administración → Vendedores y distribuidores, botón **"＋ Nueva cuenta"**: nombre, email, contraseña y rol (distribuidor / vendedor) → crea la cuenta y queda lista para cargarle descuentos. Sin tocar Supabase, sin Edge Function.
+
+- Crea el usuario de Auth con un cliente temporal (`persistSession:false`) para **no cerrar la sesión del admin**, y el perfil lo inserta el admin.
+- Muestra usuario + contraseña al final para pasárselos al distribuidor.
+
+### Base de datos (correr una vez)
+```sql
+drop policy if exists "Admin crea perfiles" on profiles;
+create policy "Admin crea perfiles" on profiles for insert to authenticated with check (is_admin());
+```
+(Sin esto, la creación del perfil falla con error de permisos.)
+
+## V325 — 2026-06-04 — Zócalo distribuidor compacto + leyenda centrada
+
+El footer de la cotización distribuidor queda más compacto (menos alto) y la leyenda "válida solo para distribuidores autorizados" pasa a estar centrada y sutil (fuera del recuadro).
+
 ## V324 — 2026-06-04 — Cotización en formato distribuidor (integrada)
 
 Cuando un documento es de un **distribuidor**, la cotización/pedido sale en un formato reducido y elegante:
