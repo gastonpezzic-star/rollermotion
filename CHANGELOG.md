@@ -1,5 +1,9 @@
 # Changelog
 
+## V329 — 2026-06-04 — Fix: el botón "Vincular con cotización" no aparecía
+
+En **Nuevo Pedido** el botón no se mostraba. Causa: el contenedor usa solo la clase `.pedido-only` y la regla CSS `.pedido-only{display:none}` ganaba cuando el toggle le ponía `display:''` (los demás campos `pedido-only` se ven porque además tienen `.f{display:flex}`, declarada después). Fix: se fija el `display` explícito del botón (block para pedidos, none para cotizaciones) en `resetForm` y `editDoc`. Verificado en navegador.
+
 ## V328 — 2026-06-04 — Cobros manuales en la cuenta corriente del distribuidor
 
 En la cuenta corriente de cada distribuidor, además de **＋ Pago** (crédito) ahora hay **＋ Cobro** (débito manual): un cargo ad-hoc **sin pedido**, para cosas que se piden rápido en mostrador (ej: una cinta de papel) y no tienen presupuesto.
