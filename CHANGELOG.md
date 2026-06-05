@@ -1,5 +1,14 @@
 # Changelog
 
+## V333 — 2026-06-05 — Toasts apilables estilo Sonner
+
+Los avisos (toasts) ahora se **apilan**: pueden aparecer varios a la vez (hasta 4) en la esquina inferior derecha, en vez de pisarse uno al otro como antes. Cada uno entra deslizándose con un leve escalado, el stack se reacomoda suave cuando entra o sale uno, y al salir se colapsa el espacio (no salta).
+
+- Ícono según tipo (✓ ok · ✕ error · ℹ info) en un círculo translúcido, color de fondo por tipo.
+- **Se pueden cerrar con un clic**. Los errores duran más (5 s) que las confirmaciones (3 s) para dar tiempo a leer.
+- Respeta "reducir movimiento" y se adapta a pantallas chicas (iPad/celular).
+- Mismo `toast(msg, tipo)` de siempre, así las 150+ llamadas de la app funcionan sin tocar nada.
+
 ## V332 — 2026-06-05 — FIX CRÍTICO: editar medidas multiplicaba la cantidad de cortinas
 
 Al vincular una cotización y **editar el ancho/alto** de un pedido, al guardar se generaban muchísimas cortinas iguales (ej: ancho 1200 → 1200 unidades). Causa: los inputs de ancho/alto (agregados en V327) quedaron *antes* del input de cantidad en la fila, y 6 funciones leían la cantidad como "el primer `input[type=number]` de la fila" → tomaban el ancho como cantidad.

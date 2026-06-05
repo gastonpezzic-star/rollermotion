@@ -467,9 +467,17 @@ body{
 .etiq-cuts span{font-weight:800;color:var(--muted)}
 
 /* TOAST */
-.toast{position:fixed;bottom:22px;right:22px;background:var(--brand);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 28px rgba(0,0,0,.16),0 2px 6px rgba(0,0,0,.08);z-index:999;transform:translateY(16px) scale(.96);opacity:0;transition:transform .3s var(--ease-out),opacity .3s var(--ease-out)}
-.toast.on{transform:translateY(0) scale(1);opacity:1}
-.toast.ok{background:var(--green)}.toast.err{background:var(--red)}
+/* TOAST — stack apilable estilo Sonner (emil-design-eng, V333) */
+.toast{display:none} /* legacy: el #toast viejo queda oculto */
+#toast-stack{position:fixed;bottom:22px;right:22px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;pointer-events:none}
+.rm-toast{pointer-events:auto;cursor:pointer;display:flex;align-items:center;gap:10px;min-width:230px;max-width:380px;box-sizing:border-box;padding:0 16px;border-radius:11px;background:var(--brand);color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:500;line-height:1.35;box-shadow:0 8px 28px rgba(0,0,0,.18),0 2px 6px rgba(0,0,0,.10);max-height:0;opacity:0;transform:translateY(14px) scale(.96);overflow:hidden;transition:opacity .3s var(--ease-out),transform .34s var(--ease-out),max-height .34s var(--ease-out),margin-top .34s var(--ease-out),padding .34s var(--ease-out);will-change:transform,opacity,max-height}
+.rm-toast.show{max-height:160px;opacity:1;transform:translateY(0) scale(1);margin-top:10px;padding-top:12px;padding-bottom:12px}
+.rm-toast.ok{background:var(--green)}
+.rm-toast.err{background:var(--red)}
+.rm-toast-ic{flex:0 0 auto;font-size:13px;line-height:1;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;background:rgba(255,255,255,.22);font-weight:700}
+.rm-toast-msg{flex:1 1 auto}
+@media (prefers-reduced-motion:reduce){.rm-toast{transition:opacity .15s linear,max-height .15s linear,margin-top .15s linear,padding .15s linear;transform:none}.rm-toast.show{transform:none}}
+@media (max-width:560px){#toast-stack{left:14px;right:14px;align-items:stretch}.rm-toast{max-width:none;min-width:0}}
 
 /* COTIZACION badge */
 .type-quote{background:var(--amber-bg);color:var(--amber);border-radius:4px;padding:2px 6px;font-size:10px;font-weight:700}
@@ -10914,7 +10922,7 @@ async function printDoc(){
           /* Ocultar todo lo que NO es el documento */
           .overlay, .ptbar, .topbar, .nav, #stk-hoy-widget,
           #login-screen, #app > .topbar, #app > .nav,
-          .toast, button { display: none !important; }
+          .toast, #toast-stack, button { display: none !important; }
           /* El overlay no debe pintar el fondo oscuro */
           .overlay { background: #fff !important; }
           .overlay.on { display: block !important; position: static !important; }
@@ -13114,10 +13122,42 @@ function _exportExcelInternal(){
 /* ════════════════════════════
    TOAST
 ════════════════════════════ */
+// V333 — Toasts apilables (estilo Sonner): varios a la vez, máx 4, entran/salen con animación.
+function _getToastStack(){
+  let s=document.getElementById('toast-stack');
+  if(!s){
+    s=document.createElement('div'); s.id='toast-stack';
+    s.setAttribute('aria-live','polite'); s.setAttribute('aria-atomic','false');
+    document.body.appendChild(s);
+  }
+  return s;
+}
+function dismissToast(el){
+  if(!el || el._off) return;
+  el._off=true;
+  if(el._timer) clearTimeout(el._timer);
+  el.classList.remove('show');          // revierte al estado colapsado → sale hacia abajo + colapsa el espacio
+  let done=false;
+  const kill=()=>{ if(done) return; done=true; if(el.parentNode) el.remove(); };
+  el.addEventListener('transitionend', e=>{ if(e.propertyName==='max-height') kill(); });
+  setTimeout(kill, 480);                 // fallback por si no dispara transitionend
+}
 function toast(msg,type){
-  const t=document.getElementById('toast');
-  t.textContent=msg; t.className='toast on'+(type?' '+type:'');
-  setTimeout(()=>t.className='toast',2800);
+  const stack=_getToastStack();
+  const vivos=stack.querySelectorAll('.rm-toast.show');
+  if(vivos.length>=4) dismissToast(vivos[0]);   // máximo 4 visibles → sale el más viejo
+  const el=document.createElement('div');
+  el.className='rm-toast'+(type?' '+type:'');
+  el.setAttribute('role','status');
+  const ic = type==='ok' ? '✓' : type==='err' ? '✕' : 'i';
+  el.innerHTML='<span class="rm-toast-ic"></span><span class="rm-toast-msg"></span>';
+  el.querySelector('.rm-toast-ic').textContent=ic;
+  el.querySelector('.rm-toast-msg').textContent=msg;
+  el.addEventListener('click', ()=>dismissToast(el));   // click para descartar
+  stack.appendChild(el);
+  void el.offsetWidth;                   // reflow → dispara la animación de entrada
+  el.classList.add('show');
+  el._timer=setTimeout(()=>dismissToast(el), type==='err'?5000:3000);  // errores duran más
 }
 
 
