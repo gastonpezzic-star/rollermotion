@@ -1,5 +1,9 @@
 # Changelog
 
+## V330 — 2026-06-04 — Distribuidores: instalación NO incluida por defecto
+
+Cuando un **distribuidor** inicia una cotización/pedido, el servicio de **instalación arranca apagado** (ellos instalan). El toggle sigue disponible: si en un caso puntual la necesitan, la activan a mano. Para admin y vendedores no cambia nada (sigue incluida por defecto). Al editar un documento existente se respeta lo que ya tenía guardado.
+
 ## V329 — 2026-06-04 — Fix: el botón "Vincular con cotización" no aparecía
 
 En **Nuevo Pedido** el botón no se mostraba. Causa: el contenedor usa solo la clase `.pedido-only` y la regla CSS `.pedido-only{display:none}` ganaba cuando el toggle le ponía `display:''` (los demás campos `pedido-only` se ven porque además tienen `.f{display:flex}`, declarada después). Fix: se fija el `display` explícito del botón (block para pedidos, none para cotizaciones) en `resetForm` y `editDoc`. Verificado en navegador.

@@ -7232,15 +7232,16 @@ function resetForm(){
   qaInit();
   applyCondicionesDefault();
   const wEl2 = document.getElementById('qa-warnings'); if(wEl2) wEl2.innerHTML = '';
-  // Instalación: activar por defecto y calcular
-  _instalacionActiva = true;
+  // Instalación: activar por defecto — EXCEPTO para distribuidores, que instalan ellos (V330).
+  // El toggle sigue disponible: el distribuidor puede activarla en un caso puntual.
+  _instalacionActiva = !(ME && ME.esDistribuidor);
   _instalManualQty = null;
   _instalMotorQty  = null;
   _instalOverridden = false;
   const tog = document.getElementById('instal-toggle');
   const dot = document.getElementById('instal-dot');
-  if(tog) tog.style.background = 'var(--accent)';
-  if(dot) dot.style.left = '23px';
+  if(tog) tog.style.background = _instalacionActiva ? 'var(--accent)' : '#d1d5db';
+  if(dot) dot.style.left = _instalacionActiva ? '23px' : '3px';
   calcInstalacion();
   // Corporativo: desactivar por defecto
   _corpActivo = false;
