@@ -1436,6 +1436,13 @@ button:not([disabled]):active,
             <div class="f"><label>Vendedor</label><input type="text" id="f-vend"></div>
             <div class="f"><label>Válido hasta</label><input type="date" id="f-ent"></div>
           </div>
+          <div class="pedido-only" id="vinc-row" style="display:none">
+            <div style="margin-top:12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+              <button type="button" class="btn btn-outline btn-sm" onclick="abrirVincularCot()">🔗 Vincular con cotización</button>
+              <span id="vinc-badge" style="display:none;font-size:12px;font-weight:600;color:#1a6640;background:#eafaef;border:1px solid #b8e6c8;border-radius:6px;padding:4px 10px"></span>
+              <span style="font-size:11px;color:var(--muted)">Trae los datos de una cotización a este pedido (editables).</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -2207,6 +2214,20 @@ button:not([disabled]):active,
 
   </div>
 
+</div>
+
+<!-- ════ OVERLAY VINCULAR COTIZACIÓN ════ -->
+<div class="overlay" id="overlay-vincular">
+  <div class="pbox" style="width:560px">
+    <div class="ptbar">
+      <span>🔗 Vincular con cotización</span>
+      <div class="ptbar-btns"><button class="bpa bpa-c" onclick="cerrarVincular()">✕ Cerrar</button></div>
+    </div>
+    <div style="padding:18px 22px">
+      <input id="vinc-search" placeholder="Buscar por número o cliente…" oninput="renderVincularList()" style="width:100%;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:14px;outline:none;font-family:'DM Sans',sans-serif">
+      <div id="vinc-list" style="max-height:400px;overflow-y:auto"></div>
+    </div>
+  </div>
 </div>
 
 <!-- ════ OVERLAY CLIENTE ════ -->
@@ -6530,8 +6551,8 @@ function addRow(item){
       ${cenefaHint?`<div style="font-size:10.5px;color:var(--muted);font-style:italic;margin-top:3px">💡 ${cenefaHint}</div>`:''}
     </td>
     ${esLibreItem ? '' : `
-    <td style="padding:10px 10px;text-align:center;font-weight:600">${item.ancho||'—'}</td>
-    <td style="padding:10px 10px;text-align:center;font-weight:600">${item.alto||'—'}</td>`}
+    <td style="padding:6px 8px;text-align:center;font-weight:600">${isOrder?`<input type="number" value="${item.ancho||''}" oninput="editDim(this,'ancho')" title="Editable — no cambia el precio" style="width:58px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-weight:600;outline:none">`:(item.ancho||'—')}</td>
+    <td style="padding:6px 8px;text-align:center;font-weight:600">${isOrder?`<input type="number" value="${item.alto||''}" oninput="editDim(this,'alto')" title="Editable — no cambia el precio" style="width:58px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:4px;font-size:13px;font-weight:600;outline:none">`:(item.alto||'—')}</td>`}
     <td style="padding:10px 10px;text-align:center">
       <input type="number" value="${cant}" min="1" max="99"
         style="width:48px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;outline:none"
@@ -7193,6 +7214,7 @@ function resetForm(){
   document.getElementById('f-fecha').value = today();
   document.getElementById('f-vend').value  = ME?ME.name:'';
   autoValidez();
+  _vincCotNum = null; actualizarVincBadge();  // V327
   // Show/hide pedido-only fields
   const isOrder = currentType === 'order';
   document.querySelectorAll('.pedido-only').forEach(el=>{ el.style.display = isOrder ? '' : 'none'; });
@@ -7795,6 +7817,7 @@ async function saveDoc(andPreview){
     id:       editId||uid(),
     type:     currentType,
     numero:   document.getElementById('f-num').value,
+    cotizacionOrigen: _vincCotNum || '',
     fecha:    document.getElementById('f-fecha').value,
     vendedor: document.getElementById('f-vend').value,
     entrega:  document.getElementById('f-ent').value,
@@ -7874,6 +7897,7 @@ function buildDocFromForm(){
     id:       editId||uid(),
     type:     currentType,
     numero:   document.getElementById('f-num').value,
+    cotizacionOrigen: _vincCotNum || '',
     fecha:    document.getElementById('f-fecha').value,
     vendedor: document.getElementById('f-vend').value,
     entrega:  document.getElementById('f-ent').value,
@@ -7909,10 +7933,69 @@ function saveAndPreview(){
 /* ════════════════════════════
    EDIT
 ════════════════════════════ */
+// V327 — Vincular un pedido a una cotización (trae los datos, editables) + dimensiones editables
+let _vincCotNum = null;
+function actualizarVincBadge(){
+  const b = document.getElementById('vinc-badge');
+  if(!b) return;
+  if(_vincCotNum){ b.style.display='inline-block'; b.textContent='🔗 Vinculado a '+_vincCotNum; }
+  else { b.style.display='none'; }
+}
+function abrirVincularCot(){
+  const ov = document.getElementById('overlay-vincular'); if(!ov) return;
+  ov.classList.add('on');
+  const s = document.getElementById('vinc-search'); if(s) s.value='';
+  renderVincularList();
+}
+function cerrarVincular(){ const ov=document.getElementById('overlay-vincular'); if(ov) ov.classList.remove('on'); }
+function renderVincularList(){
+  const q = (document.getElementById('vinc-search')?.value||'').toLowerCase().trim();
+  const cots = getDocs().filter(d=>d.type==='quote')
+    .filter(d=>!q || (d.numero||'').toLowerCase().includes(q) || (d.cliente||'').toLowerCase().includes(q))
+    .sort((a,b)=>(b.fecha||'').localeCompare(a.fecha||'')).slice(0,60);
+  const wrap = document.getElementById('vinc-list'); if(!wrap) return;
+  wrap.innerHTML = cots.length ? cots.map(c=>`
+    <div onclick="vincularCot('${c.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.background='#f5f4f1'" onmouseout="this.style.background='#fff'">
+      <div><div style="font-weight:700;font-size:13px;color:var(--accent)">${c.numero||'—'}</div><div style="font-size:12px;color:var(--muted)">${c.cliente||''}${c.obra?' · '+c.obra:''}</div></div>
+      <div style="text-align:right"><div style="font-family:'Manrope',sans-serif;font-weight:700">${fmtM(c.total)}</div><div style="font-size:10px;color:var(--muted)">${fmtD(c.fecha)}</div></div>
+    </div>`).join('') : '<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px">No hay cotizaciones que coincidan</div>';
+}
+function vincularCot(cotId){
+  const cot = getDocs().find(d=>d.id===cotId);
+  if(!cot) return;
+  const setV = (id,v)=>{ const el=document.getElementById(id); if(el) el.value = v||''; };
+  // Número de pedido derivado de la cotización (igual que la conversión normal)
+  setV('f-num', 'PED-'+(cot.numero||'').replace(/^COT-?/,''));
+  setV('f-cli',cot.cliente); setV('f-cuit',cot.cuit); setV('f-dir',cot.dir); setV('f-obra',cot.obra);
+  setV('f-cont',cot.cont); setV('f-tel1',cot.tel1); setV('f-tel2',cot.tel2); setV('f-obs',cot.obs);
+  // Items (editables en el form). El precio queda como en la cotización.
+  document.getElementById('items-list').innerHTML='';
+  _itemSeq = 0;
+  (cot.items||[]).forEach(addRow);
+  recalcTotal(); calcInstalacion();
+  _vincCotNum = cot.numero || cot.id;
+  actualizarVincBadge();
+  cerrarVincular();
+  toast(`🔗 Vinculado a ${cot.numero||'cotización'} — editá lo que necesites`,'ok');
+  window.scrollTo(0,0);
+}
+// Editar ancho/alto de un item en el form (solo pedidos). NO cambia el precio (cm de cortesía);
+// la planilla recalcula los cortes desde las nuevas medidas.
+function editDim(input, which){
+  const tr = input.closest('tr'); if(!tr) return;
+  const item = JSON.parse(tr.dataset.item||'{}');
+  item[which] = parseInt(input.value)||0;
+  const a = parseInt(item.ancho)||0, h = parseInt(item.alto)||0;
+  if(a){ item.eje = getEje(a); item.ceje = a-35; item.ctela = a-30; }
+  if(h){ item.ctelah = h+350; }
+  tr.dataset.item = JSON.stringify(item);
+}
+
 function editDoc(id){
   const doc = getDocs().find(x=>x.id===id);
   if(!doc) return;
   editId=id; currentType=doc.type;
+  _vincCotNum = doc.cotizacionOrigen || null;  // V327
   switchPage('pg-form');
   document.getElementById('form-ttl').textContent=doc.type==='quote'?'Editar Cotización':'Editar Pedido';
   document.getElementById('form-type-badge').textContent=doc.type==='quote'?'📄 Cotización':'📦 Pedido';
@@ -7957,6 +8040,7 @@ function editDoc(id){
   recalcTotal();
   calcInstalacion();
   qaInit();
+  actualizarVincBadge();  // V327
   window.scrollTo(0,0);
 }
 
@@ -8653,7 +8737,7 @@ async function confirmarPedido(){
       items:  orderItems, // V294.3: usar items con split por unidad
     };
     delete order._isDraft;
-    delete order.cotizacionOrigen;
+    if(!src.cotizacionOrigen) delete order.cotizacionOrigen; // V327: preservar vínculo si el pedido fue vinculado a una cotización
   } else {
     // Convertir cotización en pedido — mismo número base, prefijo PED-
     const cotNumBase = (src.numero||'').replace(/^COT-?/,'');
@@ -10429,7 +10513,7 @@ function openDoc(d, fromForm){
       <div style="font-family:'Manrope',sans-serif;font-size:15px;color:#f09620;line-height:1;font-weight:600;letter-spacing:.04em">#${d.numero||'—'}</div>
       <div style="font-size:11px;color:#888;margin-top:3px">
         Fecha: ${fmtD(d.fecha)}<br>
-        ${isOrder?'Entrega':'Válida hasta'}: ${fmtD(d.entrega)||'—'}
+        ${isOrder?'Entrega':'Válida hasta'}: ${fmtD(d.entrega)||'—'}${(isOrder && d.cotizacionOrigen)?`<br>Cotización: ${d.cotizacionOrigen}`:''}
       </div>
     </div>
   </div>

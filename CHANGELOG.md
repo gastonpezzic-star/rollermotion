@@ -1,5 +1,14 @@
 # Changelog
 
+## V327 — 2026-06-04 — Vincular un pedido a una cotización (medidas editables)
+
+Al crear un **Nuevo Pedido**, debajo del N° aparece **"🔗 Vincular con cotización"**: abre un buscador (por número o cliente), trae todos los datos de la cotización al formulario y **te deja editarlos**. Pensado para cuando el cliente, antes de fabricar, pide unos centímetros más de ancho: se ajusta la medida sin recotizar.
+
+- **Medidas (ancho/alto) editables inline** en los pedidos: cada fila tiene los mm en un input. Al cambiarlos **no cambia el precio** (cm de cortesía) pero **sí se recalculan los cortes** de fabricación (eje, corte de eje, corte de tela y caída).
+- El pedido queda **vinculado** a la cotización (badge "🔗 Vinculado a COT-…" en el form) y muestra **"Cotización: COT-…"** en la nota de pedido para trazabilidad.
+- El número de pedido se deriva de la cotización (PED-…), igual que la conversión normal.
+- Sin SQL nuevo.
+
 ## V326 — 2026-06-04 — Alta de distribuidores/vendedores desde el panel (sin SQL)
 
 En Administración → Vendedores y distribuidores, botón **"＋ Nueva cuenta"**: nombre, email, contraseña y rol (distribuidor / vendedor) → crea la cuenta y queda lista para cargarle descuentos. Sin tocar Supabase, sin Edge Function.
