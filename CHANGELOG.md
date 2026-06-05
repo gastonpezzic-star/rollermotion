@@ -1,5 +1,15 @@
 # Changelog
 
+## V328 — 2026-06-04 — Cobros manuales en la cuenta corriente del distribuidor
+
+En la cuenta corriente de cada distribuidor, además de **＋ Pago** (crédito) ahora hay **＋ Cobro** (débito manual): un cargo ad-hoc **sin pedido**, para cosas que se piden rápido en mostrador (ej: una cinta de papel) y no tienen presupuesto.
+
+- Mismo formulario (monto · concepto · fecha), dos botones: **Pago** (verde, baja el saldo) y **Cobro** (rojo, sube el saldo). Leyenda aclaratoria debajo.
+- El **cobro pide concepto** y confirma antes de cargar (aumenta lo que adeuda).
+- Va sin `pedido_id`, así se distingue del débito automático de un pedido. **Se puede eliminar** desde el ledger (los débitos automáticos de pedidos no, esos se revierten cancelando el pedido).
+- Los inputs se limpian tras cada carga (evita cargar dos veces lo mismo).
+- **Sin SQL nuevo** (la tabla ya admite `tipo='debito'` y la policy de admin ya permite insertarlo).
+
 ## V327 — 2026-06-04 — Vincular un pedido a una cotización (medidas editables)
 
 Al crear un **Nuevo Pedido**, debajo del N° aparece **"🔗 Vincular con cotización"**: abre un buscador (por número o cliente), trae todos los datos de la cotización al formulario y **te deja editarlos**. Pensado para cuando el cliente, antes de fabricar, pide unos centímetros más de ancho: se ajusta la medida sin recotizar.

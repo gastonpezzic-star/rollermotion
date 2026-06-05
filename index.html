@@ -9128,20 +9128,43 @@ function ccSaldo(distId){ return ccMovs(distId).reduce((s,m)=>s + (m.tipo==='deb
 // (cc_imputar_pedido), así funciona la apruebe quien la apruebe (admin o fábrica). El front solo lee/paga.
 
 // Admin registra un pago (crédito).
+function _ccLimpiarInputs(){
+  const m=document.getElementById('cc-pago-monto'); if(m) m.value='';
+  const c=document.getElementById('cc-pago-concepto'); if(c) c.value='';
+}
 async function registrarPagoCC(){
   if(!ME || ME.role!=='admin' || !_ccSelDist) return;
   const monto = parseFloat(document.getElementById('cc-pago-monto').value);
   if(!monto || monto<=0){ toast('Ingresá un monto válido','err'); return; }
   const mov = { distribuidor_id:_ccSelDist, tipo:'credito', monto,
-    concepto:(document.getElementById('cc-pago-concepto').value||'Pago'),
+    concepto:((document.getElementById('cc-pago-concepto').value||'').trim()||'Pago'),
     fecha:(document.getElementById('cc-pago-fecha').value||today()), created_by:ME.id };
   try{
     const { data, error } = await _sb.from('cc_movimientos').insert(mov).select().single();
     if(error) throw error;
-    _ccCache.push(data);
+    _ccCache.push(data); _ccLimpiarInputs();
     toast(`✅ Pago registrado: ${fmtM(monto)}`,'ok');
     renderCCLedger(); renderMiniDashDistrib(_ccSelDist);
   }catch(e){ console.error('[CC] pago:', e); toast('⚠ No se pudo registrar (¿falta el SQL de cuenta corriente?)','err'); }
+}
+// V328 — Cobro manual (débito): cargo ad-hoc sin pedido (ej: venta de mostrador, cinta de papel).
+// Aumenta lo que adeuda el distribuidor. Va sin pedido_id, así se distingue del débito automático.
+async function registrarCobroCC(){
+  if(!ME || ME.role!=='admin' || !_ccSelDist) return;
+  const monto = parseFloat(document.getElementById('cc-pago-monto').value);
+  if(!monto || monto<=0){ toast('Ingresá un monto válido','err'); return; }
+  const concepto = (document.getElementById('cc-pago-concepto').value||'').trim();
+  if(!concepto){ toast('Poné un concepto para el cobro (ej: cinta de papel)','err'); return; }
+  if(!confirm(`¿Cargar un COBRO de ${fmtM(monto)} a la cuenta del distribuidor?\n\n"${concepto}"\n\nEsto AUMENTA lo que adeuda.`)) return;
+  const mov = { distribuidor_id:_ccSelDist, tipo:'debito', monto, concepto,
+    fecha:(document.getElementById('cc-pago-fecha').value||today()), created_by:ME.id };
+  try{
+    const { data, error } = await _sb.from('cc_movimientos').insert(mov).select().single();
+    if(error) throw error;
+    _ccCache.push(data); _ccLimpiarInputs();
+    toast(`✅ Cobro cargado: ${fmtM(monto)}`,'ok');
+    renderCCLedger(); renderMiniDashDistrib(_ccSelDist);
+  }catch(e){ console.error('[CC] cobro:', e); toast('⚠ No se pudo cargar el cobro','err'); }
 }
 async function eliminarMovCC(id){
   if(!confirm('¿Eliminar este movimiento?')) return;
@@ -9345,15 +9368,19 @@ function renderCCLedger(){
       <td style="text-align:right;color:var(--red);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='debito'?fmtM(+m.monto):''}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;font-family:'Manrope',sans-serif">${m.tipo==='credito'?fmtM(+m.monto):''}</td>
       <td style="text-align:right;font-weight:800;font-family:'Manrope',sans-serif">${fmtM(saldo)}</td>
-      <td style="text-align:center">${m.tipo==='credito'?`<button class="btn-t" style="color:var(--red);border-color:#e8b4b4" onclick="eliminarMovCC('${m.id}')" title="Eliminar pago">✕</button>`:''}</td>
+      <td style="text-align:center">${(m.tipo==='credito' || (m.tipo==='debito' && !m.pedido_id))?`<button class="btn-t" style="color:var(--red);border-color:#e8b4b4" onclick="eliminarMovCC('${m.id}')" title="Eliminar movimiento">✕</button>`:''}</td>
     </tr>`; }).join('');
   wrap.innerHTML = `
-    <div style="background:#fafafa;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px;display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
-      <div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Registrar pago</div>
-        <input type="number" id="cc-pago-monto" placeholder="Monto $" style="width:120px;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;outline:none"></div>
-      <input type="text" id="cc-pago-concepto" placeholder="Concepto (ej: Transferencia)" style="flex:1;min-width:140px;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;outline:none">
-      <input type="date" id="cc-pago-fecha" value="${today()}" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;outline:none">
-      <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="registrarPagoCC()">+ Cargar pago</button>
+    <div style="background:#fafafa;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px">
+      <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+        <div><div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Cargar movimiento</div>
+          <input type="number" id="cc-pago-monto" placeholder="Monto $" style="width:120px;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;outline:none"></div>
+        <input type="text" id="cc-pago-concepto" placeholder="Concepto (ej: Transferencia, cinta de papel…)" style="flex:1;min-width:160px;padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;outline:none">
+        <input type="date" id="cc-pago-fecha" value="${today()}" style="padding:8px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:13px;outline:none">
+        <button class="btn btn-sm" style="background:var(--green);color:#fff;border:none" onclick="registrarPagoCC()" title="El distribuidor te pagó — baja el saldo">＋ Pago</button>
+        <button class="btn btn-sm" style="background:var(--red);color:#fff;border:none" onclick="registrarCobroCC()" title="Le sumás un cargo (venta de mostrador, etc.) — sube el saldo">＋ Cobro</button>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:8px"><b style="color:var(--green)">Pago</b>: el distribuidor te paga (baja lo que adeuda).&nbsp;&nbsp;<b style="color:var(--red)">Cobro</b>: cargo manual sin pedido, ej. una venta de mostrador (sube lo que adeuda).</div>
     </div>
     <table class="lt"><thead><tr><th>Fecha</th><th>Concepto</th><th style="text-align:right">Débito</th><th style="text-align:right">Crédito</th><th style="text-align:right">Saldo</th><th></th></tr></thead>
       <tbody>${rows||'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--muted)">Sin movimientos todavía</td></tr>'}</tbody></table>`;
