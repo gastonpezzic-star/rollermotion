@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "cotiz-preview", "runtimeExecutable": "python3", "runtimeArgs": ["-m","http.server","8799","--directory","/tmp/rmpreview"], "port": 8799 }
+  ]
+}

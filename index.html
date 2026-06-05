@@ -7218,6 +7218,7 @@ function resetForm(){
   // Show/hide pedido-only fields
   const isOrder = currentType === 'order';
   document.querySelectorAll('.pedido-only').forEach(el=>{ el.style.display = isOrder ? '' : 'none'; });
+  { const _vr=document.getElementById('vinc-row'); if(_vr) _vr.style.display = isOrder ? 'block' : 'none'; } // V327 fix: vinc-row solo tiene .pedido-only → necesita display explícito (la regla CSS .pedido-only{display:none} ganaba)
   // Always hide conf-extra until a confeccion product is selected
   const confExtra = document.getElementById('qa-conf-extra');
   if(confExtra) confExtra.style.display = 'none';
@@ -8002,6 +8003,7 @@ function editDoc(id){
   // Show/hide pedido-only fields
   const isOrder = doc.type==='order';
   document.querySelectorAll('.pedido-only').forEach(el=>{ el.style.display = isOrder ? '' : 'none'; });
+  { const _vr=document.getElementById('vinc-row'); if(_vr) _vr.style.display = isOrder ? 'block' : 'none'; } // V327 fix: vinc-row solo tiene .pedido-only → necesita display explícito (la regla CSS .pedido-only{display:none} ganaba)
   document.getElementById('f-num').closest('.f').querySelector('label').textContent = isOrder ? 'N° de Pedido' : 'N° de Cotización';
   // Fill fields
   document.getElementById('f-num').value   = doc.numero||'';
