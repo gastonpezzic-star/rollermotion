@@ -1,5 +1,14 @@
 # Changelog
 
+## V331 — 2026-06-05 — Animaciones con criterio (menú ⋮ + toast) — estilo Sonner/Emil
+
+Pulido visual aplicando el criterio de animación de Emil Kowalski (el autor de Sonner), con CSS nativo (sin librerías).
+
+- **Menú de acciones (⋮)**: ahora **entra con animación** — escala desde la esquina del botón (origin-aware), 150 ms, curva ease-out fuerte. Antes aparecía de golpe. Sombra en capas + esquinas un poco más suaves para un look más sólido. Cada ítem hace una transición suave al pasar el mouse.
+- **Toast (avisos)**: movimiento más fino — sube apenas con un leve escalado en vez del salto brusco anterior, anima solo `transform`/`opacity` (más fluido), sombra en capas.
+- Respeta el ajuste del sistema **"reducir movimiento"** (accesibilidad).
+- El feedback de pulsado en botones (scale .97) ya existía de antes.
+
 ## V330 — 2026-06-04 — Distribuidores: instalación NO incluida por defecto
 
 Cuando un **distribuidor** inicia una cotización/pedido, el servicio de **instalación arranca apagado** (ellos instalan). El toggle sigue disponible: si en un caso puntual la necesitan, la activan a mano. Para admin y vendedores no cambia nada (sigue incluida por defecto). Al editar un documento existente se respeta lo que ya tenía guardado.

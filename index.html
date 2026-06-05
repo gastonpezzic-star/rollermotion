@@ -315,8 +315,8 @@ body{
 .instal-sub{font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;color:var(--ink);min-width:80px;text-align:right}
 /* DROPDOWN MENÚ DE ACCIONES (⋮) */
 .btn-menu-wrap{position:relative;display:inline-block}
-.menu-dropdown{position:absolute;top:calc(100% + 4px);right:0;min-width:140px;background:#fff;border:1px solid var(--border);border-radius:8px;box-shadow:0 4px 14px rgba(0,0,0,.10);padding:4px 0;z-index:1000;font-family:'DM Sans',sans-serif}
-.menu-dropdown-item{display:block;width:100%;padding:8px 14px;background:none;border:none;text-align:left;font-size:13px;color:var(--ink);cursor:pointer;font-family:inherit;font-weight:500}
+.menu-dropdown{position:absolute;top:calc(100% + 4px);right:0;min-width:140px;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,.12),0 2px 6px rgba(0,0,0,.05);padding:4px 0;z-index:1000;font-family:'DM Sans',sans-serif}
+.menu-dropdown-item{display:block;width:100%;padding:8px 14px;background:none;border:none;text-align:left;font-size:13px;color:var(--ink);cursor:pointer;font-family:inherit;font-weight:500;transition:background-color .12s ease}
 .menu-dropdown-item:hover{background:var(--bg)}
 .menu-dropdown-item.del{color:var(--red);border-top:1px solid var(--border);margin-top:4px;padding-top:10px}
 .menu-dropdown-item.del:hover{background:var(--red-bg)}
@@ -467,8 +467,8 @@ body{
 .etiq-cuts span{font-weight:800;color:var(--muted)}
 
 /* TOAST */
-.toast{position:fixed;bottom:22px;right:22px;background:var(--brand);color:#fff;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:500;box-shadow:var(--shadow-md);z-index:999;transform:translateY(80px);opacity:0;transition:all .32s cubic-bezier(.34,1.56,.64,1)}
-.toast.on{transform:translateY(0);opacity:1}
+.toast{position:fixed;bottom:22px;right:22px;background:var(--brand);color:#fff;padding:12px 20px;border-radius:10px;font-size:13px;font-weight:500;box-shadow:0 8px 28px rgba(0,0,0,.16),0 2px 6px rgba(0,0,0,.08);z-index:999;transform:translateY(16px) scale(.96);opacity:0;transition:transform .3s var(--ease-out),opacity .3s var(--ease-out)}
+.toast.on{transform:translateY(0) scale(1);opacity:1}
 .toast.ok{background:var(--green)}.toast.err{background:var(--red)}
 
 /* COTIZACION badge */
@@ -1042,6 +1042,10 @@ button:not([disabled]):active,
 @keyframes rm-card-in{ from{ opacity:0; transform:scale(.97) translateY(6px) } to{ opacity:1; transform:scale(1) translateY(0) } }
 .overlay.on{ animation: rm-overlay-in .18s ease }
 .overlay.on .pbox{ animation: rm-card-in .24s var(--ease-out) }
+/* Menú de acciones (⋮): entrada origin-aware — escala desde el disparador (emil-design-eng, V331) */
+@keyframes rm-menu-in{ from{ opacity:0; transform:scale(.95) } to{ opacity:1; transform:scale(1) } }
+.menu-dropdown{ animation: rm-menu-in .15s var(--ease-out); transform-origin:top right }
+@media (prefers-reduced-motion: reduce){ .menu-dropdown{ animation:none } }
 
 </style>
 </head>
@@ -8888,6 +8892,8 @@ function toggleActionMenu(btn, ev){
     menu.style.top = (rect.bottom + margen) + 'px';
     menu.style.bottom = 'auto';
   }
+  // V331 — origen de la animación según hacia dónde abre (emil: escalar desde el disparador, no desde el centro)
+  menu.style.transformOrigin = (menu.style.top === 'auto') ? 'bottom right' : 'top right';
 
   document.body.appendChild(menu);
 
