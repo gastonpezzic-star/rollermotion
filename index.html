@@ -3881,13 +3881,15 @@ function maybeShowWelcome(){
     : 'Nos alegra tenerte en el equipo. Desde acá vas a poder armar cotizaciones, seguir pedidos y gestionar tus clientes — todo en un solo lugar.';
   const html = `
   <div class="overlay on" id="welcome-overlay" onclick="if(event.target===this)cerrarWelcome()">
-    <div class="pbox" style="width:440px;max-width:94%;align-self:center">
-      <div style="height:6px;background:linear-gradient(90deg,#f09620,#d2001e)"></div>
-      <div style="padding:30px 30px 26px;text-align:center;font-family:'DM Sans',sans-serif">
-        <img src="${logoImg}" alt="RollerMotion" style="height:38px;display:block;margin:0 auto 18px">
-        <div style="font-family:'Manrope',sans-serif;font-size:22px;font-weight:800;color:#141414;letter-spacing:-.02em">${saludo}</div>
-        <div style="font-family:'Manrope',sans-serif;font-size:13px;font-weight:700;color:#f09620;margin-top:4px;text-transform:uppercase;letter-spacing:.06em">Bienvenido/a a RollerMotion</div>
-        <p style="font-size:13.5px;color:#555;line-height:1.65;margin:15px 0 0">${linea}</p>
+    <div class="pbox" style="width:440px;max-width:94%;align-self:center;border-radius:18px;overflow:hidden">
+      <div style="background:linear-gradient(160deg,#1f1f1f,#141414);padding:34px 30px 28px;text-align:center">
+        <div style="font-family:'Manrope',sans-serif;font-size:20px;font-weight:800;color:#fff;letter-spacing:-.01em">Roller<span style="color:#f09620">·Motion</span></div>
+        <div style="width:34px;height:3px;background:#f09620;border-radius:2px;margin:16px auto"></div>
+        <div style="font-family:'Manrope',sans-serif;font-size:25px;font-weight:800;color:#fff;letter-spacing:-.02em">${saludo}</div>
+        <div style="font-size:13px;color:#b9b6b2;margin-top:6px;font-family:'DM Sans',sans-serif">Qué bueno tenerte acá</div>
+      </div>
+      <div style="padding:24px 30px 28px;text-align:center;font-family:'DM Sans',sans-serif">
+        <p style="font-size:13.5px;color:#555;line-height:1.65;margin:0">${linea}</p>
         <div style="margin-top:18px;background:#fff8ee;border:1px solid #f0d8a0;border-radius:12px;padding:13px 15px;text-align:left;display:flex;gap:11px;align-items:flex-start">
           <div style="font-size:18px;line-height:1.1">🔒</div>
           <div style="font-size:12.5px;color:#7a5a1a;line-height:1.5"><b>Primer consejo:</b> cambiá tu contraseña por una tuya. La encontrás tocando tu nombre <b>arriba a la derecha → Mi Perfil</b>.</div>

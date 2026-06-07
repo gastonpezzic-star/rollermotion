@@ -1,5 +1,9 @@
 # Changelog
 
+## V338 — 2026-06-05 — Popup de bienvenida: nuevo diseño "Hero oscuro"
+
+Rediseño del popup de bienvenida (elegido entre 3 variantes). Ahora tiene una **banda superior negra** con el nombre **Roller·Motion** (·Motion en dorado), un separador dorado, el saludo grande en blanco y "Qué bueno tenerte acá"; debajo, cuerpo blanco con el mensaje personalizado, el consejo de cambiar la contraseña y el botón dorado. Más premium como primera impresión. Mantiene la personalización por nombre y rol, y la lógica de mostrarse una sola vez.
+
 ## V337 — 2026-06-05 — Popup de bienvenida para usuarios nuevos
 
 La primera vez que un usuario nuevo (distribuidor o vendedor) inicia sesión, aparece un **popup cálido de bienvenida**: logo, saludo personalizado con su nombre, una frase linda según su rol (a los distribuidores les menciona su cuenta corriente) y un **consejo para cambiar la contraseña** (arriba a la derecha → Mi Perfil).
