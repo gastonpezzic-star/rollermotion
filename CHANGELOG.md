@@ -1,5 +1,9 @@
 # Changelog
 
+## V339 — 2026-06-05 — Popup de bienvenida: vuelta al diseño cálido
+
+Se revirtió el popup al **diseño cálido original** (banda dorada/roja arriba, logo real, "BIENVENIDO/A A ROLLERMOTION" en dorado) por preferencia del usuario. La mecánica se mantiene: aparece con animación al primer ingreso y no vuelve a salir.
+
 ## V338 — 2026-06-05 — Popup de bienvenida: nuevo diseño "Hero oscuro"
 
 Rediseño del popup de bienvenida (elegido entre 3 variantes). Ahora tiene una **banda superior negra** con el nombre **Roller·Motion** (·Motion en dorado), un separador dorado, el saludo grande en blanco y "Qué bueno tenerte acá"; debajo, cuerpo blanco con el mensaje personalizado, el consejo de cambiar la contraseña y el botón dorado. Más premium como primera impresión. Mantiene la personalización por nombre y rol, y la lógica de mostrarse una sola vez.
