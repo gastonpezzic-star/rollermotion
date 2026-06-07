@@ -4148,12 +4148,12 @@ function _docItemHtml(d){
   return `<div class="inicio-item" onclick="openDocFromList('${d.id}')">
     <div class="inicio-item-num">#${d.numero||'—'}</div>
     <div class="inicio-item-body">
-      <div class="inicio-item-name">${d.cliente||'Sin cliente'}</div>
+      <div class="inicio-item-name">${esc(d.cliente||'Sin cliente')}</div>
       <div class="inicio-item-meta">
         <span>${fechaTxt}</span>
         ${estadoBadge}
         <span>${cant} ítem${cant!==1?'s':''}</span>
-        ${d.vendedor?`<span style="color:#9a9794">· ${d.vendedor}</span>`:''}
+        ${d.vendedor?`<span style="color:#9a9794">· ${esc(d.vendedor)}</span>`:''}
       </div>
     </div>
     <div class="inicio-item-price">${tot}</div>
@@ -4240,12 +4240,12 @@ function renderInicioDestacadas(){
     return `<div class="inicio-item" onclick="openDocFromList('${d.id}')">
       <div class="inicio-item-num">#${d.numero||'—'}</div>
       <div class="inicio-item-body">
-        <div class="inicio-item-name">${medal} ${d.cliente||'Sin cliente'}</div>
+        <div class="inicio-item-name">${medal} ${esc(d.cliente||'Sin cliente')}</div>
         <div class="inicio-item-meta">
           ${diasBadge}
           <span>${d.estado||'—'}</span>
           <span>${cant} ítem${cant!==1?'s':''}</span>
-          ${d.vendedor?`<span style="color:#9a9794">· ${d.vendedor}</span>`:''}
+          ${d.vendedor?`<span style="color:#9a9794">· ${esc(d.vendedor)}</span>`:''}
         </div>
       </div>
       <div class="inicio-item-price">${tot}</div>
@@ -4277,7 +4277,7 @@ function renderInicioEntregas(){
     return `<div class="inicio-item" onclick="openDocFromList('${d.id}')">
       <div class="inicio-item-num">#${d.numero||'—'}</div>
       <div class="inicio-item-body">
-        <div class="inicio-item-name">${d.cliente||'Sin cliente'}</div>
+        <div class="inicio-item-name">${esc(d.cliente||'Sin cliente')}</div>
         <div class="inicio-item-meta">
           <span class="inicio-item-days ${diasClass}">${diasTxt}</span>
           <span>${fechaEnt.toLocaleDateString('es-AR', {day:'numeric',month:'short'})}</span>
@@ -4506,6 +4506,9 @@ function uid(){
   });
 }
 function fmtM(n){ return n?'$ '+Number(n).toLocaleString('es-AR'):'$ 0'; }
+// V336 — Escape de HTML para evitar XSS al renderizar datos del usuario (nombres, obs, etc.).
+// Seguro en texto Y en atributos entre comillas. En un valor "limpio" no cambia nada.
+function esc(s){ return (s==null?'':String(s)).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 
 const STATUS_HTML = {
   'Cotización':      '<span class="badge s-q">📝 Cotización</span>',
@@ -6582,7 +6585,7 @@ function addRow(item){
     <td style="padding:10px 10px;color:var(--muted);font-weight:700;font-size:12px">${String(n).padStart(2,'0')}</td>
     <td style="padding:10px 10px" ${esLibreItem ? 'colspan="3"' : ''}>
       ${esLibreItem
-        ? `<span style="font-weight:600">${item.color||'Producto personalizado'}</span>`
+        ? `<span style="font-weight:600">${esc(item.color||'Producto personalizado')}</span>`
         : `<span style="font-weight:600">${getTelaLabel(item.tela)}</span>
            <span style="color:var(--muted);font-size:12px"> · ${colorDisplay}</span>`
       }
@@ -6596,7 +6599,7 @@ function addRow(item){
         style="width:48px;text-align:center;padding:4px;border:1.5px solid var(--border);border-radius:4px;font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;outline:none"
         oninput="recalcRow(this);calcInstalacion()">
     </td>
-    <td style="padding:10px 10px;color:var(--muted);font-size:12px">${item.ref||'—'}</td>
+    <td style="padding:10px 10px;color:var(--muted);font-size:12px">${esc(item.ref||'—')}</td>
     ${techCols}
     <td style="padding:10px 10px;text-align:right;font-weight:600">${fmtM(precio)}</td>
     <td style="padding:10px 10px;text-align:right;font-family:'Manrope',sans-serif;font-size:13px;font-weight:600;color:var(--brand)" class="row-subtotal">${fmtM(subtotal)}</td>
@@ -7498,7 +7501,7 @@ function recSearchDocs(){
     return `<div onclick="selectDocForRecibo('${d.id}')" style="padding:8px 10px;cursor:pointer;border-radius:6px;display:flex;align-items:center;gap:10px;font-size:12px;border:1px solid var(--border);margin-bottom:4px;background:#fff" onmouseover="this.style.background='#f5f4f0'" onmouseout="this.style.background='#fff'">
       <span style="background:${tipoBg};color:${tipoColor};padding:2px 7px;border-radius:4px;font-size:10px;font-weight:700">${tipo}</span>
       <strong>${d.numero||'—'}</strong>
-      <span style="flex:1">${d.cliente}</span>
+      <span style="flex:1">${esc(d.cliente)}</span>
       <span style="color:var(--muted)">${fmtM(d.total)}</span>
     </div>`;
   }).join('');
@@ -7516,7 +7519,7 @@ function selectDocForRecibo(docId){
     if(numEl) numEl.value = nuevoNum;
   }
 
-  document.getElementById('r-search').value = `${d.numero} — ${d.cliente}`;
+  document.getElementById('r-search').value = `${d.numero} — ${esc(d.cliente)}`;
   document.getElementById('r-search-results').innerHTML = '';
   document.getElementById('r-cliente').value = d.cliente||'';
   if(d.cuit) document.getElementById('r-cuit').value = d.cuit;
@@ -7533,7 +7536,7 @@ function selectDocForRecibo(docId){
     <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px">
       <div>
         <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Vinculado a</div>
-        <div style="font-size:14px;font-weight:700;color:var(--brand);margin-top:2px">${d.numero} — ${d.cliente}</div>
+        <div style="font-size:14px;font-weight:700;color:var(--brand);margin-top:2px">${d.numero} — ${esc(d.cliente)}</div>
       </div>
       <button class="btn-t del" onclick="unlinkRecibo()" style="font-size:11px">✕ Desvincular</button>
     </div>
@@ -7691,7 +7694,7 @@ function renderReciboHTML(r, linkedDoc, yaCobradoAntes, saldoTrasPago){
     <div style="padding:24px 32px 6px">
       <div style="display:flex;padding:11px 0;border-bottom:1px solid #f0f0ee;align-items:flex-start;gap:18px">
         <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#999;min-width:140px;padding-top:2px">Recibí de</div>
-        <div style="font-size:13.5px;font-weight:600;color:#141414;flex:1">${r.cliente}${r.razon ? ` <span style="font-weight:400;color:#888">· ${r.razon}</span>` : ''}${r.cuit ? `<div style="font-size:11px;color:#888;font-weight:500;margin-top:2px">CUIT ${r.cuit}</div>` : ''}</div>
+        <div style="font-size:13.5px;font-weight:600;color:#141414;flex:1">${esc(r.cliente)}${r.razon ? ` <span style="font-weight:400;color:#888">· ${esc(r.razon)}</span>` : ''}${r.cuit ? `<div style="font-size:11px;color:#888;font-weight:500;margin-top:2px">CUIT ${esc(r.cuit)}</div>` : ''}</div>
       </div>
       ${r.concepto ? `<div style="display:flex;padding:11px 0;border-bottom:1px solid #f0f0ee;align-items:flex-start;gap:18px">
         <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#999;min-width:140px;padding-top:2px">Concepto</div>
@@ -7707,7 +7710,7 @@ function renderReciboHTML(r, linkedDoc, yaCobradoAntes, saldoTrasPago){
       </div>` : ''}
       <div style="display:flex;padding:11px 0;border-bottom:1px solid #f0f0ee;align-items:flex-start;gap:18px">
         <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:#999;min-width:140px;padding-top:2px">Forma de pago</div>
-        <div style="font-size:13.5px;font-weight:600;color:#141414;flex:1">${r.pago}${r.detalles ? ` <span style="color:#888;font-weight:500">· ${r.detalles}</span>` : ''}</div>
+        <div style="font-size:13.5px;font-weight:600;color:#141414;flex:1">${r.pago}${r.detalles ? ` <span style="color:#888;font-weight:500">· ${esc(r.detalles)}</span>` : ''}</div>
       </div>
     </div>
 
@@ -7793,7 +7796,7 @@ function renderRecibos(){
   tb.innerHTML = data.map(r=>`<tr style="border-bottom:1px solid var(--border)">
     <td style="vertical-align:middle;white-space:nowrap"><strong>${r.numero}</strong></td>
     <td style="vertical-align:middle;white-space:nowrap">${fmtD(r.fecha)}</td>
-    <td style="vertical-align:middle">${r.cliente}</td>
+    <td style="vertical-align:middle">${esc(r.cliente)}</td>
     <td style="vertical-align:middle;white-space:nowrap">${r.doc_numero ? `<span style="background:#fff5e6;color:#c9750a;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700">${r.doc_numero}</span>` : '<span style="color:var(--muted);font-size:11px">Sin vincular</span>'}</td>
     <td style="vertical-align:middle;white-space:nowrap;font-size:11px">${r.tipo}</td>
     <td style="vertical-align:middle;white-space:nowrap;font-size:11px">${r.pago}</td>
@@ -7996,7 +7999,7 @@ function renderVincularList(){
   const wrap = document.getElementById('vinc-list'); if(!wrap) return;
   wrap.innerHTML = cots.length ? cots.map(c=>`
     <div onclick="vincularCot('${c.id}')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 12px;border:1px solid var(--border);border-radius:8px;margin-bottom:8px;cursor:pointer" onmouseover="this.style.background='#f5f4f1'" onmouseout="this.style.background='#fff'">
-      <div><div style="font-weight:700;font-size:13px;color:var(--accent)">${c.numero||'—'}</div><div style="font-size:12px;color:var(--muted)">${c.cliente||''}${c.obra?' · '+c.obra:''}</div></div>
+      <div><div style="font-weight:700;font-size:13px;color:var(--accent)">${c.numero||'—'}</div><div style="font-size:12px;color:var(--muted)">${c.cliente||''}${c.obra?' · '+esc(c.obra):''}</div></div>
       <div style="text-align:right"><div style="font-family:'Manrope',sans-serif;font-weight:700">${fmtM(c.total)}</div><div style="font-size:10px;color:var(--muted)">${fmtD(c.fecha)}</div></div>
     </div>`).join('') : '<div style="text-align:center;color:var(--muted);padding:24px;font-size:13px">No hay cotizaciones que coincidan</div>';
 }
@@ -8323,8 +8326,8 @@ function convertToOrder(idOrDoc){
   }
 
   const titulo = _pedidoIsDraft
-    ? `Confirmar Pedido — ${src.numero||'—'} · ${src.cliente}`
-    : `Confirmar Pedido — Cotización #${src.numero||'—'} · ${src.cliente}`;
+    ? `Confirmar Pedido — ${src.numero||'—'} · ${esc(src.cliente)}`
+    : `Confirmar Pedido — Cotización #${src.numero||'—'} · ${esc(src.cliente)}`;
   document.getElementById('pedido-overlay-title').textContent = titulo;
   { const _oel=document.getElementById('ped-origen'); if(_oel) _oel.value = src.origen||''; } // V312
 
@@ -8340,8 +8343,8 @@ function convertToOrder(idOrDoc){
   const cortinaOpts = [
     '<option value="">— Motor suelto —</option>',
     ...cortinas.map((it,i)=>{
-      const ref = it.ref ? ` · ${it.ref}` : '';
-      return `<option value="${i}">#${i+1} ${rollerLabel(it.tela)} ${it.color}${ref} (${it.ancho||'?'}×${it.alto||'?'}mm)</option>`;
+      const ref = it.ref ? ` · ${esc(it.ref)}` : '';
+      return `<option value="${i}">#${i+1} ${rollerLabel(it.tela)} ${esc(it.color)}${ref} (${it.ancho||'?'}×${it.alto||'?'}mm)</option>`;
     })
   ].join('');
 
@@ -8409,7 +8412,7 @@ function convertToOrder(idOrDoc){
             <div style="background:var(--steel);color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">#${i+1}</div>
             <div style="font-size:13px;font-weight:700;color:var(--ink)">${telaLabel}</div>
             <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
-            ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+            ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${esc(it.ref)}</div>`:''}
           </div>
           <div style="background:#fff;border-left:3px solid #141414;padding:10px 14px;border-radius:0 6px 6px 0;margin-bottom:10px">
             <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#141414;margin-bottom:8px">⬛ Blackout — ${colorBK}</div>
@@ -8426,9 +8429,9 @@ function convertToOrder(idOrDoc){
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">
           <div style="background:var(--steel);color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">#${i+1}</div>
           ${unitBadge}
-          <div style="font-size:13px;font-weight:700;color:var(--ink)">${telaLabel} — ${it.color}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">${telaLabel} — ${esc(it.color)}</div>
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
-          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${esc(it.ref)}</div>`:''}
         </div>
         ${renderRollerFields(i, d)}
       </div>`;
@@ -8455,8 +8458,8 @@ function convertToOrder(idOrDoc){
           <div style="background:#1f6e9c;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">🔄 ${ti+1}</div>
           <div style="font-size:13px;font-weight:700;color:#1a4a6a">${telaLabel}</div>
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
-          ${it.color?`<div style="font-size:11px;color:#555;background:#e0eaf2;border-radius:4px;padding:2px 8px">${it.color}</div>`:''}
-          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+          ${it.color?`<div style="font-size:11px;color:#555;background:#e0eaf2;border-radius:4px;padding:2px 8px">${esc(it.color)}</div>`:''}
+          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${esc(it.ref)}</div>`:''}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
           <div>${lbl('Color de tela')}<select class="ped-ct-color" data-tidx="${ti}" ${sel()}>
@@ -8485,13 +8488,12 @@ function convertToOrder(idOrDoc){
     html += duoItems.map((it,di)=>{
       const cant = parseInt(it.cant)||1;
       const ladoVal = it.ladoMec || 'Derecha';
-      const esc = s => (s||'').replace(/"/g,'&quot;');
       return `<div style="border:1.5px solid #cdb8e0;border-radius:8px;padding:14px 18px;margin-bottom:10px;background:#faf6ff">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap">
           <div style="background:#6a3a9a;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">📦 ${di+1}</div>
           <div style="font-size:13px;font-weight:700;color:#4a2a6a">Roller DUO Zebra</div>
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
-          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${esc(it.ref)}</div>`:''}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
           <div>${lbl('Lado del mecanismo')}<select class="ped-duo-lado" data-didx="${di}" ${sel()}>
@@ -8521,8 +8523,8 @@ function convertToOrder(idOrDoc){
           <div style="background:#2c6e49;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">🧵 ${ci+1}</div>
           <div style="font-size:13px;font-weight:700;color:#1a4a2a">${telaLabel}</div>
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} × ${it.alto||'—'} mm · ${cant} und.</div>
-          ${it.color?`<div style="font-size:11px;color:#555;background:#e0f0e4;border-radius:4px;padding:2px 8px">${it.color}</div>`:''}
-          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+          ${it.color?`<div style="font-size:11px;color:#555;background:#e0f0e4;border-radius:4px;padding:2px 8px">${esc(it.color)}</div>`:''}
+          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${esc(it.ref)}</div>`:''}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
           <div>
@@ -8578,8 +8580,8 @@ function convertToOrder(idOrDoc){
           <div style="background:${esMotor?'#d4820e':'#3a5a8a'};color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">${esMotor?'⚡':'🪝'} ${ri+1}</div>
           <div style="font-size:13px;font-weight:700;color:var(--ink)">${titulo}</div>
           <div style="font-size:12px;color:var(--muted)">${it.ancho||'—'} mm · ${cant} und.</div>
-          ${it.color?`<div style="font-size:11px;color:#555;background:#fff;border-radius:4px;padding:2px 8px;border:1px solid var(--border)">${it.color}</div>`:''}
-          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${it.ref}</div>`:''}
+          ${it.color?`<div style="font-size:11px;color:#555;background:#fff;border-radius:4px;padding:2px 8px;border:1px solid var(--border)">${esc(it.color)}</div>`:''}
+          ${it.ref?`<div style="font-size:11px;color:var(--muted);margin-left:auto">Ref: ${esc(it.ref)}</div>`:''}
         </div>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
           <div>
@@ -8609,7 +8611,7 @@ function convertToOrder(idOrDoc){
       <div style="border:1px solid var(--border);border-radius:8px;padding:14px 18px;margin-bottom:10px;background:#fdf8f2;border-color:#e8d8b8">
         <div style="display:flex;align-items:center;gap:12px">
           <div style="background:#d4820e;color:#fff;border-radius:4px;padding:3px 10px;font-size:11px;font-weight:700">⚡ Motor</div>
-          <div style="font-size:13px;font-weight:700;color:var(--ink)">${it.color}</div>
+          <div style="font-size:13px;font-weight:700;color:var(--ink)">${esc(it.color)}</div>
           <div style="font-size:12px;color:var(--muted);margin-left:auto">
             ${lbl('Asignar a cortina')}
             <select class="ped-motor-asig" data-midx="${mi}" style="padding:7px 10px;border:1.5px solid #e8d8b8;border-radius:6px;font-size:12px;background:#fff;font-family:'DM Sans',sans-serif;min-width:280px">
@@ -8872,8 +8874,8 @@ function renderRow(d, isAdmin){
   return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="rowOpenDoc(event,'${d.id}')">
     <td style="vertical-align:middle;white-space:nowrap"><strong>#${d.numero||'—'}</strong>${d.cotizacionOrigen?`<br><span style="font-size:10px;color:var(--muted);white-space:nowrap">de cot. #${d.cotizacionOrigen}</span>`:''}</td>
     <td style="vertical-align:middle">${fmtD(d.fecha)}</td>
-    <td style="vertical-align:middle">${d.cliente}</td>
-    <td style="vertical-align:middle">${d.vendedor}</td>
+    <td style="vertical-align:middle">${esc(d.cliente)}</td>
+    <td style="vertical-align:middle">${esc(d.vendedor)}</td>
     <td style="vertical-align:middle;text-align:center">
       <div style="line-height:1.3">${(d.items||[]).length} art.</div>
       <div style="font-size:10px;color:var(--muted);line-height:1.3">${cantTotal} und.</div>
@@ -9231,7 +9233,7 @@ function verPresupuestoDist(pedidoId){
     const pu   = parseFloat(it.precio)||0;
     return `<tr>
       <td class="n">${i+1}</td>
-      <td><strong>${getTelaLabel(it.tela)}</strong>${it.color?`<br><span class="muted">${it.color}</span>`:''}${it.ref?`<br><span class="muted">Ref: ${it.ref}</span>`:''}</td>
+      <td><strong>${getTelaLabel(it.tela)}</strong>${it.color?`<br><span class="muted">${esc(it.color)}</span>`:''}${it.ref?`<br><span class="muted">Ref: ${esc(it.ref)}</span>`:''}</td>
       <td class="c">${med}</td>
       <td class="c">${cant}</td>
       <td class="r">${fmtM(pu)}</td>
@@ -9294,7 +9296,7 @@ async function renderDistribuidores(){
   if(sel){
     const prev = sel.value;
     sel.innerHTML = '<option value="">— Elegí una cuenta —</option>' +
-      accts.map(d=>`<option value="${d.id}">${d.nombre||d.email} — ${d.rol||'vendedor'}</option>`).join('');
+      accts.map(d=>`<option value="${d.id}">${esc(d.nombre||d.email)} — ${d.rol||'vendedor'}</option>`).join('');
     if(prev) sel.value = prev;
   }
   onSelectDistrib();
@@ -9485,8 +9487,8 @@ function renderAdmin(){
       <td style="vertical-align:middle"><strong>#${d.numero||'—'}</strong></td>
       <td style="vertical-align:middle"><span class="${d.type==='quote'?'type-quote':'type-order'}">${d.type==='quote'?'Cotización':'Pedido'}</span></td>
       <td style="vertical-align:middle">${fmtD(d.fecha)}</td>
-      <td style="vertical-align:middle">${d.cliente}</td>
-      <td style="vertical-align:middle">${d.vendedor}</td>
+      <td style="vertical-align:middle">${esc(d.cliente)}</td>
+      <td style="vertical-align:middle">${esc(d.vendedor)}</td>
       <td style="vertical-align:middle">${(d.items||[]).length}</td>
       <td style="vertical-align:middle">${fmtM(d.total)}</td>
       <td style="vertical-align:middle"><select class="st-sel" onchange="changeStatus('${d.id}',this.value)">${statusOpts(d.type,d.estado,d)}</select></td>
@@ -9723,8 +9725,8 @@ function renderFab(){
     return `<tr style="border-bottom:1px solid var(--border)">
     <td style="vertical-align:middle"><strong>#${d.numero||'—'}</strong></td>
     <td style="vertical-align:middle">${fmtD(d.fecha)}</td>
-    <td style="vertical-align:middle">${d.cliente}</td>
-    <td style="vertical-align:middle">${d.vendedor}</td>
+    <td style="vertical-align:middle">${esc(d.cliente)}</td>
+    <td style="vertical-align:middle">${esc(d.vendedor)}</td>
     <td style="vertical-align:middle;text-align:center">
       <div>${(d.items||[]).length} art.</div>
       <div style="font-size:10px;color:var(--muted)">${cantTotal(d)} und.</div>
@@ -10332,7 +10334,7 @@ function openDoc(d, fromForm){
         <td style="padding:7px 10px;font-weight:700;color:#888;text-align:center;width:28px">${i+1}</td>
         <td style="padding:7px 10px;white-space:nowrap" colspan="5">
           <span style="font-weight:700;font-size:11.5px;color:#141414">${it.color||'Producto personalizado'}</span>
-          ${it.ref ? `<span style="font-size:9px;color:#aaa;margin-left:6px">Ref: ${it.ref}</span>` : ''}
+          ${it.ref ? `<span style="font-size:9px;color:#aaa;margin-left:6px">Ref: ${esc(it.ref)}</span>` : ''}
         </td>
         <td style="padding:7px 10px;text-align:center;width:38px">${cant}</td>
         <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap;width:100px">${fmtM(precio)}</td>
@@ -10347,7 +10349,7 @@ function openDoc(d, fromForm){
         <td style="padding:7px 10px;white-space:nowrap" colspan="5">
           <span style="font-weight:700;font-size:11.5px;color:#141414">${telaLabel}</span>
           <span style="font-size:9.5px;color:#888;margin-left:8px">${it.color||''}</span>
-          ${it.ref ? `<span style="font-size:9px;color:#aaa;margin-left:8px">· ${it.ref}</span>` : ''}
+          ${it.ref ? `<span style="font-size:9px;color:#aaa;margin-left:8px">· ${esc(it.ref)}</span>` : ''}
         </td>
         <td style="padding:7px 10px;text-align:center;width:38px">${cant}</td>
         <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap;width:100px">${fmtM(precio)}</td>
@@ -10378,7 +10380,7 @@ function openDoc(d, fromForm){
     return Array.from({length:cant},(_,k)=>`<tr>
       <td style="text-align:center;font-weight:700;color:#888">${i+1}${cant>1?` <span style="font-size:9px;color:#f09620">(${k+1}/${cant})</span>`:''}</td>
       <td style="font-weight:700">${it.ref||'—'}${cant>1?` (${k+1}/${cant})`:''}</td>
-      <td><span style="font-weight:600">${getTelaLabel(it.tela)}</span> <span style="color:#888;font-size:10px">${it.color}</span></td>
+      <td><span style="font-weight:600">${getTelaLabel(it.tela)}</span> <span style="color:#888;font-size:10px">${esc(it.color)}</span></td>
       <td style="text-align:center">${it.ancho||'—'} mm</td>
       <td style="text-align:center">${it.alto||'—'} mm</td>
       <td style="text-align:center"><span class="${ejeClass(it.eje)}" style="font-weight:700">${it.eje||'—'}</span></td>
@@ -10397,15 +10399,15 @@ function openDoc(d, fromForm){
     <div class="etiq">
       <div class="etiq-n">${i+1}${cant>1?`<span style="font-size:12px"> (${k+1}/${cant})</span>`:''}</div>
       <img src="${logoImg}" alt="RollerMotion" style="height:22px;margin-bottom:6px;display:block;">
-      <div class="etiq-cli">Cliente: <strong>${d.cliente}</strong> · Pedido #${d.numero||'—'}</div>
+      <div class="etiq-cli">Cliente: <strong>${esc(d.cliente)}</strong> · Pedido #${d.numero||'—'}</div>
       <div class="etiq-d">
         <span class="k">Tela:</span><span class="v">${getTelaLabel(it.tela)}</span>
-        <span class="k">Color:</span><span class="v">${it.color}</span>
+        <span class="k">Color:</span><span class="v">${esc(it.color)}</span>
         <span class="k">Ancho:</span><span class="v">${it.ancho||'—'} mm</span>
         <span class="k">Alto:</span><span class="v">${it.alto||'—'} mm</span>
         <span class="k">Sentido:</span><span class="v">${it.sent}</span>
         <span class="k">Zócalo:</span><span class="v">${it.zoc}</span>
-        ${it.ref?`<span class="k">Ref.:</span><span class="v">${it.ref}</span>`:''}
+        ${it.ref?`<span class="k">Ref.:</span><span class="v">${esc(it.ref)}</span>`:''}
         ${it.cadColor?`<span class="k">Cadena:</span><span class="v">${it.cad} / ${it.cadColor}</span>`:''}
         ${it.mecColor?`<span class="k">Mecanismo:</span><span class="v">${it.mecColor}</span>`:''}
       </div>
@@ -10592,13 +10594,13 @@ function openDoc(d, fromForm){
   <div style="background:#f8f8f7;padding:12px 22px;display:flex;gap:32px;border-bottom:1px solid #e0e0de">
     <div style="flex:2">
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:3px">Cliente</div>
-      <div style="font-size:14px;font-weight:400;color:#141414;font-family:'Raleway',sans-serif">${d.cliente}</div>
-      ${d.dir?`<div style="font-size:11px;color:#888;margin-top:2px">${d.dir}</div>`:''}
-      ${d.obra?`<div style="font-size:11px;color:#888;margin-top:2px"><span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:9px;color:#aaa">Obra: </span>${d.obra}</div>`:''}
+      <div style="font-size:14px;font-weight:400;color:#141414;font-family:'Raleway',sans-serif">${esc(d.cliente)}</div>
+      ${d.dir?`<div style="font-size:11px;color:#888;margin-top:2px">${esc(d.dir)}</div>`:''}
+      ${d.obra?`<div style="font-size:11px;color:#888;margin-top:2px"><span style="font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:9px;color:#aaa">Obra: </span>${esc(d.obra)}</div>`:''}
     </div>
     <div>
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:3px">Vendedor</div>
-      <div style="font-size:13px;font-weight:600;color:#333">${d.vendedor}</div>
+      <div style="font-size:13px;font-weight:600;color:#333">${esc(d.vendedor)}</div>
     </div>
     <div>
       <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888;margin-bottom:3px">Estado</div>
@@ -10667,7 +10669,7 @@ function openDoc(d, fromForm){
   ${esDist?'':promoHtml}
 
   ${d.obs?`<div style="margin:0 22px 16px;border:1px solid #e0e0de;border-left:3px solid #f09620;border-radius:0 6px 6px 0;padding:10px 14px;font-size:11px;background:#fef6e8">
-    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#d4820e;margin-bottom:4px">Observaciones</div>${d.obs}
+    <div style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#d4820e;margin-bottom:4px">Observaciones</div>${esc(d.obs)}
   </div>`:''}
 
   ${esDist?`
@@ -11507,7 +11509,7 @@ function openPlanilla(d){
       <div class="fab-brand">Roller<span>Motion</span></div>
       <div style="text-align:center;flex:1;padding:0 16px">
         <div class="fab-doc-title">${hoja} &nbsp;·&nbsp; ${pedNum}</div>
-        <div class="fab-doc-num">${d.cliente} &nbsp;·&nbsp; Entrega: <span style="color:#d4820e">${fecha}</span>${d.vendedor ? ` &nbsp;·&nbsp; Vendedor: <span style="color:#555;font-weight:600">${d.vendedor}</span>` : ''}</div>
+        <div class="fab-doc-num">${esc(d.cliente)} &nbsp;·&nbsp; Entrega: <span style="color:#d4820e">${fecha}</span>${d.vendedor ? ` &nbsp;·&nbsp; Vendedor: <span style="color:#555;font-weight:600">${esc(d.vendedor)}</span>` : ''}</div>
       </div>
       <div id="${barcodeId}" data-pednum="${pedNum}" style="min-width:110px;text-align:right"></div>
     </div>`;
@@ -11974,7 +11976,7 @@ function openPlanillaConfeccion(d){
         <div style="background:#2c6e49;color:#fff;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:800">🧵 ${i+1}</div>
         <div style="font-size:13px;font-weight:800;color:#1a4a2a">${telaLabel}</div>
         <div style="font-size:11px;color:#666">${cant} und.</div>
-        ${it.ref?`<div style="font-size:11px;color:#666;margin-left:auto;background:#f4fbf5;padding:3px 9px;border-radius:4px">Ref: ${it.ref}</div>`:''}
+        ${it.ref?`<div style="font-size:11px;color:#666;margin-left:auto;background:#f4fbf5;padding:3px 9px;border-radius:4px">Ref: ${esc(it.ref)}</div>`:''}
       </div>
       <!-- Body: dibujo + datos -->
       <div style="display:grid;grid-template-columns:390px 1fr;gap:14px;align-items:flex-start">
@@ -13487,7 +13489,7 @@ function renderClientes(){
         <div style="display:flex;align-items:center;gap:10px">
           <div class="cli-avatar">${initials}</div>
           <div>
-            <div style="font-weight:700;font-size:13.5px">${c.nombre}</div>
+            <div style="font-weight:700;font-size:13.5px">${esc(c.nombre)}</div>
             <div style="display:flex;gap:5px;align-items:center;margin-top:3px">
               ${cotNums}${masCot}
               ${pedNums}${masPed}
@@ -13603,19 +13605,19 @@ function verHistorialCliente(id){
     return `<span style="background:${bg};color:${fg};padding:3px 9px;border-radius:5px;font-size:11px;font-weight:700;display:inline-flex;align-items:center;gap:3px">${ic} ${t}</span>`;
   }).join(' ');
 
-  document.getElementById('overlay-title').textContent = `Cliente — ${c.nombre}`;
+  document.getElementById('overlay-title').textContent = `Cliente — ${esc(c.nombre)}`;
   document.getElementById('doc-content').innerHTML = `<div class="doc" style="padding:24px 30px;font-family:'DM Sans',sans-serif">
 
     <!-- HEADER -->
     <div style="display:flex;align-items:flex-start;gap:18px;margin-bottom:20px;padding-bottom:18px;border-bottom:1px solid var(--border)">
       <div class="cli-avatar" style="width:60px;height:60px;font-size:22px;flex-shrink:0">${initials}</div>
       <div style="flex:1;min-width:0">
-        <div style="font-size:22px;font-weight:700;color:var(--brand);margin-bottom:4px">${c.nombre}</div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${c.tipo}${c.cuit?` · CUIT ${c.cuit}`:''}${c.dir?` · ${c.dir}`:''}</div>
+        <div style="font-size:22px;font-weight:700;color:var(--brand);margin-bottom:4px">${esc(c.nombre)}</div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:8px">${c.tipo}${c.cuit?` · CUIT ${esc(c.cuit)}`:''}${c.dir?` · ${esc(c.dir)}`:''}</div>
         <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center">
           ${c.tel1?`<a href="#" onclick="event.preventDefault();openWhatsApp('${c.tel1}')" style="font-size:12px;color:#25d366;text-decoration:none;font-weight:600;display:inline-flex;align-items:center;gap:5px;background:#dcfce7;padding:4px 10px;border-radius:6px">💬 ${c.tel1}</a>`:''}
           ${c.tel2?`<span style="font-size:12px;color:var(--muted)">📞 ${c.tel2}</span>`:''}
-          ${c.email?`<a href="mailto:${c.email}" style="font-size:12px;color:#1e40af;text-decoration:none">✉ ${c.email}</a>`:''}
+          ${c.email?`<a href="mailto:${esc(c.email)}" style="font-size:12px;color:#1e40af;text-decoration:none">✉ ${esc(c.email)}</a>`:''}
         </div>
         ${tagsHtml?`<div style="margin-top:10px;display:flex;gap:5px;flex-wrap:wrap">${tagsHtml}</div>`:''}
       </div>
@@ -13708,7 +13710,7 @@ function verHistorialCliente(id){
 
     ${c.notas?`<div style="margin-top:14px;padding:14px 16px;background:#fffbeb;border-left:3px solid #f09620;border-radius:6px;font-size:12.5px;line-height:1.5">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#92400e;margin-bottom:5px">📝 Notas internas</div>
-      ${c.notas}
+      ${esc(c.notas)}
     </div>`:''}
 
   </div>`;
@@ -15330,7 +15332,7 @@ function renderDashboard(){
       ? conSaldo.slice(0,15).map(x => {
           const wa = x.cliente.tel1 ? `<button class="btn-t" onclick="openWhatsApp('${x.cliente.tel1}')" title="WhatsApp" style="background:#25d366;color:#fff;border-color:#25d366">💬</button>` : '';
           return `<tr style="cursor:pointer" onclick="verHistorialCliente('${x.cliente.id}')">
-            <td style="font-weight:700">${x.cliente.nombre}</td>
+            <td style="font-weight:700">${esc(x.cliente.nombre)}</td>
             <td style="text-align:center">${x.pedidos}</td>
             <td style="font-weight:700;white-space:nowrap">${fmtM(x.total)}</td>
             <td style="font-weight:600;color:#15803d;white-space:nowrap">${fmtM(x.pagado)}</td>

@@ -1,5 +1,13 @@
 # Changelog
 
+## V336 — 2026-06-05 — Seguridad: escapado anti-XSS + headers en Netlify
+
+Endurecimiento de seguridad (parte 1).
+
+- **Anti-XSS**: se agregó una función `esc()` que escapa el HTML de los datos del usuario al mostrarlos. Antes, un dato malicioso (ej. un nombre de cliente con código) podía ejecutarse en el navegador de quien lo viera. Ahora se muestra como texto. Cubre las superficies principales: nombre de cliente (en todas las listas, detalle y recibos), observaciones, dirección, obra, vendedor, referencia y color de ítems, y los campos de la ficha de cliente y de recibos (66 puntos). Verificado en navegador: un payload de prueba se muestra como texto y no se ejecuta.
+- **Headers de seguridad en Netlify** (`_headers`): `X-Frame-Options: DENY` (anti-clickjacking), `X-Content-Type-Options`, `Referrer-Policy`, `Permissions-Policy`, HSTS.
+- Pendiente (parte 2): escapar el teléfono dentro del link de WhatsApp (contexto JS), barrer planillas/PDF internos, y endurecer Auth de Supabase (settings del panel).
+
 ## V335 — 2026-06-05 — Modales: blur real en Safari + salida animada (cierra el set de animaciones)
 
 Cierre del pulido de movimiento (emil-design-eng).
