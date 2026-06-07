@@ -1054,6 +1054,11 @@ button:not([disabled]):active,
 @keyframes rm-menu-in{ from{ opacity:0; transform:scale(.95) } to{ opacity:1; transform:scale(1) } }
 .menu-dropdown{ animation: rm-menu-in .15s var(--ease-out); transform-origin:top right }
 @media (prefers-reduced-motion: reduce){ .menu-dropdown{ animation:none } }
+/* Transición de página (fade suave) + entrada escalonada de filas (emil-design-eng, V334) */
+@keyframes rm-page-in{ from{ opacity:0 } to{ opacity:1 } }
+.pg.on{ animation: rm-page-in .18s var(--ease-out) }
+@keyframes rm-row-in{ from{ opacity:0 } to{ opacity:1 } }
+@media (prefers-reduced-motion: reduce){ .pg.on{ animation:none } }
 
 </style>
 </head>
@@ -4425,6 +4430,19 @@ async function toggleDocDestacada(id, value){
   if(document.getElementById('pg-cot').classList.contains('on')) renderCot();
 }
 
+// V334 — entrada escalonada de las primeras filas de una lista. Se llama al NAVEGAR
+// (desde switchPage), no en cada render, así no se re-anima al tipear en el buscador.
+function _staggerRows(tbodyId){
+  if(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  const tb = document.getElementById(tbodyId);
+  if(!tb) return;
+  const rows = tb.children;
+  const n = Math.min(rows.length, 12);
+  for(let i=0; i<n; i++){
+    rows[i].style.animation = `rm-row-in .3s var(--ease-out) ${(i*0.03).toFixed(3)}s both`;
+  }
+}
+
 function switchPage(id){
   document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
   document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('on'));
@@ -4466,6 +4484,9 @@ function switchPage(id){
   if(id==='pg-dashboard') renderDashboard();
   if(id==='pg-mividash') renderMiDashboard();
   if(id==='pg-mi-cc') renderMiCC();          // V319 — mi cuenta corriente (distribuidor)
+  // V334 — stagger de filas al entrar a una lista (sincrónico → sin flash; no se dispara al filtrar)
+  const _tbList = {'pg-cot':'cot-tbody','pg-ped':'ped-tbody','pg-admin':'admin-tbody','pg-fab':'fab-tbody','pg-clientes':'clientes-tbody'}[id];
+  if(_tbList) _staggerRows(_tbList);
 }
 
 /* ════════════════════════════

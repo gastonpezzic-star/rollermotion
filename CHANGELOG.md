@@ -1,5 +1,14 @@
 # Changelog
 
+## V334 — 2026-06-05 — Transición de página + filas que entran escalonadas
+
+Más pulido de movimiento (emil-design-eng), con CSS nativo.
+
+- **Cambio de pestaña/página**: al navegar (Inicio → Cotizaciones → Pedidos…) la página entra con un **fade suave** (.18 s) en vez del corte seco. Se hizo solo con opacidad (sin desplazamiento) a propósito, para no romper la barra inferior fija del formulario.
+- **Filas de las listas**: al entrar a Cotizaciones, Pedidos, Fábrica, Clientes o Administración, las primeras filas **aparecen en cascada** (stagger de 30 ms por fila, las primeras 12). 
+- Importante: el stagger se dispara **solo al navegar**, no al tipear en el buscador (filtrar re-renderiza al instante, sin animación molesta).
+- Respeta "reducir movimiento".
+
 ## V333 — 2026-06-05 — Toasts apilables estilo Sonner
 
 Los avisos (toasts) ahora se **apilan**: pueden aparecer varios a la vez (hasta 4) en la esquina inferior derecha, en vez de pisarse uno al otro como antes. Cada uno entra deslizándose con un leve escalado, el stack se reacomoda suave cuando entra o sale uno, y al salir se colapsa el espacio (no salta).
