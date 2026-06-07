@@ -348,7 +348,7 @@ body{
 /* ══════════════════════════
    OVERLAY / PRINT
 ══════════════════════════ */
-.overlay{display:none;position:fixed;inset:0;background:rgba(10,18,28,.65);z-index:200;overflow-y:auto;padding:28px 16px;backdrop-filter:blur(3px)}
+.overlay{display:none;position:fixed;inset:0;background:rgba(10,18,28,.6);z-index:200;overflow-y:auto;padding:28px 16px;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
 .overlay.on{display:flex;align-items:flex-start;justify-content:center}
 .pbox{background:#fff;width:780px;max-width:100%;border-radius:var(--radius-lg);overflow:hidden;box-shadow:0 24px 80px rgba(0,0,0,.3)}
 #doc-content{overflow-x:auto}
@@ -1020,7 +1020,7 @@ button:not([disabled]):active,
 @media (prefers-reduced-motion: reduce){
   button:not([disabled]):active,
   .btn:active, .btn-out:active, .btn-t:active, .add-row:active, .stk-stab:active{ transform: none; }
-  .overlay.on, .overlay.on .pbox{ animation: none; }
+  .overlay.on, .overlay.on .pbox, .overlay.closing, .overlay.closing .pbox{ animation: none; }
 }
 /* (4) Sin "hover pegado" en táctil (iPad): en touch puro, los :hover vuelven al estado base.
        Escritorio e iPad+trackpad (puntero real) conservan sus hovers intactos. */
@@ -1050,6 +1050,11 @@ button:not([disabled]):active,
 @keyframes rm-card-in{ from{ opacity:0; transform:scale(.97) translateY(6px) } to{ opacity:1; transform:scale(1) translateY(0) } }
 .overlay.on{ animation: rm-overlay-in .18s ease }
 .overlay.on .pbox{ animation: rm-card-in .24s var(--ease-out) }
+/* Salida del modal principal (emil-design-eng, V335) */
+@keyframes rm-overlay-out{ from{ opacity:1 } to{ opacity:0 } }
+@keyframes rm-card-out{ from{ opacity:1; transform:scale(1) translateY(0) } to{ opacity:0; transform:scale(.98) translateY(4px) } }
+.overlay.closing{ animation: rm-overlay-out .16s ease forwards }
+.overlay.closing .pbox{ animation: rm-card-out .18s var(--ease-out) forwards }
 /* Menú de acciones (⋮): entrada origin-aware — escala desde el disparador (emil-design-eng, V331) */
 @keyframes rm-menu-in{ from{ opacity:0; transform:scale(.95) } to{ opacity:1; transform:scale(1) } }
 .menu-dropdown{ animation: rm-menu-in .15s var(--ease-out); transform-origin:top right }
@@ -13067,9 +13072,20 @@ function openEtiquetas(d){
 }
 
 function closeOverlay(){
-  document.getElementById('overlay').classList.remove('on');
-  _isPlanilla = false;
+  const ov = document.getElementById('overlay');
+  _isPlanilla = false;          // reset inmediato (no depende de la animación)
   _isPlanillaConf = false;
+  const hide = ()=>{ if(ov){ ov.classList.remove('on'); ov.classList.remove('closing'); } };
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if(!ov || !ov.classList.contains('on') || reduce){ hide(); return; }
+  const pbox = ov.querySelector('.pbox');
+  if(!pbox){ hide(); return; }
+  // V335 — salida animada: el modal baja un toque y se desvanece, luego se oculta
+  ov.classList.add('closing');
+  let done=false;
+  const end=()=>{ if(done) return; done=true; hide(); };
+  pbox.addEventListener('animationend', end, { once:true });
+  setTimeout(end, 240);          // fallback por si animationend no dispara
 }
 
 // Cerrar overlay al hacer click en el fondo

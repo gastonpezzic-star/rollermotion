@@ -1,5 +1,15 @@
 # Changelog
 
+## V335 — 2026-06-05 — Modales: blur real en Safari + salida animada (cierra el set de animaciones)
+
+Cierre del pulido de movimiento (emil-design-eng).
+
+- **Fondo esmerilado (blur) ahora funciona en Safari/iPad**: el `.overlay` tenía `backdrop-filter:blur` pero sin el prefijo `-webkit-`, así que en Safari no se veía. Se agregó el prefijo (y se subió a 4px). En iPad/Mac ahora se ve el lindo desenfoque detrás del modal.
+- **Salida animada del modal principal** (Mi Perfil, Recibos, Planillas, detalle de pedido/cotización): al cerrarlo, el modal baja un toque y se desvanece, en vez de desaparecer de golpe. Con fallback de seguridad para que nunca quede trabado. Verificado: tras la animación el modal queda oculto y limpio.
+- Respeta "reducir movimiento" (cierre instantáneo).
+
+Con esto quedan los 4: toasts apilables (V333), transición de página + filas (V334) y modales (V335).
+
 ## V334 — 2026-06-05 — Transición de página + filas que entran escalonadas
 
 Más pulido de movimiento (emil-design-eng), con CSS nativo.
