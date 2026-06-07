@@ -1,5 +1,13 @@
 # Changelog
 
+## V337 — 2026-06-05 — Popup de bienvenida para usuarios nuevos
+
+La primera vez que un usuario nuevo (distribuidor o vendedor) inicia sesión, aparece un **popup cálido de bienvenida**: logo, saludo personalizado con su nombre, una frase linda según su rol (a los distribuidores les menciona su cuenta corriente) y un **consejo para cambiar la contraseña** (arriba a la derecha → Mi Perfil).
+
+- Se muestra **una sola vez** por usuario (queda guardado en su navegador). Después no vuelve a aparecer.
+- El **admin (dueño) no lo ve**.
+- Reutiliza el blur + animación de modal (V335). Se cierra con "¡Empecemos!", la X de fondo, y queda con salida animada.
+
 ## V336 — 2026-06-05 — Seguridad: escapado anti-XSS + headers en Netlify
 
 Endurecimiento de seguridad (parte 1).
