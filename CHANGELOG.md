@@ -1,5 +1,15 @@
 # Changelog
 
+## V341 — 2026-06-05 — Nuevo producto: Barrales 1" (con accesorios agrupados)
+
+Se agregó en **Accesorios en aluminio** un único item **"Barrales 1""** que adentro tiene todo el set (para no llenar el desplegable):
+- **Barral 1"** — se cobra **por metro** (la medida se carga en mm), color **Blanco o Negro**. Precio de lista $28.072/m.
+- **Terminal de barral 1"** — por unidad, $9.922 c/u.
+- **Soporte de barral 1"** — por unidad, $8.470 c/u.
+- **Argolla para barral 1"** — por unidad, $1.863 c/u.
+
+Los precios quedan en la **lista de precios** (categoría "Barrales"), así que se pueden editar y entran en el aumento por % como cualquier otro. El precio de venta se calcula con el markup de siempre.
+
 ## V340 — 2026-06-05 — Toasts: sin ícono duplicado
 
 El toast nuevo (V333) ya muestra su propio ícono en círculo (✓/✕/i). Pero los mensajes también traían un emoji al principio ("⚠ Ingresá…", "✅ Guardado…"), así que quedaban **dos íconos**. Ahora el toast **quita automáticamente el emoji inicial** del texto, dejándolo prolijo (solo el círculo). Centralizado: no hubo que tocar las 150+ llamadas. Respeta `$`, `¡`, números y texto normal.
