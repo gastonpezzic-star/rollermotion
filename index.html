@@ -13223,6 +13223,9 @@ function dismissToast(el){
   setTimeout(kill, 480);                 // fallback por si no dispara transitionend
 }
 function toast(msg,type){
+  // V340 — el toast ya muestra su propio ícono (círculo ✓/✕/i); quitamos el emoji inicial del texto
+  // para que no quede duplicado (ej: "⚠ Ingresá..." → "Ingresá...", "✅ Guardado" → "Guardado").
+  msg = String(msg==null?'':msg).replace(/^(?:[\p{Extended_Pictographic}ℹ←-➿️‍]\s*)+/u,'').trim();
   const stack=_getToastStack();
   const vivos=stack.querySelectorAll('.rm-toast.show');
   if(vivos.length>=4) dismissToast(vivos[0]);   // máximo 4 visibles → sale el más viejo

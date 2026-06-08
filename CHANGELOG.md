@@ -1,5 +1,9 @@
 # Changelog
 
+## V340 — 2026-06-05 — Toasts: sin ícono duplicado
+
+El toast nuevo (V333) ya muestra su propio ícono en círculo (✓/✕/i). Pero los mensajes también traían un emoji al principio ("⚠ Ingresá…", "✅ Guardado…"), así que quedaban **dos íconos**. Ahora el toast **quita automáticamente el emoji inicial** del texto, dejándolo prolijo (solo el círculo). Centralizado: no hubo que tocar las 150+ llamadas. Respeta `$`, `¡`, números y texto normal.
+
 ## V339 — 2026-06-05 — Popup de bienvenida: vuelta al diseño cálido
 
 Se revirtió el popup al **diseño cálido original** (banda dorada/roja arriba, logo real, "BIENVENIDO/A A ROLLERMOTION" en dorado) por preferencia del usuario. La mecánica se mantiene: aparece con animación al primer ingreso y no vuelve a salir.
