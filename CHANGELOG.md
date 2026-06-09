@@ -1,5 +1,13 @@
 # Changelog
 
+## V343 — 2026-06-09 — Eje 50 reforzado: límite extendido (corte de eje máx 3700)
+
+El eje 50R ahora llega más ancho antes de pasar a 70mm, tomando como límite real el **corte de eje (máx 3700mm, que es el largo del tubo)**:
+- **Motorizada:** hasta **3735mm** de ancho (el eje descuenta 35 → corta 3700). Arriba, 70mm.
+- **Manual:** hasta **3730mm** (el eje descuenta 30 → corta 3700). Arriba, requiere motor.
+
+Antes el corte era a 3700 fijo y >3700 saltaba a 70mm (a una motorizada de 3740 le daba el corte de 70mm = 3675, que estaba mal). Se ajustaron todos los puntos coherentemente: selección de eje en la planilla, costo del eje, mecanismo manual (VTX30) y la alerta de "requiere motorización" (recién arriba de 3730). Verificado: 3735 motor y 3730 manual cortan el eje exactamente en 3700.
+
 ## V342 — 2026-06-05 — Barrales: nombre "de aluminio" + selección de color
 
 Ajustes al producto de barrales (V341):

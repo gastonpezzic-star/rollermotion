@@ -3160,7 +3160,7 @@ function getEjeId(anchoMm){
   if(a <= 1700) return 'eje_32';
   if(a <= 2200) return 'eje_38';
   if(a <= 3200) return 'eje_50liso';
-  if(a <= 3700) return 'eje_50ref';
+  if(a <= 3735) return 'eje_50ref';  // V343: 50R hasta 3735
   return 'eje_70';
 }
 
@@ -3168,8 +3168,8 @@ function getMecId(anchoMm){
   const a = parseInt(anchoMm)||0;
   if(a <= 1700) return 'mec_vtx10';
   if(a <= 3200) return 'mec_vtx20'; // 38mm y 50 liso usan VTX20
-  if(a <= 3700) return 'mec_vtx30';
-  return null; // >3700 va motorizado
+  if(a <= 3730) return 'mec_vtx30';
+  return null; // V343: >3730 va motorizado (manual). 50R motorizada llega a 3735.
 }
 
 function getTelaCostoId(sistemaKey){
@@ -6144,10 +6144,10 @@ function checkWarnings(a, h){
     });
   }
 
-  // Alerta: ancho mayor a 3700mm → requiere motor
-  if(a > 3700 && a <= 6000){
+  // Alerta: ancho mayor a 3730mm (máx manual con eje 50R) → requiere motor
+  if(a > 3730 && a <= 6000){
     warns.push({ tipo:'motor', titulo:'Esta cortina requiere motorización',
-      msg: `El ancho ingresado (${a} mm) supera los 3.700 mm. Seleccionar el motor a utilizar para este sistema e informar al cliente.`
+      msg: `El ancho ingresado (${a} mm) supera los 3.730 mm. Seleccionar el motor a utilizar para este sistema e informar al cliente.`
     });
   }
 
@@ -11077,7 +11077,7 @@ window.onload = function(){ setTimeout(function(){ window.print(); window.onafte
 ════════════════════════════ */
 // V292.8: motor manda sobre el ancho para decidir el eje.
 //   - 2N           → eje 38mm (siempre)
-//   - 6N/WD/RF     → eje 50mm mínimo (liso hasta 3200, reforzado hasta 3700, 70mm sobre eso)
+//   - 6N/WD/RF     → eje 50mm mínimo (liso hasta 3200, reforzado hasta 3735 motor / 3730 manual, 70mm sobre eso). V343: el límite lo da el corte de eje (máx 3700).
 // Sin motor (cortina con cadena): se decide solo por ancho como antes.
 // V293.6: corregido orden y word-boundaries.
 //  Antes:
@@ -11122,14 +11122,14 @@ function getEjeInfo(ancho, motorLabel){
   if(mt === '6N' || mt === 'WD' || mt === 'RF' || mt === '12N'){
     // V293.6: estos motores no entran en ejes de 32/38 — siempre mínimo 50mm.
     if(a <= 3200) return {mm:'50', lbl:'50 mm liso'};
-    if(a <= 3700) return {mm:'50R', lbl:'50 mm ref.'};
+    if(a <= 3735) return {mm:'50R', lbl:'50 mm ref.'};  // V343: motorizada hasta 3735 (eje corta 3700)
     return {mm:'70', lbl:'70 mm'};
   }
   // Sin motor (manual con cadena)
   if(a <= 1700) return {mm:'32', lbl:'32 mm'};
   if(a <= 2200) return {mm:'38', lbl:'38 mm'};
   if(a <= 3200) return {mm:'50', lbl:'50 mm liso'};
-  if(a <= 3700) return {mm:'50R', lbl:'50 mm ref.'};
+  if(a <= 3730) return {mm:'50R', lbl:'50 mm ref.'};  // V343: manual hasta 3730 (eje corta 3700)
   return {mm:'70', lbl:'70 mm'};
 }
 // V293.1: cortes según tipo de armado. La regla SIEMPRE depende del eje:
