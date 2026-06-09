@@ -2731,14 +2731,13 @@ const TELAS = {
       { insumoId:'zoc_bolsillo',nombre:'Zócalo bolsillo', unidad:'ml' },
     ]},
 
-  // ── BARRALES 1" (V341): un solo item en el desplegable, con barral (por metro) + accesorios (por unidad) ──
-  'barrales': { label:'Barrales 1"', grupo:'Accesorios en aluminio', tipo:'accesorio', colorLabel:'Color',
-    colorOptions:['Blanco','Negro'],
+  // ── BARRALES DE ALUMINIO (V342): un solo item en el desplegable. Barral por metro + accesorios por unidad. Color (Blanco/Negro) por ítem. ──
+  'barrales': { label:'Barrales de aluminio', grupo:'Accesorios en aluminio', tipo:'accesorio', colorLabel:'Color',
     items:[
-      { insumoId:'barral_1',          nombre:'Barral 1" (por metro)',  unidad:'mm' },
-      { insumoId:'barral_1_terminal', nombre:'Terminal de barral 1"',  unidad:'u' },
-      { insumoId:'barral_1_soporte',  nombre:'Soporte de barral 1"',   unidad:'u' },
-      { insumoId:'barral_1_argolla',  nombre:'Argolla para barral 1"', unidad:'u' },
+      { insumoId:'barral_1',          nombre:'Barral de aluminio',   unidad:'mm', variantes:['Blanco','Negro'] },
+      { insumoId:'barral_1_terminal', nombre:'Terminal de barral',   unidad:'u',  variantes:['Blanco','Negro'] },
+      { insumoId:'barral_1_soporte',  nombre:'Soporte de barral',    unidad:'u',  variantes:['Blanco','Negro'] },
+      { insumoId:'barral_1_argolla',  nombre:'Argolla para barral',  unidad:'u',  variantes:['Blanco','Negro'] },
     ]},
 
   // V289 — SERVICIOS Y REPARACIONES
@@ -2957,10 +2956,10 @@ const INSUMOS_DEFAULT = [
   { id:'ang_2040',         cat:'Ángulos',     subcat:'',          nombre:'Ángulo 20/40',                precio:12780,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Aluminio',   unidad_venta:'ml' },
   { id:'ang_2550',         cat:'Ángulos',     subcat:'',          nombre:'Ángulo 25/50',                precio:15052,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Aluminio',   unidad_venta:'ml' },
   // BARRALES 1" (V341) — barral por metro + accesorios por unidad
-  { id:'barral_1',          cat:'Barrales',    subcat:'',          nombre:'Barral 1" (por metro)',       precio:28072,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Aluminio',   unidad_venta:'ml' },
-  { id:'barral_1_terminal', cat:'Barrales',    subcat:'',          nombre:'Terminal de barral 1"',       precio:9922,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
-  { id:'barral_1_soporte',  cat:'Barrales',    subcat:'',          nombre:'Soporte de barral 1"',        precio:8470,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
-  { id:'barral_1_argolla',  cat:'Barrales',    subcat:'',          nombre:'Argolla para barral 1"',      precio:1863,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
+  { id:'barral_1',          cat:'Barrales',    subcat:'',          nombre:'Barral de aluminio (por metro)', precio:28072,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Aluminio',   unidad_venta:'ml' },
+  { id:'barral_1_terminal', cat:'Barrales',    subcat:'',          nombre:'Terminal de barral',           precio:9922,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
+  { id:'barral_1_soporte',  cat:'Barrales',    subcat:'',          nombre:'Soporte de barral',            precio:8470,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
+  { id:'barral_1_argolla',  cat:'Barrales',    subcat:'',          nombre:'Argolla para barral',          precio:1863,   unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
 
   // ── PRECIOS CAMBIO DE TELA (lista × 1.30 + zócalo por ancho) ──
   { id:'ct_blackout', cat:'Cambio de Tela', subcat:'', nombre:'Blackout — precio m² cambio de tela', precio:17420, unidad:'m2', en_cotizador:true, cat_cotizador:'Cambio de Tela', unidad_venta:'m2' },
@@ -3041,6 +3040,9 @@ function getInsumos(){
         x.precio = 27000; changed = true;
       }
     });
+    // V342 — actualizar nombres de barrales (sacar el 1")
+    const BARRAL_NOM = {'barral_1':'Barral de aluminio (por metro)','barral_1_terminal':'Terminal de barral','barral_1_soporte':'Soporte de barral','barral_1_argolla':'Argolla para barral'};
+    arr.forEach(x => { if(BARRAL_NOM[x.id] && x.nombre !== BARRAL_NOM[x.id]){ x.nombre = BARRAL_NOM[x.id]; changed = true; } });
     // V290 — Migración de categorías para mejor organización visual de la lista de precios
     const CAT_MIGRATIONS = {
       'instal_normal':            { cat:'Instalaciones',         subcat:'Cortinas'  },

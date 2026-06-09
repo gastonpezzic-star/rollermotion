@@ -1,5 +1,11 @@
 # Changelog
 
+## V342 — 2026-06-05 — Barrales: nombre "de aluminio" + selección de color
+
+Ajustes al producto de barrales (V341):
+- Renombrado a **"Barral de aluminio"** (y "Terminal/Soporte/Argolla de barral") — se sacó el `1"`. Aplica también a la lista de precios (con migración para quienes ya lo tenían).
+- **Ahora se elige el color (Blanco/Negro)** del barral y de cada accesorio. (Antes no aparecía el selector porque se usó `colorOptions` a nivel grupo, que `onAccesorioChange` ocultaba; se pasó a `variantes` por ítem, que es el mecanismo correcto.)
+
 ## V341 — 2026-06-05 — Nuevo producto: Barrales 1" (con accesorios agrupados)
 
 Se agregó en **Accesorios en aluminio** un único item **"Barrales 1""** que adentro tiene todo el set (para no llenar el desplegable):
