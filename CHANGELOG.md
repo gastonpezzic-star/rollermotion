@@ -1,5 +1,15 @@
 # Changelog
 
+## V344 — 2026-06-09 — Bug de cantidad en rieles/toldos: el precio unitario se triplicaba
+
+Augusto reportó que en **rieles motorizados**, si subías la cantidad en el panel de carga *antes* de tocar "Agregar", se inflaba el **precio unitario** (con cantidad 3 quedaba "el triple de caro"), en vez de afectar solo al total.
+
+**Causa:** al agregar el ítem, el precio que se guardaba ya venía multiplicado por la cantidad (`× cant`), y después la tabla volvía a multiplicar por la cantidad al armar el subtotal → doble conteo. El precio unitario mostrado quedaba ×cantidad y el subtotal ×cantidad². (Todos los demás productos guardaban bien el precio unitario; estas ramas eran la excepción.) El workaround del usuario — agregar con cantidad 1 y subirla *abajo* en la tabla — andaba justamente porque ahí el precio guardado ya era unitario.
+
+**Solución:** se sacó el `× cant` del precio guardado en las 4 ramas afectadas: **Riel Somfy/Manual, Riel Celtic, Toldos y Toldo vertical (Caduta)**. Ahora el precio guardado es el **unitario** (coincide con lo que muestra el panel) y la cantidad se aplica una sola vez al subtotal. Toldos y Caduta tenían el mismo error latente, así que se corrigieron de paso.
+
+Verificado con números reales (Riel Somfy 3000mm + Motor WT, cant 3): antes el "P. unit" mostraba $6.786.751 (3× el real $2.262.250) y el subtotal $20.360.253 (9×); ahora P. unit $2.262.250 y subtotal $6.786.750 (= 3× el unitario, correcto).
+
 ## V343 — 2026-06-09 — Eje 50 reforzado: límite extendido (corte de eje máx 3700)
 
 El eje 50R ahora llega más ancho antes de pasar a 70mm, tomando como límite real el **corte de eje (máx 3700mm, que es el largo del tubo)**:

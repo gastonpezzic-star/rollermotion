@@ -6356,7 +6356,7 @@ function qaAgregar(){
       const anchoM = parseInt(ancho)/1000;
       const pieces = _calcCelticPieces(anchoM, telaObjA.tiers);
       const totalLista = pieces.reduce((s,p)=> s + (getPrecio(p.insumoId)||0), 0);
-      precio = Math.round(totalLista * getFV() * cant);
+      precio = Math.round(totalLista * getFV()); // precio UNITARIO (la cant la aplica addRow/recalc)
       // Color limpio (igual que Somfy), sin la combinación pegada
       color = document.getElementById('qa-color')?.value || '';
       // Guardamos la combinación en un campo aparte para fábrica/trazabilidad
@@ -6372,7 +6372,7 @@ function qaAgregar(){
       const precioMlLista = getPrecio(telaObjA.insumoId);
       const motorId = (telaObjA.motorOptions && telaObjA.motorOptions.length) ? (document.getElementById('qa-variante')?.value || telaObjA.motorOptions[0].id) : '';
       const motorCostLista = motorId ? (getPrecio(motorId)||0) : 0;
-      precio = Math.round((ml * precioMlLista + motorCostLista) * getFV() * cant);
+      precio = Math.round((ml * precioMlLista + motorCostLista) * getFV()); // precio UNITARIO (la cant la aplica addRow/recalc)
       const colorBase = document.getElementById('qa-color')?.value || '';
       if(motorId){
         const motorLabel = (telaObjA.motorOptions||[]).find(m=>m.id===motorId)?.label || motorId;
@@ -6456,7 +6456,7 @@ function qaAgregar(){
     // V289: chapón y motor van como items SEPARADOS (autoAdd al final).
     // Acá no se suman al precio del toldo ni se mencionan en la descripción.
     const precioLista = costoSistemaLista + costoTelaLista + costoMOToldoA;
-    precio = Math.round(precioLista * getFV() * cant);
+    precio = Math.round(precioLista * getFV()); // precio UNITARIO (la cant la aplica addRow/recalc)
     const cantB  = (telaObjA.brazosPorAncho && telaObjA.brazosPorAncho[anchoSel]) || telaObjA.cantidadBrazos || 2;
     const extras = (telaObjA.extrasPorAncho && telaObjA.extrasPorAncho[anchoSel]) || '';
     const telaPart = telaInfoSel ? telaInfoSel.brand : '';
@@ -6510,7 +6510,7 @@ function qaAgregar(){
     }
     // V289: chapón y motor van como items SEPARADOS (autoAdd al final).
     const precioListaV = costoEje + costoZocalo + costoCalotas + costoMaquina + costoTapas + costoTelaListaV;
-    precio = Math.round(precioListaV * getFV() * cant);
+    precio = Math.round(precioListaV * getFV()); // precio UNITARIO (la cant la aplica addRow/recalc)
 
     const telaPartV = telaInfoSelV ? telaInfoSelV.brand : '';
     // V290.1: ancho y alto ya viven en sus columnas, no se repiten en la descripción.
