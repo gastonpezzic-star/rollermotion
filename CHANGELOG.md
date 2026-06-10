@@ -1,5 +1,13 @@
 # Changelog
 
+## V347 — 2026-06-10 — Orden de listas (Fase 1 · parte 2)
+
+Se puede **elegir el orden** de las listas de Cotizaciones, Pedidos y Fábrica con un nuevo desplegable al lado del filtro de estado:
+- **N° ↓ (más nuevo)** — es el orden por defecto, igual que antes (no cambia nada si no lo tocás).
+- **N° ↑ (más viejo)**, **Fecha ↓ (más nueva)**, **Fecha ↑ (más vieja)**.
+
+Resuelve el dolor de "no encontraba la cotización". Un solo helper `docComparator(sortVal)` ordena las 3 listas; el criterio se lee del nuevo `<select>` (`cq-sort` / `pq-sort` / `fq-sort`). Verificado en navegador: los 4 modos ordenan bien (número y fecha cruzados dan órdenes distintos y correctos) y el dropdown se integra prolijo en la barra.
+
 ## V346 — 2026-06-10 — Candado de pedidos (Fase 1 · parte 1)
 
 Primer paso del sistema para que un pedido no se edite libremente una vez aprobado (evita que fábrica fabrique una versión vieja y que se desenganche lo cobrado).

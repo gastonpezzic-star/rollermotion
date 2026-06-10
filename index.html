@@ -1268,6 +1268,12 @@ button:not([disabled]):active,
           <option value="Cotización">Cotización</option><option value="Enviada">Enviada</option>
           <option value="Aprobada">Aprobada</option><option value="Rechazada">Rechazada</option>
         </select>
+        <select id="cq-sort" onchange="_pageCot=1;renderCot()" title="Ordenar">
+          <option value="num-desc">N° ↓ nuevo</option>
+          <option value="num-asc">N° ↑ viejo</option>
+          <option value="fecha-desc">Fecha ↓ nueva</option>
+          <option value="fecha-asc">Fecha ↑ vieja</option>
+        </select>
       </div>
       <div class="lt-wrap">
         <table class="lt"><thead><tr>
@@ -1295,6 +1301,12 @@ button:not([disabled]):active,
           <option value="">Todos los estados</option>
           <option value="Pendiente">Pendiente</option><option value="Aprobado">Aprobado</option>
           <option value="En Fabricación">En Fabricación</option><option value="Finalizado">Finalizado</option><option value="Cancelado">Cancelado</option>
+        </select>
+        <select id="pq-sort" onchange="_pagePed=1;renderPed()" title="Ordenar">
+          <option value="num-desc">N° ↓ nuevo</option>
+          <option value="num-asc">N° ↑ viejo</option>
+          <option value="fecha-desc">Fecha ↓ nueva</option>
+          <option value="fecha-asc">Fecha ↑ vieja</option>
         </select>
       </div>
       <div class="lt-wrap">
@@ -1337,6 +1349,12 @@ button:not([disabled]):active,
           <option value="Finalizado">Finalizado</option>
           <option value="Cancelado">Cancelado</option>
           <option value="Necesita Revisión">Necesita Revisión</option>
+        </select>
+        <select id="fq-sort" onchange="renderFab()" title="Ordenar">
+          <option value="num-desc">N° ↓ nuevo</option>
+          <option value="num-asc">N° ↑ viejo</option>
+          <option value="fecha-desc">Fecha ↓ nueva</option>
+          <option value="fecha-asc">Fecha ↑ vieja</option>
         </select>
       </div>
       <div class="lt-wrap">
@@ -8340,6 +8358,24 @@ async function changeStatus(id, val){
 /* ════════════════════════════
    RENDER LISTS
 ════════════════════════════ */
+// V347 — orden configurable de las listas. sortVal: 'num-desc'|'num-asc'|'fecha-desc'|'fecha-asc'
+function docComparator(sortVal){
+  const parts = (sortVal||'num-desc').split('-');
+  const by = parts[0], mul = parts[1]==='asc' ? 1 : -1;
+  return (a,b)=>{
+    let va, vb;
+    if(by==='fecha'){
+      va = new Date(a.fecha||a.created_at||0).getTime();
+      vb = new Date(b.fecha||b.created_at||0).getTime();
+    } else {
+      va = parseInt((a.numero||'').replace(/\D/g,''))||0;
+      vb = parseInt((b.numero||'').replace(/\D/g,''))||0;
+    }
+    if(va===vb) return 0;
+    return (va<vb ? -1 : 1) * mul;
+  };
+}
+
 function filterDocs(type, qId, sId){
   const q=(document.getElementById(qId).value||'').toLowerCase();
   const st=document.getElementById(sId).value;
@@ -8361,12 +8397,7 @@ function filterDocs(type, qId, sId){
     if(st&&d.estado!==st) return false;
     if(q&&!(d.cliente||'').toLowerCase().includes(q)&&!(d.numero||'').toLowerCase().includes(q)) return false;
     return true;
-  }).sort((a,b)=>{
-    // Más nuevo primero: por número descendente (extrae los dígitos del COT-NNNN o PED-NNNN)
-    const na = parseInt((a.numero||'').replace(/\D/g,''))||0;
-    const nb = parseInt((b.numero||'').replace(/\D/g,''))||0;
-    return nb - na;
-  });
+  }).sort(docComparator(document.getElementById(qId.replace('-q','-sort'))?.value));
 }
 
 let _pedidoSrc = null; // doc origen: cotización guardada, o draft en memoria (pedido directo)
@@ -9794,11 +9825,7 @@ function renderFab(){
     if(st && d.estado !== st) return false;
     if(q && !(d.cliente||'').toLowerCase().includes(q) && !(d.numero||'').toLowerCase().includes(q)) return false;
     return true;
-  }).sort((a,b)=>{
-    const na = parseInt((a.numero||'').replace(/\D/g,''))||0;
-    const nb = parseInt((b.numero||'').replace(/\D/g,''))||0;
-    return nb - na;
-  });
+  }).sort(docComparator(document.getElementById('fq-sort')?.value));
 
   const tb = document.getElementById('fab-tbody');
   const em = document.getElementById('fab-empty');
