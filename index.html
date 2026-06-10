@@ -4639,7 +4639,7 @@ function getStatusHTMLForDoc(d){
 /* ════════════════════════════
    CUT CALCULATIONS
 ════════════════════════════ */
-function getEje(a){ a=parseInt(a)||0; if(a<=1600)return'32mm'; if(a<=2500)return'38mm'; if(a<=3000)return'50mm'; if(a<=3700)return'50R'; return'70mm'; }
+function getEje(a){ a=parseInt(a)||0; if(a<=1700)return'32mm'; if(a<=2200)return'38mm'; if(a<=3200)return'50mm'; if(a<=3735)return'50R'; return'70mm'; } // V348: alineado con getEjeId (1700/2200/3200/3735)
 function corteEje(a){ a=parseInt(a)||0; return a?a-35:null; }
 function corteTela(a){ a=parseInt(a)||0; return a?a-30:null; }
 function corteTelaH(h){ h=parseInt(h)||0; return h?h+350:null; }
@@ -5989,7 +5989,10 @@ function qaCalcPrecio(){
   const a = parseInt(ancho), h = parseInt(alto);
   if(a && h){
     cutsEl.style.display = 'block';
-    cutsEl.innerHTML = `Eje: <strong>${getEje(a)}</strong><br>C. eje: <strong>${a-35} mm</strong><br>C. tela: <strong>${a-30} × ${h+350} mm</strong>`;
+    // V348: eje por getEje (alineado con el costo). Corte = caso MOTORIZADO (define el límite 50R).
+    // Descuentos espejo de _restasArmado motor: ≤50 → eje −35 / tela −40 · 70mm → eje −60 / tela −65.
+    const _e = getEje(a), _70 = _e === '70mm';
+    cutsEl.innerHTML = `Eje: <strong>${_e}</strong><br>C. eje: <strong>${a - (_70?60:35)} mm</strong><br>C. tela: <strong>${a - (_70?65:40)} × ${h+350} mm</strong> <span style="opacity:.55;font-size:.85em">(motorizada)</span>`;
   } else {
     cutsEl.style.display = 'none';
   }

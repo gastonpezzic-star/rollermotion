@@ -1,5 +1,15 @@
 # Changelog
 
+## V348 — 2026-06-10 — Preview de eje/cortes en cotización: alineado con la planilla
+
+El preview rápido de la cotización (panel de carga) mostraba el eje y los cortes con **otra tabla** que no coincidía con la planilla de fábrica, lo que generaba confusión:
+- La función de etiqueta `getEje` usaba cortes viejos (1600/2500/3000/3700). **Se alineó con `getEjeId`** (1700/2200/3200/3735), que es la que usa el costo y la planilla.
+- El corte que mostraba estaba hardcodeado y mal (eje `ancho−35` y "tela" `ancho−30`, que no era ningún caso real). **Ahora se calcula bien** (caso motorizado, que es el que define el límite 50R): eje `−35` / tela `−40` para ejes ≤50, y `−60` / `−65` para 70 mm.
+
+Verificado en navegador: el corte del preview ahora coincide **exacto** con el de la planilla (con motor real) en todos los bordes — 3735 → 50R corte 3700, 3736 → 70 mm, etc.
+
+**Nota:** el cálculo de fabricación (la planilla y el costo) ya estaba correcto — esto fue solo alinear el preview en pantalla. Confirmado con el usuario: motorizada tela −40 / eje −35, manual tela −35 / eje −30, 70 mm −65 / −60.
+
 ## V347 — 2026-06-10 — Orden de listas (Fase 1 · parte 2)
 
 Se puede **elegir el orden** de las listas de Cotizaciones, Pedidos y Fábrica con un nuevo desplegable al lado del filtro de estado:
