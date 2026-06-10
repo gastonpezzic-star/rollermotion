@@ -1,5 +1,17 @@
 # Changelog
 
+## V346 — 2026-06-10 — Candado de pedidos (Fase 1 · parte 1)
+
+Primer paso del sistema para que un pedido no se edite libremente una vez aprobado (evita que fábrica fabrique una versión vieja y que se desenganche lo cobrado).
+
+- **Pendiente / Necesita Revisión:** se edita libre (vendedor, fábrica, admin).
+- **Aprobado / En Fabricación / Parcialmente terminado:** el botón ✏️ aparece **desiluminado**; el **vendedor no puede** editar (sale la leyenda *"Este pedido ya fue aprobado. Solo Fábrica o un administrador pueden modificarlo."*). **Fábrica y admin sí pueden**, con un aviso de confirmación al entrar.
+- **Finalizado / Cancelado:** cerrado para **todos** (incluido admin) — queda como historial.
+- **Alerta de desfase de plata:** si fábrica/admin modifica un pedido aprobado y cambia el total, al guardar avisa *"total $X → $Y (Δ$Z). Acordate de ajustar la cuenta corriente del distribuidor."* (En la Fase 2 ese ajuste será automático.)
+- No se agregaron íconos nuevos; el candado se ve por el botón apagado + la leyenda. Las cotizaciones no tienen candado.
+
+Verificado en navegador: la matriz estado×rol da exactamente lo diseñado, el botón sale apagado solo en pedidos trabados, y la alerta de desfase arma bien el mensaje.
+
 ## V345 — 2026-06-09 — Nota de fabricación: cantidad por unidad + rieles y toldos con formato propio
 
 Revisión general de la planilla de fábrica (a partir del chequeo del bug de cantidad). Se encontraron 3 temas **previos** (no los causó V344) y se corrigieron:

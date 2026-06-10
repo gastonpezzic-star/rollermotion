@@ -7947,6 +7947,21 @@ async function saveDoc(andPreview){
                         : ((ME&&ME.profile)?ME.id:null),
   };
 
+  // V345 — si se modifica un pedido YA APROBADO y cambió el total, avisar el desfase de plata
+  // (interino: en la Fase 2 el ajuste de la cuenta corriente será automático)
+  let _desfaseMsg = null;
+  if(editId){
+    const _old = getDocs().find(x=>x.id===editId);
+    if(_old && esModifControlada(_old)){
+      const _tAnt = Math.round(parseFloat(_old.total)||0);
+      const _tNue = Math.round(parseFloat(doc.total)||0);
+      if(_tAnt !== _tNue){
+        const _dlt = _tNue - _tAnt;
+        _desfaseMsg = `Pedido aprobado modificado: total ${fmtM(_tAnt)} → ${fmtM(_tNue)} (${_dlt>0?'+':''}${fmtM(_dlt)}). Acordate de ajustar la cuenta corriente del distribuidor.`;
+      }
+    }
+  }
+
   try {
     await saveDocToSupabase(doc);
     // Actualizar cache local
@@ -7973,6 +7988,9 @@ async function saveDoc(andPreview){
     editId = doc.id;
     toast('⚠️ Guardado local — sin conexión con servidor','err');
   }
+
+  // V345 — avisar el desfase de plata DESPUÉS de guardar (se apila sobre el toast de guardado)
+  if(_desfaseMsg) toast(_desfaseMsg,'err');
 
   // Intentar sincronizar docs pendientes en segundo plano
   // V301: reintento inmediato + reintentos rápidos (no esperar el ciclo de 25s)
@@ -8092,9 +8110,38 @@ function editDim(input, which){
   tr.dataset.item = JSON.stringify(item);
 }
 
+// ════════════════════════════════════════════════════════════
+// V345 — CANDADO DE PEDIDOS (no se editan libremente una vez aprobados)
+// ════════════════════════════════════════════════════════════
+// "Trabado" = pedido que ya salió de Pendiente/Necesita Revisión → el botón editar va desiluminado (igual para todos).
+function pedidoTrabado(d){
+  return !!(d && d.type==='order' && !['Pendiente','Necesita Revisión'].includes(d.estado||'Pendiente'));
+}
+// Motivo por el que ESTE usuario no puede editar (o null si puede).
+function lockMotivo(d){
+  if(!pedidoTrabado(d)) return null;
+  const est = d.estado||'';
+  if(est==='Finalizado' || est==='Cancelado')
+    return `Este pedido está ${est.toLowerCase()} y queda como historial — no se modifica.`;
+  const esFabOAdmin = ME && (ME.role==='admin' || ME.role==='fabrica');
+  if(!esFabOAdmin)
+    return 'Este pedido ya fue aprobado. Solo Fábrica o un administrador pueden modificarlo.';
+  return null; // fábrica/admin sí puede (modificación controlada)
+}
+// ¿Modificar este pedido toca la cuenta corriente? (ya fue aprobado/imputado al distribuidor)
+function esModifControlada(d){
+  return !!(d && d.type==='order' && ['Aprobado','En Fabricación','Parcialmente terminado'].includes(d.estado||''));
+}
+
 function editDoc(id){
   const doc = getDocs().find(x=>x.id===id);
   if(!doc) return;
+  // V345 — candado: bloquear según estado/rol; si fábrica/admin modifica un aprobado, confirmar
+  const _lockMot = lockMotivo(doc);
+  if(_lockMot){ toast(_lockMot,'err'); return; }
+  if(esModifControlada(doc)){
+    if(!confirm('Este pedido ya fue APROBADO.\n\nVas a entrar a modificarlo. Si cambia el precio, acordate de revisar la cuenta corriente del distribuidor.\n\n¿Continuar?')) return;
+  }
   editId=id; currentType=doc.type;
   _vincCotNum = doc.cotizacionOrigen || null;  // V327
   switchPage('pg-form');
@@ -8925,7 +8972,7 @@ function renderRow(d, isAdmin){
     : getStatusHTMLForDoc(d);
   const cantTotal = (d.items||[]).reduce((s,it)=>s+(parseInt(it.cant)||1),0);
   const menuItems = [];
-  if(canEdit) menuItems.push(`<button class="menu-dropdown-item" onclick="editDoc('${d.id}')">✏️ Editar</button>`);
+  if(canEdit) menuItems.push(`<button class="menu-dropdown-item"${pedidoTrabado(d)?" style='opacity:.5'":""} onclick="editDoc('${d.id}')">✏️ Editar</button>`);
   if(isQuote&&canEdit) menuItems.push(`<button class="menu-dropdown-item" onclick="duplicateDoc('${d.id}')">📋 Duplicar</button>`);
   if(canEdit) menuItems.push(`<button class="menu-dropdown-item del" onclick="deleteDoc('${d.id}')">🗑 Eliminar</button>`);
   const menuHTML = menuItems.join('').replace(/"/g,'&quot;');
@@ -9538,7 +9585,7 @@ function renderAdmin(){
   em.style.display='none';
   tb.innerHTML=data.map(d=>{
     const menuHTML = (
-      `<button class="menu-dropdown-item" onclick="editDoc('${d.id}')">✏️ Editar</button>`+
+      `<button class="menu-dropdown-item"${pedidoTrabado(d)?" style='opacity:.5'":""} onclick="editDoc('${d.id}')">✏️ Editar</button>`+
       `<button class="menu-dropdown-item del" onclick="deleteDoc('${d.id}')">🗑 Eliminar</button>`
     ).replace(/"/g,'&quot;');
     return `<tr style="border-bottom:1px solid var(--border);cursor:pointer" onclick="rowOpenDoc(event,'${d.id}')">
@@ -9799,7 +9846,7 @@ function renderFab(){
         ${(esDocTercerizado(d) && !tieneRoller)?`<button class="btn-t" style="border-color:#6a3a9a;color:#6a3a9a" onclick="abrirDocFab('${d.id}','planilla')" title="Nota de recepción (producto tercerizado)">📦</button>`:''}
         ${tieneConf?`<button class="btn-t" style="border-color:#2c6e49;color:#2c6e49" onclick="abrirDocFab('${d.id}','planilla-conf')" title="Planilla de confección (telas tradicionales)">🧵</button>`:''}
         <button class="btn-t" onclick="abrirDocFab('${d.id}','etiquetas')" title="Imprimir etiquetas">🏷</button>
-        <button class="btn-t" onclick="editDoc('${d.id}')" title="Editar pedido">✏️</button>
+        <button class="btn-t"${pedidoTrabado(d)?" style='opacity:.4'":""} onclick="editDoc('${d.id}')" title="Editar pedido">✏️</button>
         <button class="btn-t" style="border-color:#d4820e;color:#d4820e;font-weight:700" onclick="abrirRevision('${d.id}')" title="Solicitar revisión">!</button>
       </div>
     </td>
