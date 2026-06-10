@@ -11197,15 +11197,27 @@ function openPlanilla(d){
   const tercItems    = _allItemsRaw.filter(esTercItem);
   const allItems     = _allItemsRaw.filter(it => !esTercItem(it));
 
+  // V345: detectar rieles sueltos y toldos para sacarlos del catch-all roller.
+  // Antes caían en rollerItems (por tener ancho/alto) y se dibujaban como cortina
+  // roller con "corte de tela" y "eje" que no aplican. Ahora tienen su propia hoja.
+  const esRielSuelto = it => ['riel_manual','riel_motorizado','riel_motorizado_celtic'].includes(it.tela)
+    || (TELAS[it.tela] && TELAS[it.tela].tipo === 'riel');
+  const esToldoItem  = it => (it.tela||'').startsWith('toldo_')
+    || (TELAS[it.tela] && (TELAS[it.tela].tipo === 'toldo' || TELAS[it.tela].tipo === 'toldovertical'));
+
   // Items roller (blackout/sunscreen/etc con eje) + cambio de tela
   // V292.5: incluir explícitamente cambio de tela. El filtro genérico ya los tomaba
   // por ancho/alto, pero lo dejamos explícito para que sea claro.
   const rollerItemsRaw = allItems.filter(it =>
-    it.tela==='blackout' || it.tela==='sunscreen5' ||
-    it.tela==='Roller Blackout' || it.tela==='Roller Sunscreen 5%' ||
-    isCambioTela(it.tela) ||
-    (it.ancho && it.alto && it.tela !== 'conf_liviana' && it.tela !== 'conf_blackout')
+    !esRielSuelto(it) && !esToldoItem(it) && (
+      it.tela==='blackout' || it.tela==='sunscreen5' ||
+      it.tela==='Roller Blackout' || it.tela==='Roller Sunscreen 5%' ||
+      isCambioTela(it.tela) ||
+      (it.ancho && it.alto && it.tela !== 'conf_liviana' && it.tela !== 'conf_blackout')
+    )
   );
+  const rielItems  = allItems.filter(esRielSuelto);
+  const toldoItems = allItems.filter(esToldoItem);
 
   // V292.1: Roller Doble → expandir cada item en DOS (Blackout + Sunscreen) para la planilla.
   // El usuario las fabrica como dos cortinas separadas que se unen con soporte doble.
@@ -11253,6 +11265,14 @@ function openPlanilla(d){
     }
   });
 
+  // V345: expandir por cantidad — una fila por unidad física (como confección),
+  // para que fábrica vea cuántas hacer (antes una línea con cant 3 salía 1 sola fila).
+  const rollerRowsExpanded = [];
+  rollerItems.forEach((it, idx)=>{
+    const cant = parseInt(it.cant)||1;
+    for(let k=0; k<cant; k++) rollerRowsExpanded.push({ ...it, _idx: idx+1, _k: k+1, _cant: cant });
+  });
+
   // Items de confección tradicional
   const confItems = allItems.filter(it =>
     it.tela === 'conf_liviana' || it.tela === 'conf_blackout'
@@ -11280,7 +11300,7 @@ function openPlanilla(d){
     return false;
   });
 
-  if(!rollerItems.length && !confItems.length && !libreItems.length && !tercItems.length){
+  if(!rollerItems.length && !confItems.length && !rielItems.length && !toldoItems.length && !libreItems.length && !tercItems.length){
     toast('Sin cortinas con medidas para generar planilla','err'); return;
   }
 
@@ -11288,7 +11308,7 @@ function openPlanilla(d){
   const pedNum = `${d.numero||'—'}`;
 
   // ── HOJA 1: CORTE DE TELA + ARMADO (Roller) ──
-  const h1rows = rollerItems.map((it,i)=>{
+  const h1rows = rollerRowsExpanded.map((it,i)=>{
     // V292.4: cambio de tela — no lleva mecanismo/eje/cadena, se reutiliza lo existente
     const esCambio = isCambioTela(it.tela);
     // V292.6: para cambio de tela, el corte es EXACTAMENTE lo que cargó el usuario
@@ -11346,12 +11366,12 @@ function openPlanilla(d){
       <td style="text-align:center">${cadenaCell}</td>
       <td style="text-align:center">${zoc==='Reutilizar existente' ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>' : `<span class="ftag ${zocCls}">${zoc}</span>`}</td>
       <td style="text-align:center">${soporteCell}</td>
-      <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
+      <td style="font-size:10px;color:#888">${it._cant>1 ? `${it.ref||'—'} (${it._k}/${it._cant})` : (it.ref||'—')}</td>
     </tr>`;
   }).join('');
 
   // ── HOJA 2: CORTES DE ALUMINIO (Roller + Accesorios + Rieles conf) ──
-  const h2rows_roller = rollerItems.map((it,i)=>{
+  const h2rows_roller = rollerRowsExpanded.map((it,i)=>{
     const eje = getEjeInfo(it.ancho, it.motor);
     const cejeVal = getCorteEje(it.ancho, it.motor);
     const zoc = it.zoc||'Bolsillo';
@@ -11393,7 +11413,7 @@ function openPlanilla(d){
       <td style="font-size:9px;color:#555">${it.color||'—'}${motorBadge}</td>
       <td>${ejeCell}</td>
       <td>${zocCell}</td>
-      <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
+      <td style="font-size:10px;color:#888">${it._cant>1 ? `${it.ref||'—'} (${it._k}/${it._cant})` : (it.ref||'—')}</td>
     </tr>`;
   }).join('');
 
@@ -11562,6 +11582,58 @@ function openPlanilla(d){
     </tr>`;
   }).join('');
 
+  // ── V345: RIELES SUELTOS (Somfy / Manual / Celtic) — corte exacto al ancho + motor ──
+  const rielRowsExpanded = [];
+  rielItems.forEach((it, idx)=>{
+    const cant = parseInt(it.cant)||1;
+    for(let k=0; k<cant; k++) rielRowsExpanded.push({ ...it, _idx: idx+1, _k: k+1, _cant: cant });
+  });
+  const hRielRows = rielRowsExpanded.map((it,i)=>{
+    const corteRiel = parseInt(it.ancho)||0;
+    const celtic    = (it.confData && it.confData.celticTramos) ? it.confData.celticTramos : '';
+    const esCeltic  = it.tela === 'riel_motorizado_celtic' || !!celtic;
+    const motorLbl  = (it.confData && it.confData.motorLabel) ? it.confData.motorLabel : '';
+    const tieneMotor= !!motorLbl || esCeltic || /motor/i.test(it.color||'');
+    const motorCell = tieneMotor
+      ? `<span style="background:#fff4e0;border:1px solid #f5c97a;border-radius:4px;padding:2px 8px;font-size:9px;font-weight:800;color:#a85d00;white-space:nowrap">⚡ ${esc(motorLbl || (esCeltic?'Motorizado Celtic':'Motorizado'))}</span>`
+      : `<span style="background:#f0f4f8;border:1px solid #c0d0dc;border-radius:4px;padding:2px 8px;font-size:9px;font-weight:700;color:#5a7080">🔧 Manual</span>`;
+    const corteCell = esCeltic && celtic
+      ? `<div style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:800;color:#6a3a00">${esc(celtic)}</div><div style="font-size:7.5px;color:#888">combinación de tramos</div>`
+      : `<div style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:800;color:#141414">${corteRiel} mm</div><div style="font-size:7.5px;color:#888">corte exacto al ancho</div>`;
+    const colorBase = (it.color||'—').replace(/\s*·\s*Motor[^·]*/i,'').trim() || '—';
+    const refLabel  = it._cant>1 ? `${it.ref||('Riel '+it._idx)} (${it._k}/${it._cant})` : (it.ref||('Riel '+it._idx));
+    return `<tr>
+      <td style="text-align:center;border-right:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
+      <td><span class="fnum" style="background:#a05c00">${i+1}</span></td>
+      <td style="font-weight:700;font-size:10.5px">${getTelaLabel(it.tela)||'Riel'}</td>
+      <td style="font-size:9.5px;color:#555">${esc(colorBase)}</td>
+      <td style="text-align:center">${motorCell}</td>
+      <td style="text-align:center">${corteCell}</td>
+      <td style="font-size:10px;color:#888">${esc(refLabel)}</td>
+    </tr>`;
+  }).join('');
+
+  // ── V345: TOLDOS — solo medidas (ancho × saliente). No se cortan, se arman. ──
+  const toldoRowsExpanded = [];
+  toldoItems.forEach((it, idx)=>{
+    const cant = parseInt(it.cant)||1;
+    for(let k=0; k<cant; k++) toldoRowsExpanded.push({ ...it, _idx: idx+1, _k: k+1, _cant: cant });
+  });
+  const hToldoRows = toldoRowsExpanded.map((it,i)=>{
+    const refLabel = it._cant>1 ? `${it.ref||('Toldo '+it._idx)} (${it._k}/${it._cant})` : (it.ref||('Toldo '+it._idx));
+    const motorTag = (it.confData && it.confData.motorizado)
+      ? `<span style="background:#fff4e0;border:1px solid #f5c97a;border-radius:4px;padding:1px 7px;font-size:8.5px;font-weight:800;color:#a85d00;white-space:nowrap;margin-left:6px">⚡ Motorizado</span>` : '';
+    return `<tr>
+      <td style="text-align:center;border-right:2px solid #a8d8b0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
+      <td><span class="fnum" style="background:#2c6e49">${i+1}</span></td>
+      <td style="font-weight:700;font-size:10.5px">${getTelaLabel(it.tela)||'Toldo'}${motorTag}</td>
+      <td style="font-size:9.5px;color:#555">${esc(it.color||'—')}</td>
+      <td style="text-align:center;font-family:'Manrope',sans-serif;font-size:15px;font-weight:800">${parseInt(it.ancho)||'—'} mm</td>
+      <td style="text-align:center;font-family:'Manrope',sans-serif;font-size:15px;font-weight:800">${parseInt(it.alto)||'—'} mm</td>
+      <td style="font-size:10px;color:#888">${esc(refLabel)}</td>
+    </tr>`;
+  }).join('');
+
   const headerHtml = (hoja, hojaTotal, barcodeId) => `
     <div class="fab-header" style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 8px;border-bottom:2.5px solid #f09620">
       <div class="fab-brand">Roller<span>Motion</span></div>
@@ -11573,8 +11645,8 @@ function openPlanilla(d){
     </div>`;
 
   // V294: si solo hay libreItems (sin roller ni conf), cuenta como 1 hoja para el "Hoja N de M"
-  const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && confItems.length === 0;
-  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (confItems.length > 0 ? 2 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
+  const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && confItems.length === 0 && rielItems.length === 0 && toldoItems.length === 0;
+  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (confItems.length > 0 ? 2 : 0) + (rielItems.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
   let hojaNum = 0;
 
   let html = `<div class="fab-doc">`;
@@ -11695,6 +11767,64 @@ function openPlanilla(d){
     </div>`;
   }
 
+  // ── V345: Hoja de RIELES SUELTOS (solo si hay) ──
+  if(rielItems.length > 0){
+    hojaNum++;
+    const breakRiel = hojaNum > 1 ? ' fab-page-break' : '';
+    html += `
+    <div class="fab-sheet${breakRiel}">
+    ${headerHtml(`Rieles — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-riel')}
+    <div class="fab-section">
+      <div class="sec-hdr" style="background:#fef0e0;border:1px solid #f0c88a;border-bottom:none">
+        <div class="sec-circle" style="background:#a05c00">R</div>
+        <div class="sec-ttl" style="color:#6a3a00">🔩 Rieles — Corte exacto al ancho</div>
+        <span class="sec-sub" style="color:#6a3a00">Cortar el riel a la medida exacta del ancho &nbsp;·&nbsp; Una fila por unidad a fabricar</span>
+      </div>
+      <table class="fab-table">
+        <thead style="background:#fde8c0"><tr>
+          <th style="color:#6a3a00;text-align:center;width:38px">✓</th>
+          <th style="color:#6a3a00;width:22px">#</th>
+          <th style="color:#6a3a00">Tipo</th>
+          <th style="color:#6a3a00">Color</th>
+          <th style="color:#6a3a00;text-align:center">Motor</th>
+          <th style="color:#6a3a00;text-align:center">Corte riel</th>
+          <th style="color:#6a3a00">Ref.</th>
+        </tr></thead>
+        <tbody>${hRielRows}</tbody>
+      </table>
+    </div>
+    </div>`;
+  }
+
+  // ── V345: Hoja de TOLDOS (solo medidas — se arman) ──
+  if(toldoItems.length > 0){
+    hojaNum++;
+    const breakToldo = hojaNum > 1 ? ' fab-page-break' : '';
+    html += `
+    <div class="fab-sheet${breakToldo}">
+    ${headerHtml(`Toldos — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-toldo')}
+    <div class="fab-section">
+      <div class="sec-hdr" style="background:#edf7ee;border:1px solid #a8d8b0;border-bottom:none">
+        <div class="sec-circle" style="background:#2c6e49">T</div>
+        <div class="sec-ttl" style="color:#1a4a2a">⛱ Toldos — Para armar</div>
+        <span class="sec-sub" style="color:#1a4a2a">Solo medidas (ancho × saliente). No llevan corte de tela ni eje — se arman.</span>
+      </div>
+      <table class="fab-table">
+        <thead style="background:#c8e6cc"><tr>
+          <th style="color:#1a4a2a;text-align:center;width:38px">✓</th>
+          <th style="color:#1a4a2a;width:22px">#</th>
+          <th style="color:#1a4a2a">Tipo</th>
+          <th style="color:#1a4a2a">Color / Detalle</th>
+          <th style="color:#1a4a2a;text-align:center">Ancho</th>
+          <th style="color:#1a4a2a;text-align:center">Saliente / Alto</th>
+          <th style="color:#1a4a2a">Ref.</th>
+        </tr></thead>
+        <tbody>${hToldoRows}</tbody>
+      </table>
+    </div>
+    </div>`;
+  }
+
   // ── V294: Productos personalizados (items 'libre') ──
   // Aparecen como una sección simple al final. Sin medidas ni fabricación específica,
   // solo descripción + cantidad + ref. Sirve para que el operario sepa que esos items
@@ -11702,7 +11832,7 @@ function openPlanilla(d){
   if(libreItems.length > 0){
     // V294.1: la sección libre también va en .fab-sheet.
     // Si no hay roller ni conf, es la primera (sin page-break). Si hay otras, va con page-break.
-    const breakLibre = (rollerItems.length > 0 || confItems.length > 0) ? ' fab-page-break' : '';
+    const breakLibre = (rollerItems.length > 0 || confItems.length > 0 || rielItems.length > 0 || toldoItems.length > 0) ? ' fab-page-break' : '';
     if(hayLibreSolo) hojaNum++;
     html += `
     <div class="fab-sheet${breakLibre}">
@@ -11741,7 +11871,7 @@ function openPlanilla(d){
   // ── V308: Productos TERCERIZADOS — Nota de recepción (con código de barras para escanear al llegar) ──
   if(tercItems.length > 0){
     hojaNum++;
-    const breakTerc = (rollerItems.length > 0 || confItems.length > 0 || libreItems.length > 0) ? ' fab-page-break' : '';
+    const breakTerc = (rollerItems.length > 0 || confItems.length > 0 || rielItems.length > 0 || toldoItems.length > 0 || libreItems.length > 0) ? ' fab-page-break' : '';
     html += `
     <div class="fab-sheet${breakTerc}">
     ${headerHtml(`Nota de Recepción — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-terc')}

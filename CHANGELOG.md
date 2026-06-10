@@ -1,5 +1,15 @@
 # Changelog
 
+## V345 — 2026-06-09 — Nota de fabricación: cantidad por unidad + rieles y toldos con formato propio
+
+Revisión general de la planilla de fábrica (a partir del chequeo del bug de cantidad). Se encontraron 3 temas **previos** (no los causó V344) y se corrigieron:
+
+1. **La cantidad no se mostraba.** Una línea con cantidad 3 salía como **1 sola fila** en la planilla (roller/rieles), con riesgo de que fábrica hiciera 1 en vez de 3. Ahora **se desdobla en N filas** (una por unidad física, con su casillero ✓ y etiqueta `(1/3)`, `(2/3)`…), igual que ya hacía confección.
+2. **Los rieles se dibujaban como cortina roller** (les ponía "corte de tela", "eje 50mm", "cadena" que no aplican). Ahora tienen su **propia hoja "Rieles"**: Tipo, Color, Motor (badge), **Corte exacto al ancho**. El Celtic muestra la combinación de tramos (ej. "2m + 3m").
+3. **Los toldos** (cuando iban mezclados con roller/rieles en un pedido) **también se dibujaban como roller.** Ahora tienen su **propia hoja "Toldos — Para armar"**: solo las medidas (**ancho × saliente**), sin cortes ni descuentos, porque el toldo se arma. Si está motorizado, lo indica con un badge.
+
+Nota: la nota de fabricación **no muestra precios** (solo cortes/medidas/materiales), así que el arreglo de precio de V344 no la afectaba. Verificado corriendo la planilla real con roller (cant 3), riel Somfy (cant 2), riel manual, riel Celtic y toldo (cant 2): hojas y cantidades correctas, sin valores rotos, flujos de roller y confección intactos.
+
 ## V344 — 2026-06-09 — Bug de cantidad en rieles/toldos: el precio unitario se triplicaba
 
 Augusto reportó que en **rieles motorizados**, si subías la cantidad en el panel de carga *antes* de tocar "Agregar", se inflaba el **precio unitario** (con cantidad 3 quedaba "el triple de caro"), en vez de afectar solo al total.
