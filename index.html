@@ -7968,9 +7968,10 @@ async function saveDoc(andPreview){
                         : ((ME&&ME.profile)?ME.id:null),
   };
 
-  // V345 — si se modifica un pedido YA APROBADO y cambió el total, avisar el desfase de plata
-  // (interino: en la Fase 2 el ajuste de la cuenta corriente será automático)
-  let _desfaseMsg = null;
+  // V349 — Fase 2: modificación de un pedido aprobado que cambió el total.
+  // Distribuidor → la cuenta corriente se ajusta sola (trigger en la base); avisamos.
+  // Vendedor RollerMotion → confirmamos el cambio de precio antes de guardar.
+  let _ajusteMsg = null;
   if(editId){
     const _old = getDocs().find(x=>x.id===editId);
     if(_old && esModifControlada(_old)){
@@ -7978,7 +7979,11 @@ async function saveDoc(andPreview){
       const _tNue = Math.round(parseFloat(doc.total)||0);
       if(_tAnt !== _tNue){
         const _dlt = _tNue - _tAnt;
-        _desfaseMsg = `Pedido aprobado modificado: total ${fmtM(_tAnt)} → ${fmtM(_tNue)} (${_dlt>0?'+':''}${fmtM(_dlt)}). Acordate de ajustar la cuenta corriente del distribuidor.`;
+        if(esDocDistribuidor(_old)){
+          _ajusteMsg = `Cuenta corriente del distribuidor ajustada automáticamente: ${_dlt>0?'+':''}${fmtM(_dlt)} (${fmtM(_tAnt)} → ${fmtM(_tNue)}).`;
+        } else {
+          if(!confirm(`Esta modificación cambió el precio de ${fmtM(_tAnt)} a ${fmtM(_tNue)} (${_dlt>0?'+':''}${fmtM(_dlt)}).\n\n¿Aplicar la modificación con el precio actualizado?`)) return null;
+        }
       }
     }
   }
@@ -8010,8 +8015,8 @@ async function saveDoc(andPreview){
     toast('⚠️ Guardado local — sin conexión con servidor','err');
   }
 
-  // V345 — avisar el desfase de plata DESPUÉS de guardar (se apila sobre el toast de guardado)
-  if(_desfaseMsg) toast(_desfaseMsg,'err');
+  // V349 — avisar el ajuste automático de la cuenta corriente DESPUÉS de guardar
+  if(_ajusteMsg) toast(_ajusteMsg,'ok');
 
   // Intentar sincronizar docs pendientes en segundo plano
   // V301: reintento inmediato + reintentos rápidos (no esperar el ciclo de 25s)
@@ -8161,7 +8166,7 @@ function editDoc(id){
   const _lockMot = lockMotivo(doc);
   if(_lockMot){ toast(_lockMot,'err'); return; }
   if(esModifControlada(doc)){
-    if(!confirm('Este pedido ya fue APROBADO.\n\nVas a entrar a modificarlo. Si cambia el precio, acordate de revisar la cuenta corriente del distribuidor.\n\n¿Continuar?')) return;
+    if(!confirm('Este pedido ya fue APROBADO.\n\n¿Querés modificarlo igual?')) return;
   }
   editId=id; currentType=doc.type;
   _vincCotNum = doc.cotizacionOrigen || null;  // V327

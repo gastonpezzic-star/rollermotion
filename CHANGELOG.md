@@ -1,5 +1,16 @@
 # Changelog
 
+## V349 — 2026-06-10 — Fase 2: ajuste automático de la cuenta corriente al modificar un pedido aprobado
+
+Completa la Fase 2 del candado de pedidos. Cuando fábrica/admin modifica un pedido **ya aprobado** y cambia el total:
+
+- **Distribuidor:** la cuenta corriente se **ajusta sola** por la diferencia (lo hace un trigger en la base, `cc_ajustar_modif_pedido`, que sigue al mismo criterio que la imputación original y es a prueba de fallos). La app avisa: *"Cuenta corriente del distribuidor ajustada automáticamente: +$X ($viejo → $nuevo)"*.
+- **Vendedor RollerMotion:** sale un cartel de confirmación *"Esta modificación cambió el precio de $X a $Y. ¿Aplicar la modificación con el precio actualizado?"* (si cancela, no guarda).
+- Se sacó el aviso interino *"acordate de ajustar la cuenta corriente"* (V346) — ahora es automático.
+- El aviso al entrar a editar un aprobado se simplificó a *"Este pedido ya fue aprobado. ¿Querés modificarlo igual?"*.
+
+El trigger se verificó instalado (función + trigger + las 6 columnas de `cc_movimientos` que usa). Importante: el sistema asocia un pedido a un distribuidor por **`vendedor_id`** (quién lo creó); los distribuidores cargan sus propios pedidos entrando con su usuario.
+
 ## V348 — 2026-06-10 — Preview de eje/cortes en cotización: alineado con la planilla
 
 El preview rápido de la cotización (panel de carga) mostraba el eje y los cortes con **otra tabla** que no coincidía con la planilla de fábrica, lo que generaba confusión:
