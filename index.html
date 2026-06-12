@@ -10577,7 +10577,7 @@ function openDoc(d, fromForm){
   const totalLista = d.total; // total sin bonif corporativa
   const totalCorp  = corpActivo ? Math.round(totalLista * 0.75) : 0;
 
-  const promoHtml = !isOrder ? (corpActivo ? `
+  const promoHtml = (corpActivo ? `
     <div style="display:flex;gap:10px;margin:0 32px 16px;align-items:stretch">
       <div style="flex:1.4;border-radius:10px;padding:8px 12px;background:#f0961f;display:flex;flex-direction:column;justify-content:center;gap:2px;text-align:center">
         <div style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.14em;color:rgba(255,255,255,.7)">Venta corporativa / empresa</div>
@@ -10618,7 +10618,7 @@ function openDoc(d, fromForm){
         <div style="font-size:22px;font-weight:600;color:rgba(255,255,255,.92);line-height:1">${fmtM(Math.round(d.total*0.75))}</div>
         <div style="font-size:8px;color:rgba(255,255,255,.42)">Valores incluyen IVA</div>
       </div>
-    </div>`) : '';
+    </div>`);
 
   // ── FILAS DE INSTALACIÓN (manual + motorizada + toldos) ──
   const _instalManQty   = parseInt(d.instal_manual_qty);

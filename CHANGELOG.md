@@ -1,5 +1,14 @@
 # Changelog
 
+## V351 — 2026-06-12 — Presupuesto de pedidos unificado con el de cotizaciones (muestra cuotas)
+
+Al ver el presupuesto de un **pedido**, el bloque de **cuotas / financiación** (6 sin interés, o el beneficio corporativo) no aparecía — solo salía en cotizaciones. Ahora **se muestra igual en pedidos**, unificando el formato con el de cotizaciones.
+
+- Se sacó el `!isOrder` que ocultaba el bloque de cuotas (`promoHtml`) en pedidos.
+- Los **distribuidores siguen sin cuotas** (su presupuesto no las lleva — eso no cambió).
+- El **descuento** ya se mostraba en pedidos cuando el pedido tiene uno cargado (no era el problema).
+- Nota: `corteRows` y `etiqHtml` en `openDoc` estaban definidos pero sin usar (código muerto); el cuerpo del presupuesto ya era compartido entre pedido y cotización.
+
 ## V350 — 2026-06-12 — Fase 3: sello "MODIFICADO" en la planilla (cierra el candado de pedidos)
 
 Cuando un pedido aprobado se modifica (cambian ítems o total), la planilla de fábrica sale con un sello rojo en el encabezado, al lado del N°: **"⚠ MODIFICADO · v2 · fecha"** (v3, v4… si se modifica más veces). Así, si quedó dando vueltas una hoja vieja impresa, se nota de una que está vencida.
