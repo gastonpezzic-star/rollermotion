@@ -1,5 +1,17 @@
 # Changelog
 
+## V350 — 2026-06-12 — Fase 3: sello "MODIFICADO" en la planilla (cierra el candado de pedidos)
+
+Cuando un pedido aprobado se modifica (cambian ítems o total), la planilla de fábrica sale con un sello rojo en el encabezado, al lado del N°: **"⚠ MODIFICADO · v2 · fecha"** (v3, v4… si se modifica más veces). Así, si quedó dando vueltas una hoja vieja impresa, se nota de una que está vencida.
+
+- Se agregó un contador `version` al pedido (arranca en 1; sube +1 cada vez que se modifica algo de la planilla o el total después de aprobado). El sello aparece solo con `version > 1`.
+- La fecha del sello sale de `updated_at` (última modificación).
+- Persistencia defensiva (no rompe el guardado si falta la columna).
+
+**Requiere correr en Supabase (1 línea):** `alter table documentos add column if not exists version integer default 1;`
+
+Con esto queda **cerrado el proyecto Candado de Pedidos** (F1 candado + orden, F2 ajuste de plata, F3 sello).
+
 ## V349 — 2026-06-10 — Fase 2: ajuste automático de la cuenta corriente al modificar un pedido aprobado
 
 Completa la Fase 2 del candado de pedidos. Cuando fábrica/admin modifica un pedido **ya aprobado** y cambia el total:

@@ -3649,6 +3649,9 @@ function normalizeDoc(d){
     roller_terminado: d.roller_terminado === true,
     fecha_inicio_fab: d.fecha_inicio_fab || null,
     fecha_finalizado: d.fecha_finalizado || null,
+    // V350 — versión del pedido (para el sello MODIFICADO en la planilla)
+    version:          parseInt(d.version)||1,
+    updated_at:       d.updated_at || null,
     items:            (d.items||[]).sort((a,b)=>a.orden-b.orden).map(normalizeItem),
   };
 }
@@ -3766,6 +3769,14 @@ async function saveDocToSupabase(doc){
       const { error: oErr } = await _sb.from('documentos').update({ origen: doc.origen }).eq('id', doc.id);
       if(oErr) console.warn('[Origen] Supabase rechazó (¿falta columna?):', oErr.message);
     }catch(e){ console.warn('[Origen]', e); }
+  }
+
+  // V350 — versión del pedido (sello MODIFICADO): update aparte para no romper si falta la columna
+  if(doc.version && doc.version > 1){
+    try{
+      const { error: vErr } = await _sb.from('documentos').update({ version: doc.version }).eq('id', doc.id);
+      if(vErr) console.warn('[version] Supabase rechazó (¿falta columna?):', vErr.message);
+    }catch(e){ console.warn('[version]', e); }
   }
 
   // Eliminar items viejos y reinsertar
@@ -7974,9 +7985,15 @@ async function saveDoc(andPreview){
   let _ajusteMsg = null;
   if(editId){
     const _old = getDocs().find(x=>x.id===editId);
+    doc.version = parseInt(_old && _old.version)||1;  // V350 — preservar la versión por defecto
     if(_old && esModifControlada(_old)){
       const _tAnt = Math.round(parseFloat(_old.total)||0);
       const _tNue = Math.round(parseFloat(doc.total)||0);
+      // V350 — si cambió la planilla (ítems) o el total → subir versión (sello MODIFICADO)
+      const _sig = its => (its||[]).map(it=>`${it.tela}|${it.color}|${it.ancho}|${it.alto}|${it.cant}`).join(';');
+      if(_sig(doc.items) !== _sig(_old.items) || _tAnt !== _tNue){
+        doc.version = (parseInt(_old.version)||1) + 1;
+      }
       if(_tAnt !== _tNue){
         const _dlt = _tNue - _tAnt;
         if(esDocDistribuidor(_old)){
@@ -11720,7 +11737,7 @@ function openPlanilla(d){
     <div class="fab-header" style="display:flex;justify-content:space-between;align-items:center;padding:10px 20px 8px;border-bottom:2.5px solid #f09620">
       <div class="fab-brand">Roller<span>Motion</span></div>
       <div style="text-align:center;flex:1;padding:0 16px">
-        <div class="fab-doc-title">${hoja} &nbsp;·&nbsp; ${pedNum}</div>
+        <div class="fab-doc-title">${hoja} &nbsp;·&nbsp; ${pedNum}${(parseInt(d.version)||1) > 1 ? ` &nbsp; <span style="color:#fff;background:#c0392b;font-weight:800;padding:1px 7px;border-radius:4px;letter-spacing:.04em">⚠ MODIFICADO · v${parseInt(d.version)}${d.updated_at?' · '+fmtD((d.updated_at||'').slice(0,10)):''}</span>` : ''}</div>
         <div class="fab-doc-num">${esc(d.cliente)} &nbsp;·&nbsp; Entrega: <span style="color:#d4820e">${fecha}</span>${d.vendedor ? ` &nbsp;·&nbsp; Vendedor: <span style="color:#555;font-weight:600">${esc(d.vendedor)}</span>` : ''}</div>
       </div>
       <div id="${barcodeId}" data-pednum="${pedNum}" style="min-width:110px;text-align:right"></div>
