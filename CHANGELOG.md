@@ -1,5 +1,11 @@
 # Changelog
 
+## V352 — 2026-06-12 — Badge de Fábrica: cuenta solo pedidos Pendientes + fix del contador de Revisión
+
+Dos ajustes a las notificaciones del menú (`updateNavBadges`):
+- **Fábrica** ahora cuenta **solo los pedidos en `Pendiente`** (antes contaba Pendiente + Aprobado). Un Pendiente es un pedido nuevo que fábrica todavía no vio — tiene que aprobarlo y pasarlo a fabricación. Los ya aprobados/en proceso no inflan el número.
+- **Fix:** el contador de `Necesita Revisión` estaba mal escrito (`Necesita Revision`, sin acento), así que **nunca contaba** — el badge de Pedidos quedaba siempre vacío. Corregido el acento; ahora el badge de **Pedidos** muestra bien los que necesitan revisión.
+
 ## V351 — 2026-06-12 — Presupuesto de pedidos unificado con el de cotizaciones (muestra cuotas)
 
 Al ver el presupuesto de un **pedido**, el bloque de **cuotas / financiación** (6 sin interés, o el beneficio corporativo) no aparecía — solo salía en cotizaciones. Ahora **se muestra igual en pedidos**, unificando el formato con el de cotizaciones.

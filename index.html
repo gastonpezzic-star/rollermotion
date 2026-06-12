@@ -15960,8 +15960,8 @@ function restoreData(input){
 function updateNavBadges(){
   if(!ME) return;
   const docs = getDocs();
-  const pendFab  = docs.filter(d=>d.type==='order'&&['Pendiente','Aprobado'].includes(d.estado)).length;
-  const revision = docs.filter(d=>d.estado==='Necesita Revision').length;
+  const pendFab  = docs.filter(d=>d.type==='order'&&d.estado==='Pendiente').length; // V352: solo Pendiente (fábrica todavía no lo vio)
+  const revision = docs.filter(d=>d.estado==='Necesita Revisión').length; // V352: acento corregido (antes nunca contaba)
   const stockBajo= (typeof _stockItemsCache !== 'undefined' ? _stockItemsCache : []).filter(i => i.activo!==false && (typeof getStockEstado==='function') && ['bajo','sin'].includes(getStockEstado(i))).length;
 
   document.querySelectorAll('.ntab').forEach(tab=>{
@@ -15969,8 +15969,8 @@ function updateNavBadges(){
     const old = tab.querySelector('.nav-badge');
     if(old) old.remove();
     let count = 0;
-    if(pg==='pg-fab')   count = pendFab + revision;
-    if(pg==='pg-ped')   count = revision;
+    if(pg==='pg-fab')   count = pendFab;          // V352: solo pedidos Pendientes (nuevos sin ver)
+    if(pg==='pg-ped')   count = revision;          // Necesita Revisión (ahora cuenta bien por el acento)
     if(pg==='pg-stock') count = stockBajo;
     if(count > 0){
       const b = document.createElement('span');
