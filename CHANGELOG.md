@@ -1,5 +1,19 @@
 # Changelog
 
+## V353 — 2026-06-13 — Planilla de fábrica: rieles reorganizados (motorizados vs manuales) + sin Mesa de Confección
+
+Reorganización de la planilla según el criterio de fábrica (los manuales se cortan, los motorizados no). Antes los rieles aparecían hasta en 3 lugares mezclados; ahora quedan en **dos listas claras**:
+
+- **⚡ Rieles Motorizados** → todos los motorizados (Somfy/Celtic sueltos **+** cortinas de confección con motor asignado). Se listan.
+- **✂ Corte de Rieles (manuales)** → todos los manuales (rieles manuales sueltos **+** rieles de confección sin motor). Se cortan (corte exacto al ancho).
+
+Además:
+- Se quitó el **riel de confección** de la hoja "Cortes de Aluminio" (ya no se duplica el *"Gasa de lino"*).
+- Se sacó la hoja **"Mesa de Confección"** del armado (la confección se hace en su nota aparte, la del 🧵).
+- Un riel de confección se considera motorizado si la cortina tiene un motor asignado (`it.motor`) — eso se va a poder asignar desde el overlay en el próximo paso (como en los rollers).
+
+Verificado en navegador con un pedido mixto: roller a "Cortes de Aluminio" (sin gasa), gasa con motor → Motorizados, gasa sin motor + riel manual → Corte de Rieles, sin Mesa de Confección, hojas numeradas 1→4.
+
 ## V352 — 2026-06-12 — Badge de Fábrica: cuenta solo pedidos Pendientes + fix del contador de Revisión
 
 Dos ajustes a las notificaciones del menú (`updateNavBadges`):

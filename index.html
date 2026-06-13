@@ -11559,7 +11559,7 @@ function openPlanilla(d){
     </tr>`;
   }).join('');
 
-  const h2rows = h2rows_roller + h2rows_conf_rieles + h2rows_acc;
+  const h2rows = h2rows_roller + h2rows_acc; // V353: el riel de confección ya no va acá (va en su sección de rieles)
 
   // ── HOJA 3: CONFECCIÓN TRADICIONAL ──
   // Calcular metros de tela por cortina
@@ -11681,36 +11681,49 @@ function openPlanilla(d){
     </tr>`;
   }).join('');
 
-  // ── V345: RIELES SUELTOS (Somfy / Manual / Celtic) — corte exacto al ancho + motor ──
-  const rielRowsExpanded = [];
-  rielItems.forEach((it, idx)=>{
-    const cant = parseInt(it.cant)||1;
-    for(let k=0; k<cant; k++) rielRowsExpanded.push({ ...it, _idx: idx+1, _k: k+1, _cant: cant });
-  });
-  const hRielRows = rielRowsExpanded.map((it,i)=>{
+  // ── V353: RIELES — sueltos + de confección, separados por MOTORIZADO / MANUAL ──
+  // Manual = se corta (corte exacto al ancho). Motorizado = se lista aparte (no se corta — interno).
+  // Confección con motor asignado (it.motor, V354) → motorizado; sino → manual.
+  const _rielEsMotor = (it)=>{
+    if(it.tela === 'riel_motorizado' || it.tela === 'riel_motorizado_celtic') return true;
+    if(it.tela === 'riel_manual') return false;
+    if(it.confData && it.confData.motorLabel) return true;
+    if(it.motor) return true;
+    return /motor/i.test(it.color||'');
+  };
+  const _rielEntradas = [];
+  rielItems.forEach((it, idx)=>{ const c=parseInt(it.cant)||1; for(let k=0;k<c;k++) _rielEntradas.push({ ...it, _conf:false, _idx:idx+1, _k:k+1, _cant:c }); });
+  confItems.forEach((it, idx)=>{ const c=parseInt(it.cant)||1; for(let k=0;k<c;k++) _rielEntradas.push({ ...it, _conf:true,  _idx:idx+1, _k:k+1, _cant:c }); });
+  const _rielRow = (it, i)=>{
     const corteRiel = parseInt(it.ancho)||0;
     const celtic    = (it.confData && it.confData.celticTramos) ? it.confData.celticTramos : '';
     const esCeltic  = it.tela === 'riel_motorizado_celtic' || !!celtic;
-    const motorLbl  = (it.confData && it.confData.motorLabel) ? it.confData.motorLabel : '';
-    const tieneMotor= !!motorLbl || esCeltic || /motor/i.test(it.color||'');
-    const motorCell = tieneMotor
+    const motorLbl  = it._conf ? (it.motor||'') : ((it.confData && it.confData.motorLabel) ? it.confData.motorLabel : '');
+    const esMotor   = _rielEsMotor(it);
+    const tipoLbl   = it._conf ? (it.tela==='conf_blackout' ? 'Blackout Tex' : 'Gasa de lino') : (getTelaLabel(it.tela)||'Riel');
+    const motorCell = esMotor
       ? `<span style="background:#fff4e0;border:1px solid #f5c97a;border-radius:4px;padding:2px 8px;font-size:9px;font-weight:800;color:#a85d00;white-space:nowrap">⚡ ${esc(motorLbl || (esCeltic?'Motorizado Celtic':'Motorizado'))}</span>`
       : `<span style="background:#f0f4f8;border:1px solid #c0d0dc;border-radius:4px;padding:2px 8px;font-size:9px;font-weight:700;color:#5a7080">🔧 Manual</span>`;
     const corteCell = esCeltic && celtic
       ? `<div style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:800;color:#6a3a00">${esc(celtic)}</div><div style="font-size:7.5px;color:#888">combinación de tramos</div>`
       : `<div style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:800;color:#141414">${corteRiel} mm</div><div style="font-size:7.5px;color:#888">corte exacto al ancho</div>`;
     const colorBase = (it.color||'—').replace(/\s*·\s*Motor[^·]*/i,'').trim() || '—';
-    const refLabel  = it._cant>1 ? `${it.ref||('Riel '+it._idx)} (${it._k}/${it._cant})` : (it.ref||('Riel '+it._idx));
+    const _baseRef  = it._conf ? ('Cort. '+it._idx) : ('Riel '+it._idx);
+    const refLabel  = it._cant>1 ? `${it.ref||_baseRef} (${it._k}/${it._cant})` : (it.ref||_baseRef);
     return `<tr>
       <td style="text-align:center;border-right:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum" style="background:#a05c00">${i+1}</span></td>
-      <td style="font-weight:700;font-size:10.5px">${getTelaLabel(it.tela)||'Riel'}</td>
+      <td style="font-weight:700;font-size:10.5px">${esc(tipoLbl)}</td>
       <td style="font-size:9.5px;color:#555">${esc(colorBase)}</td>
       <td style="text-align:center">${motorCell}</td>
       <td style="text-align:center">${corteCell}</td>
       <td style="font-size:10px;color:#888">${esc(refLabel)}</td>
     </tr>`;
-  }).join('');
+  };
+  const rielesMotorArr  = _rielEntradas.filter(_rielEsMotor);
+  const rielesManualArr = _rielEntradas.filter(it=>!_rielEsMotor(it));
+  const hMotorRows  = rielesMotorArr.map((it,i)=>_rielRow(it,i)).join('');
+  const hManualRows = rielesManualArr.map((it,i)=>_rielRow(it,i)).join('');
 
   // ── V345: TOLDOS — solo medidas (ancho × saliente). No se cortan, se arman. ──
   const toldoRowsExpanded = [];
@@ -11744,8 +11757,9 @@ function openPlanilla(d){
     </div>`;
 
   // V294: si solo hay libreItems (sin roller ni conf), cuenta como 1 hoja para el "Hoja N de M"
-  const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && confItems.length === 0 && rielItems.length === 0 && toldoItems.length === 0;
-  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (confItems.length > 0 ? 2 : 0) + (rielItems.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
+  const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && rielesMotorArr.length === 0 && rielesManualArr.length === 0 && toldoItems.length === 0;
+  // V353: confección ya no genera hojas propias (sus rieles van en las secciones de rieles; la mesa se sacó)
+  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (rielesMotorArr.length > 0 ? 1 : 0) + (rielesManualArr.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
   let hojaNum = 0;
 
   let html = `<div class="fab-doc">`;
@@ -11810,10 +11824,10 @@ function openPlanilla(d){
     </div>`;
   }
 
-  // ── Hojas Confección (solo si hay) ──
-  // V294.1: cada hoja en .fab-sheet. La primera de confección lleva .fab-page-break sólo
-  // si hay hojas previas (de roller); sino es la primera y no necesita break.
-  if(confItems.length > 0){
+  // ── V353: Las hojas de confección (Mesa + Rieles de Confección) ya NO van en el armado.
+  // La mesa se hace en la nota de confección aparte (🧵); los rieles de confección van ahora
+  // en las secciones unificadas "Rieles Motorizados" / "Corte de Rieles". Bloque desactivado.
+  if(false){
     hojaNum++;
     const breakConf = rollerItems.length > 0 ? ' fab-page-break' : '';
     html += `
@@ -11866,18 +11880,18 @@ function openPlanilla(d){
     </div>`;
   }
 
-  // ── V345: Hoja de RIELES SUELTOS (solo si hay) ──
-  if(rielItems.length > 0){
+  // ── V353: RIELES MOTORIZADOS (sueltos + confección con motor) — se listan ──
+  if(rielesMotorArr.length > 0){
     hojaNum++;
-    const breakRiel = hojaNum > 1 ? ' fab-page-break' : '';
+    const breakRm = hojaNum > 1 ? ' fab-page-break' : '';
     html += `
-    <div class="fab-sheet${breakRiel}">
-    ${headerHtml(`Rieles — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-riel')}
+    <div class="fab-sheet${breakRm}">
+    ${headerHtml(`Rieles Motorizados — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-rielmot')}
     <div class="fab-section">
-      <div class="sec-hdr" style="background:#fef0e0;border:1px solid #f0c88a;border-bottom:none">
-        <div class="sec-circle" style="background:#a05c00">R</div>
-        <div class="sec-ttl" style="color:#6a3a00">🔩 Rieles — Corte exacto al ancho</div>
-        <span class="sec-sub" style="color:#6a3a00">Cortar el riel a la medida exacta del ancho &nbsp;·&nbsp; Una fila por unidad a fabricar</span>
+      <div class="sec-hdr" style="background:#fff4e0;border:1px solid #f0c88a;border-bottom:none">
+        <div class="sec-circle" style="background:#a85d00">⚡</div>
+        <div class="sec-ttl" style="color:#6a3a00">⚡ Rieles Motorizados</div>
+        <span class="sec-sub" style="color:#6a3a00">Una fila por unidad &nbsp;·&nbsp; Verificar el motor de cada uno</span>
       </div>
       <table class="fab-table">
         <thead style="background:#fde8c0"><tr>
@@ -11889,7 +11903,36 @@ function openPlanilla(d){
           <th style="color:#6a3a00;text-align:center">Corte riel</th>
           <th style="color:#6a3a00">Ref.</th>
         </tr></thead>
-        <tbody>${hRielRows}</tbody>
+        <tbody>${hMotorRows}</tbody>
+      </table>
+    </div>
+    </div>`;
+  }
+
+  // ── V353: CORTE DE RIELES (manuales) — sueltos + confección sin motor — se cortan ──
+  if(rielesManualArr.length > 0){
+    hojaNum++;
+    const breakRman = hojaNum > 1 ? ' fab-page-break' : '';
+    html += `
+    <div class="fab-sheet${breakRman}">
+    ${headerHtml(`Corte de Rieles — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-rielman')}
+    <div class="fab-section">
+      <div class="sec-hdr" style="background:#fef0e0;border:1px solid #f0c88a;border-bottom:none">
+        <div class="sec-circle" style="background:#a05c00">R</div>
+        <div class="sec-ttl" style="color:#6a3a00">✂ Corte de Rieles (manuales)</div>
+        <span class="sec-sub" style="color:#6a3a00">Cortar el riel a la medida exacta del ancho &nbsp;·&nbsp; Una fila por unidad</span>
+      </div>
+      <table class="fab-table">
+        <thead style="background:#fde8c0"><tr>
+          <th style="color:#6a3a00;text-align:center;width:38px">✓</th>
+          <th style="color:#6a3a00;width:22px">#</th>
+          <th style="color:#6a3a00">Tipo</th>
+          <th style="color:#6a3a00">Color</th>
+          <th style="color:#6a3a00;text-align:center">Motor</th>
+          <th style="color:#6a3a00;text-align:center">Corte riel</th>
+          <th style="color:#6a3a00">Ref.</th>
+        </tr></thead>
+        <tbody>${hManualRows}</tbody>
       </table>
     </div>
     </div>`;
