@@ -14392,7 +14392,7 @@ function abrirNuevoStockItem(id){
             </div>
             <div class="f s2"><label>Nombre *</label><input type="text" id="sti-nombre" placeholder="Ej: Blackout Vertilux Fiberglass" value="${it?.nombre||''}"></div>
             <div class="f"><label>Subcategoría</label><input type="text" id="sti-subcat" placeholder="Ej: Vertilux" value="${it?.subcategoria||''}"></div>
-            <div class="f"><label>Color</label><input type="text" id="sti-color" placeholder="Ej: Blanco" value="${it?.color||''}"></div>
+            <div class="f"><label>Color</label><input type="text" id="sti-color" list="sti-color-opts" autocomplete="off" placeholder="Blanco / Negro…" value="${it?.color||''}"><datalist id="sti-color-opts"><option value="Blanco"></option><option value="Negro"></option><option value="Anodizado"></option><option value="Gris"></option><option value="Beige"></option><option value="Ivory"></option></datalist></div>
             <div class="f"><label>Variante extra</label><input type="text" id="sti-variante" placeholder="Ej: 5%, mate, etc." value="${it?.variante||''}"></div>
             <div class="f"><label>Unidad *</label>
               <select id="sti-unidad">

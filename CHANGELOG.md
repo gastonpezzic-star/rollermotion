@@ -1,5 +1,11 @@
 # Changelog
 
+## V357 — 2026-06-13 — Stock: campo Color como lista en el alta de insumo
+
+Pequeña mejora al formulario de alta/edición de insumo de stock (`abrirNuevoStockItem`): el campo **Color** pasó de texto libre a un input con lista de sugerencias (`datalist`): Blanco, Negro, Anodizado, Gris, Beige, Ivory — se puede elegir de la lista o tipear otro. Pensado para arrancar la carga de stock de mecanismos (Blanco/Negro) de forma consistente.
+
+Nota: el módulo de Stock ya existía completo (pestaña 📦 Stock, 3 tablas Supabase, partidas/FIFO, semáforo, descuento al fabricar). El formulario activo es el de `abrirNuevoStockItem` (IDs `sti-*`), que ya tenía campo Color, categoría "Mecanismos" y mostraba el color en el inventario. El overlay viejo `overlay-stock-item` (IDs `stk-*-form`, botón `guardarStockItem`) es código muerto (la función no existe, nunca se abre) — candidato a limpieza futura.
+
 ## V356 — 2026-06-13 — Planilla: rieles manuales en la hoja de Aluminio (ahorra papel)
 
 A pedido de Gastón: un riel manual es también un corte de aluminio, así que la sección "✂ Corte de Rieles (manuales)" ya no ocupa una hoja propia — ahora se imprime como segunda sección de la hoja **"Cortes de Aluminio y Accesorios"** (que pasa a titularse "Cortes de Aluminio, Rieles y Accesorios" cuando incluye ambos). Los rieles **MOTORIZADOS** siguen en su hoja aparte (esos no se cortan, vienen armados).
