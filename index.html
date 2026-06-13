@@ -11768,10 +11768,12 @@ function openPlanilla(d){
 
   // V294: si solo hay libreItems (sin roller ni conf), cuenta como 1 hoja para el "Hoja N de M"
   // V354: la hoja de aluminio/accesorios puede salir sola (pedido de solo accesorios, sin roller)
-  const hayAccesoriosSolo = accesorioItems.length > 0 && rollerItems.length === 0;
+  // V356: esa hoja ahora incluye también los rieles MANUALES (un riel manual es un corte de aluminio)
+  // → se ahorra una hoja. Los rieles MOTORIZADOS siguen en su propia hoja aparte (no se cortan).
+  const hayHojaAlu = rollerItems.length > 0 || accesorioItems.length > 0 || rielesManualArr.length > 0;
   const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && rielesMotorArr.length === 0 && rielesManualArr.length === 0 && toldoItems.length === 0 && accesorioItems.length === 0;
   // V353: confección ya no genera hojas propias (sus rieles van en las secciones de rieles; la mesa se sacó)
-  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (hayAccesoriosSolo ? 1 : 0) + (rielesMotorArr.length > 0 ? 1 : 0) + (rielesManualArr.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
+  const totalHojas = (rollerItems.length > 0 ? 1 : 0) + (hayHojaAlu ? 1 : 0) + (rielesMotorArr.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
   let hojaNum = 0;
 
   let html = `<div class="fab-doc">`;
@@ -11811,15 +11813,23 @@ function openPlanilla(d){
     </div>`;
   } // V354: fin Hoja 1 (armado roller). La hoja de aluminio sale en su propio if (abajo).
 
-  // ── HOJA 2: CORTES DE ALUMINIO Y ACCESORIOS (V354: independizada del roller) ──
-  // Sale si hay roller (cortes de eje/zócalo) o si hay accesorios (guías/cenefas/tubos/ángulos),
-  // aunque el pedido no tenga ninguna cortina roller.
-  if(rollerItems.length > 0 || accesorioItems.length > 0){
+  // ── HOJA 2: CORTES DE ALUMINIO + ACCESORIOS + RIELES MANUALES ──
+  // V354: independizada del roller (sale con roller, accesorios o rieles manuales).
+  // V356: los rieles MANUALES (que son un corte de aluminio) se incluyen acá, como segunda
+  // sección de la misma hoja, en vez de ocupar una hoja propia. Ahorra papel.
+  if(hayHojaAlu){
     hojaNum++;
     const breakAlu = hojaNum > 1 ? ' fab-page-break' : '';
+    const hayCortesAlu = rollerItems.length > 0 || accesorioItems.length > 0;
+    const tituloAlu = hayCortesAlu
+      ? (rielesManualArr.length > 0 ? 'Cortes de Aluminio, Rieles y Accesorios' : 'Cortes de Aluminio y Accesorios')
+      : 'Corte de Rieles (manuales)';
     html += `
     <div class="fab-sheet${breakAlu}">
-    ${headerHtml(`Cortes de Aluminio y Accesorios — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-hoja2')}
+    ${headerHtml(`${tituloAlu} — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-hoja2')}`;
+    // Sección de cortes de aluminio (eje/zócalo de rollers + accesorios) — solo si hay ese contenido
+    if(hayCortesAlu){
+      html += `
     <div class="fab-section">
       <div class="sec-hdr" style="background:#fef4e0;border:1px solid #f0d8a0;border-bottom:none">
         <div class="sec-circle">2</div>
@@ -11838,7 +11848,32 @@ function openPlanilla(d){
         </tr></thead>
         <tbody>${h2rows}</tbody>
       </table>
-    </div>
+    </div>`;
+    }
+    // V356: Sección de rieles MANUALES (se cortan, son de aluminio) — debajo, en la misma hoja
+    if(rielesManualArr.length > 0){
+      html += `
+    <div class="fab-section" style="margin-top:14px">
+      <div class="sec-hdr" style="background:#fef0e0;border:1px solid #f0c88a;border-bottom:none">
+        <div class="sec-circle" style="background:#a05c00">R</div>
+        <div class="sec-ttl" style="color:#6a3a00">✂ Corte de Rieles (manuales)</div>
+        <span class="sec-sub" style="color:#6a3a00">Cortar el riel a la medida exacta del ancho &nbsp;·&nbsp; Una fila por unidad</span>
+      </div>
+      <table class="fab-table">
+        <thead style="background:#fde8c0"><tr>
+          <th style="color:#6a3a00;text-align:center;width:38px">✓</th>
+          <th style="color:#6a3a00;width:22px">#</th>
+          <th style="color:#6a3a00">Tipo</th>
+          <th style="color:#6a3a00">Color</th>
+          <th style="color:#6a3a00;text-align:center">Motor</th>
+          <th style="color:#6a3a00;text-align:center">Corte riel</th>
+          <th style="color:#6a3a00">Ref.</th>
+        </tr></thead>
+        <tbody>${hManualRows}</tbody>
+      </table>
+    </div>`;
+    }
+    html += `
     </div>`;
   }
 
@@ -11927,34 +11962,9 @@ function openPlanilla(d){
     </div>`;
   }
 
-  // ── V353: CORTE DE RIELES (manuales) — sueltos + confección sin motor — se cortan ──
-  if(rielesManualArr.length > 0){
-    hojaNum++;
-    const breakRman = hojaNum > 1 ? ' fab-page-break' : '';
-    html += `
-    <div class="fab-sheet${breakRman}">
-    ${headerHtml(`Corte de Rieles — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-rielman')}
-    <div class="fab-section">
-      <div class="sec-hdr" style="background:#fef0e0;border:1px solid #f0c88a;border-bottom:none">
-        <div class="sec-circle" style="background:#a05c00">R</div>
-        <div class="sec-ttl" style="color:#6a3a00">✂ Corte de Rieles (manuales)</div>
-        <span class="sec-sub" style="color:#6a3a00">Cortar el riel a la medida exacta del ancho &nbsp;·&nbsp; Una fila por unidad</span>
-      </div>
-      <table class="fab-table">
-        <thead style="background:#fde8c0"><tr>
-          <th style="color:#6a3a00;text-align:center;width:38px">✓</th>
-          <th style="color:#6a3a00;width:22px">#</th>
-          <th style="color:#6a3a00">Tipo</th>
-          <th style="color:#6a3a00">Color</th>
-          <th style="color:#6a3a00;text-align:center">Motor</th>
-          <th style="color:#6a3a00;text-align:center">Corte riel</th>
-          <th style="color:#6a3a00">Ref.</th>
-        </tr></thead>
-        <tbody>${hManualRows}</tbody>
-      </table>
-    </div>
-    </div>`;
-  }
+  // ── V356: la sección "Corte de Rieles (manuales)" ya NO es una hoja propia.
+  // Ahora se imprime como segunda sección de la hoja "Cortes de Aluminio..." (arriba),
+  // porque un riel manual es también un corte de aluminio → ahorra una hoja.
 
   // ── V345: Hoja de TOLDOS (solo medidas — se arman) ──
   if(toldoItems.length > 0){

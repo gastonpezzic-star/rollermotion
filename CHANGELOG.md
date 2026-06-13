@@ -1,5 +1,13 @@
 # Changelog
 
+## V356 — 2026-06-13 — Planilla: rieles manuales en la hoja de Aluminio (ahorra papel)
+
+A pedido de Gastón: un riel manual es también un corte de aluminio, así que la sección "✂ Corte de Rieles (manuales)" ya no ocupa una hoja propia — ahora se imprime como segunda sección de la hoja **"Cortes de Aluminio y Accesorios"** (que pasa a titularse "Cortes de Aluminio, Rieles y Accesorios" cuando incluye ambos). Los rieles **MOTORIZADOS** siguen en su hoja aparte (esos no se cortan, vienen armados).
+
+Detalles: la hoja de aluminio ahora aparece si hay roller **o** accesorios **o** rieles manuales (`hayHojaAlu`); el título es dinámico (solo rieles manuales → "Corte de Rieles (manuales)"; con cortes de aluminio → "Cortes de Aluminio, Rieles y Accesorios"); `totalHojas` deja de contar la hoja de rieles manuales por separado.
+
+Verificado en navegador (matriz completa): solo riel manual → 1 hoja; roller+riel manual → 2 hojas (antes 3); manual+motorizado → 2 hojas (motor aparte); solo roller / solo accesorios → sin cambios; mix completo (roller+accesorio+riel manual+motor+toldo) → 4 hojas (antes 5), numeración correcta y ambas secciones con contenido.
+
 ## V355 — 2026-06-13 — Planilla: confección "Sin riel" ya no muestra riel fantasma
 
 Fix de ruteo en la planilla de fábrica. Antes, una cortina de confección cargada **"Sin riel"** igual aparecía con un riel en "Corte de Rieles (manuales)" — un riel fantasma que fábrica no debía cortar. Ahora solo las confecciones **"Con riel"** (riel manual de aluminio) entran a la sección de rieles; las "Sin riel" no llevan riel a cortar (se detecta por la etiqueta "· Con/Sin riel" del color, con respaldo en el flag `conRiel`).
