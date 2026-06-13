@@ -1,5 +1,16 @@
 # Changelog
 
+## V358 — 2026-06-13 — Stock: descuento de mecanismos linkeado por VTX + color
+
+Arreglo del descuento automático de stock para mecanismos (`calcInsumosParaItem`, rama mecanismo). Antes el requerimiento buscaba el mecanismo por **color + lado (Derecha/Izquierda)** y nunca matcheaba bien — el lado no es una diferencia de stock y el VTX (10/20/30), que SÍ lo es, no se usaba. Ahora:
+
+- El mecanismo se elige por **ancho** con `getMecId` (≤1700→VTX10, ≤3200→VTX20, ≤3730→VTX30) y se linkea por **`categoria:'Mecanismos'` + `subcategoria_match:'VTX10/20/30'` + `color_match`**, más `insumo_ref` `mec_vtxNN_color` (ej. `mec_vtx10_blanco`) para match exacto.
+- Una cortina **motorizada** (`motorId`/`motorLabel`/`motor`) o de ancho > 3730mm **no descuenta mecanismo** (no lleva VTX manual).
+
+El descuento sigue disparándose al pasar el pedido a "En Fabricación" (`changeStatus`), y se revierte al cancelar. Para que enganche, los ítems de stock de mecanismos deben tener `categoria=Mecanismos`, `subcategoria=VTX10/VTX20/VTX30` y `color=Blanco/Negro` (o el `insumo_ref` `mec_vtxNN_color`).
+
+Verificado en navegador: 1500 Blanco→VTX10, 2500 Negro×2→VTX20×2, 3500→VTX30, bordes 3200/3201 OK, motorizada y >3730→sin descuento.
+
 ## V357 — 2026-06-13 — Stock: campo Color como lista en el alta de insumo
 
 Pequeña mejora al formulario de alta/edición de insumo de stock (`abrirNuevoStockItem`): el campo **Color** pasó de texto libre a un input con lista de sugerencias (`datalist`): Blanco, Negro, Anodizado, Gris, Beige, Ivory — se puede elegir de la lista o tipear otro. Pensado para arrancar la carga de stock de mecanismos (Blanco/Negro) de forma consistente.

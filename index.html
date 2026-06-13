@@ -15261,17 +15261,23 @@ function calcInsumosParaItem(item){
     });
   }
 
-  // ── 4) MECANISMO — 1 unidad por roller
+  // ── 4) MECANISMO — 1 unidad por roller MANUAL (V358: se linkea por VTX según el ancho + color).
+  // El VTX (10/20/30) es la diferencia real de stock; antes se buscaba por color+lado y nunca matcheaba.
+  // Una cortina motorizada (tiene motor) NO lleva mecanismo manual, así que no descuenta.
   if(tiposConEje.includes(tela)){
+    const esMotor  = !!(item.motorId || item.motorLabel || item.motor);
     const colorMec = item.color_mecanismo || item.colorMecanismo || 'Blanco';
-    const ladoMec  = item.lado_mecanismo || item.ladoMecanismo || 'Derecha';
-    reqs.push({
-      insumo_ref:  `mecanismo_${colorMec.toLowerCase()}_${ladoMec.toLowerCase()}`,
-      buscar_por:  { categoria:'Mecanismos', color_match:colorMec, variante_match:ladoMec },
-      cantidad:    cant,
-      unidad:      'unidad',
-      descripcion: `Mecanismo ${colorMec} (${ladoMec})`,
-    });
+    const mecId    = (!esMotor && typeof getMecId === 'function') ? getMecId(ancho) : null; // mec_vtx10/20/30; null si va motorizado o > 3730mm
+    if(mecId){
+      const vtx = mecId.replace('mec_','').toUpperCase(); // VTX10 / VTX20 / VTX30
+      reqs.push({
+        insumo_ref:  `${mecId}_${colorMec.toLowerCase()}`,                       // ej. mec_vtx10_blanco
+        buscar_por:  { categoria:'Mecanismos', subcategoria_match:vtx, color_match:colorMec },
+        cantidad:    cant,
+        unidad:      'unidad',
+        descripcion: `Mecanismo ${vtx} ${colorMec}`,
+      });
+    }
   }
 
   // ── 5) CADENA — largo según selección
