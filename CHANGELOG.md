@@ -1,5 +1,15 @@
 # Changelog
 
+## V359 — 2026-06-13 — Stock: descuento de cadenas linkeado por color (Blanca/Negra/Metálica)
+
+Arreglo del descuento automático de cadenas (`calcInsumosParaItem`, rama cadena). Antes leía el color de `item.color_cadena` (campo que el overlay no llena → caía siempre en `'Blanco'`) y usaba `item.cad` como si fuera un largo (cuando `item.cad`/`item.cadena` es justamente el color). Ahora:
+
+- Toma el color real de `item.cadena || item.cad` → **Blanca / Negra / Metálica**, y linkea por `categoria:'Cadenas'` + `color_match` (+ `insumo_ref` `cadena_<color>`).
+- Se descuenta **por metros**; `LARGO_CADENA_POR_CORTINA = 2` m por cortina (constante a calibrar con datos reales).
+- Cortina **motorizada** no lleva cadena.
+
+Para enganchar, los ítems de stock de cadena deben tener `categoria=Cadenas`, `color=Blanca/Negra/Metálica`, `unidad=m`. Catálogo: `cadena_blanca`/`cadena_negra` ($710, plásticas); la metálica es ítem nuevo de stock. Verificado en navegador.
+
 ## V358 — 2026-06-13 — Stock: descuento de mecanismos linkeado por VTX + color
 
 Arreglo del descuento automático de stock para mecanismos (`calcInsumosParaItem`, rama mecanismo). Antes el requerimiento buscaba el mecanismo por **color + lado (Derecha/Izquierda)** y nunca matcheaba bien — el lado no es una diferencia de stock y el VTX (10/20/30), que SÍ lo es, no se usaba. Ahora:

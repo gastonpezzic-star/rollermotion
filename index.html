@@ -15280,20 +15280,20 @@ function calcInsumosParaItem(item){
     }
   }
 
-  // ── 5) CADENA — largo según selección
+  // ── 5) CADENA — por metros (V359: color real desde item.cadena/cad → Blanca/Negra/Metálica).
+  // Antes leía el color de un campo vacío (default 'Blanco') y usaba el color como si fuera un largo.
+  // Motorizada no lleva cadena. LARGO_CADENA_POR_CORTINA es un aprox a calibrar con datos reales.
+  const LARGO_CADENA_POR_CORTINA = 2; // metros por cortina (ajustable)
   if(tiposConEje.includes(tela)){
-    const cadenaTipo = item.cad || 'Larga';
-    // Aproximación de largos en m
-    const largosCadena = {'Corta':1.5, 'Larga':2, 'Super Larga':3, 'Sin Cadena':0};
-    const largoM = largosCadena[cadenaTipo] != null ? largosCadena[cadenaTipo] : 2;
-    if(largoM > 0){
-      const colorCad = item.color_cadena || item.colorCadena || 'Blanco';
+    const esMotor  = !!(item.motorId || item.motorLabel || item.motor);
+    const colorCad = item.cadena || item.cad || item.color_cadena || 'Blanca'; // Blanca / Negra / Metálica
+    if(!esMotor && colorCad && !/sin/i.test(colorCad)){
       reqs.push({
-        insumo_ref:  `cadena_${colorCad.toLowerCase()}`,
+        insumo_ref:  `cadena_${colorCad.toLowerCase()}`,                 // cadena_blanca / cadena_negra / cadena_metálica
         buscar_por:  { categoria:'Cadenas', color_match:colorCad },
-        cantidad:    +(largoM*cant).toFixed(2),
+        cantidad:    +(LARGO_CADENA_POR_CORTINA*cant).toFixed(2),
         unidad:      'm',
-        descripcion: `Cadena ${colorCad} (${largoM}m × ${cant})`,
+        descripcion: `Cadena ${colorCad} (${LARGO_CADENA_POR_CORTINA}m × ${cant})`,
       });
     }
   }
