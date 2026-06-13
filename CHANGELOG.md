@@ -1,5 +1,13 @@
 # Changelog
 
+## V355 — 2026-06-13 — Planilla: confección "Sin riel" ya no muestra riel fantasma
+
+Fix de ruteo en la planilla de fábrica. Antes, una cortina de confección cargada **"Sin riel"** igual aparecía con un riel en "Corte de Rieles (manuales)" — un riel fantasma que fábrica no debía cortar. Ahora solo las confecciones **"Con riel"** (riel manual de aluminio) entran a la sección de rieles; las "Sin riel" no llevan riel a cortar (se detecta por la etiqueta "· Con/Sin riel" del color, con respaldo en el flag `conRiel`).
+
+Esto habilita el flujo limpio para **confecciones motorizadas**: la cortina se carga "Sin riel" y el **riel motorizado** (Celtic o Somfy) se agrega como item aparte (cotizado por separado, que es como funciona realmente — dos proveedores distintos de riel+motor). Ese riel motorizado ya cae solo en "⚡ Rieles Motorizados".
+
+Verificado en navegador: conf Sin riel sola → sin riel en planilla; conf Con riel → "Corte de Rieles (manuales)"; conf Sin riel + Riel Motorizado Somfy/Celtic → solo el motorizado en "Rieles Motorizados"; y un mix (roller + conf con riel + conf sin riel + Celtic) → 4 hojas bien numeradas y cada riel en su sección.
+
 ## V354 — 2026-06-13 — Planilla: hoja de Aluminio+Accesorios independiente + Chapón cubre toldos en Toldos
 
 Dos arreglos en la planilla de fábrica (salieron de una auditoría del ruteo de items):

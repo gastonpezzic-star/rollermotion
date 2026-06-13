@@ -11694,7 +11694,16 @@ function openPlanilla(d){
   };
   const _rielEntradas = [];
   rielItems.forEach((it, idx)=>{ const c=parseInt(it.cant)||1; for(let k=0;k<c;k++) _rielEntradas.push({ ...it, _conf:false, _idx:idx+1, _k:k+1, _cant:c }); });
-  confItems.forEach((it, idx)=>{ const c=parseInt(it.cant)||1; for(let k=0;k<c;k++) _rielEntradas.push({ ...it, _conf:true,  _idx:idx+1, _k:k+1, _cant:c }); });
+  // V355: una confección "Sin riel" NO lleva riel a cortar en la planilla (si la querés motorizada,
+  // se carga aparte como item "Riel Motorizado" Celtic/Somfy). Solo las "Con riel" (riel manual de
+  // aluminio) entran a la sección de rieles. Se detecta por la etiqueta del color y, si falta, por el flag.
+  const _confSinRiel = it => {
+    const col = it.color || '';
+    if(/·\s*con\s*riel/i.test(col)) return false;
+    if(/·\s*sin\s*riel/i.test(col)) return true;
+    return it.conRiel === false;
+  };
+  confItems.forEach((it, idx)=>{ if(_confSinRiel(it)) return; const c=parseInt(it.cant)||1; for(let k=0;k<c;k++) _rielEntradas.push({ ...it, _conf:true,  _idx:idx+1, _k:k+1, _cant:c }); });
   const _rielRow = (it, i)=>{
     const corteRiel = parseInt(it.ancho)||0;
     const celtic    = (it.confData && it.confData.celticTramos) ? it.confData.celticTramos : '';
