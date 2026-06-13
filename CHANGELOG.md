@@ -1,5 +1,14 @@
 # Changelog
 
+## V354 — 2026-06-13 — Planilla: hoja de Aluminio+Accesorios independiente + Chapón cubre toldos en Toldos
+
+Dos arreglos en la planilla de fábrica (salieron de una auditoría del ruteo de items):
+
+- **Hoja "Cortes de Aluminio y Accesorios" ahora sale sola.** Antes vivía adentro del bloque del roller, así que un pedido de **solo accesorios** (guías laterales, cenefas curvas SLIM/MAXI, tubos, ángulos) no generaba ninguna hoja y los accesorios desaparecían. Se independizó: la hoja aparece si hay roller **o** si hay accesorios. También se arregló el guard (no abortaba con "Sin cortinas…") y el conteo "Hoja N de M". Se renombró a "Cortes de Aluminio y Accesorios".
+- **Chapón cubre toldos** ahora aparece como línea con check en la sección **Toldos** (antes se perdía: su item `cobertor_toldo` no caía en ningún bucket). Sale tal cual se cargó. Toldos quedan igual (solo medidas; se optimizan después).
+
+Verificado en navegador: solo-accesorios → "Hoja 1 de 1"; roller+accesorio → Hojas 1 y 2; toldo+chapón → chapón en Toldos; y un mix completo (roller+accesorios+riel motor+riel manual+toldo+chapón) → 5 hojas bien numeradas.
+
 ## V353 — 2026-06-13 — Planilla de fábrica: rieles reorganizados (motorizados vs manuales) + sin Mesa de Confección
 
 Reorganización de la planilla según el criterio de fábrica (los manuales se cortan, los motorizados no). Antes los rieles aparecían hasta en 3 lugares mezclados; ahora quedan en **dos listas claras**:

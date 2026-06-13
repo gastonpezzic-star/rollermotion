@@ -11302,6 +11302,7 @@ function openPlanilla(d){
   const esRielSuelto = it => ['riel_manual','riel_motorizado','riel_motorizado_celtic'].includes(it.tela)
     || (TELAS[it.tela] && TELAS[it.tela].tipo === 'riel');
   const esToldoItem  = it => (it.tela||'').startsWith('toldo_')
+    || (it.tela === 'cobertor_toldo')  // V354: el chapón cubre toldos sale como check en la hoja de Toldos (antes se perdía)
     || (TELAS[it.tela] && (TELAS[it.tela].tipo === 'toldo' || TELAS[it.tela].tipo === 'toldovertical'));
 
   // Items roller (blackout/sunscreen/etc con eje) + cambio de tela
@@ -11399,7 +11400,7 @@ function openPlanilla(d){
     return false;
   });
 
-  if(!rollerItems.length && !confItems.length && !rielItems.length && !toldoItems.length && !libreItems.length && !tercItems.length){
+  if(!rollerItems.length && !confItems.length && !rielItems.length && !toldoItems.length && !libreItems.length && !tercItems.length && !accesorioItems.length){
     toast('Sin cortinas con medidas para generar planilla','err'); return;
   }
 
@@ -11757,9 +11758,11 @@ function openPlanilla(d){
     </div>`;
 
   // V294: si solo hay libreItems (sin roller ni conf), cuenta como 1 hoja para el "Hoja N de M"
-  const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && rielesMotorArr.length === 0 && rielesManualArr.length === 0 && toldoItems.length === 0;
+  // V354: la hoja de aluminio/accesorios puede salir sola (pedido de solo accesorios, sin roller)
+  const hayAccesoriosSolo = accesorioItems.length > 0 && rollerItems.length === 0;
+  const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && rielesMotorArr.length === 0 && rielesManualArr.length === 0 && toldoItems.length === 0 && accesorioItems.length === 0;
   // V353: confección ya no genera hojas propias (sus rieles van en las secciones de rieles; la mesa se sacó)
-  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (rielesMotorArr.length > 0 ? 1 : 0) + (rielesManualArr.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
+  const totalHojas = (rollerItems.length > 0 ? 2 : 0) + (hayAccesoriosSolo ? 1 : 0) + (rielesMotorArr.length > 0 ? 1 : 0) + (rielesManualArr.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
   let hojaNum = 0;
 
   let html = `<div class="fab-doc">`;
@@ -11797,15 +11800,21 @@ function openPlanilla(d){
       </table>
     </div>
     </div>`;
+  } // V354: fin Hoja 1 (armado roller). La hoja de aluminio sale en su propio if (abajo).
 
+  // ── HOJA 2: CORTES DE ALUMINIO Y ACCESORIOS (V354: independizada del roller) ──
+  // Sale si hay roller (cortes de eje/zócalo) o si hay accesorios (guías/cenefas/tubos/ángulos),
+  // aunque el pedido no tenga ninguna cortina roller.
+  if(rollerItems.length > 0 || accesorioItems.length > 0){
     hojaNum++;
+    const breakAlu = hojaNum > 1 ? ' fab-page-break' : '';
     html += `
-    <div class="fab-sheet fab-page-break">
-    ${headerHtml(`Cortes de Aluminio — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-hoja2')}
+    <div class="fab-sheet${breakAlu}">
+    ${headerHtml(`Cortes de Aluminio y Accesorios — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-hoja2')}
     <div class="fab-section">
       <div class="sec-hdr" style="background:#fef4e0;border:1px solid #f0d8a0;border-bottom:none">
         <div class="sec-circle">2</div>
-        <div class="sec-ttl" style="color:#7a4a00">Cortes de Aluminio</div>
+        <div class="sec-ttl" style="color:#7a4a00">Cortes de Aluminio y Accesorios</div>
         <span class="sec-sub" style="color:#7a4a00">Eje: Manual −30 · Motor −35 · Eje 70 −60 (siempre) &nbsp;·&nbsp; Zócalo bolsillo = corte tela &nbsp;·&nbsp; Visto = + 5</span>
       </div>
       <table class="fab-table">
