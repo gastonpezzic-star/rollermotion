@@ -1,5 +1,16 @@
 # Changelog
 
+## V363 — 2026-06-14 — Planilla: recomendación de rollo de tela + combinaciones para optimizar cortes
+
+Nueva ayuda de aprovechamiento de tela en la planilla de fábrica (hoja "Corte de Tela y Armado"):
+
+- **Recomendación de rollo por cortina** en el lugar donde antes decía "Vertilux Fiberglass ®" (que era cosmético para fábrica). Para cada roller, `recomendarRolloTela(ancho, alto)` prueba orientación **normal** (ancho sobre el ancho del rollo) y **girada** (alto + excedente sobre el ancho del rollo) en los rollos disponibles (2.5m / 3.0m) y elige la que **menos tela desperdicia**. Muestra ej. *"✂ Rollo 2.5m · GIRADA"*; si no entra entera en ningún rollo → *"⚠ Soldadura · rollo 3m"* (rojo). Excedente del alto = 350mm (vuelta de tubo + dobladillo); ya no usa el 10% genérico.
+- **Combinaciones sugeridas** al final de la hoja (`sugerirCombinacionesTela`): agrupa cortinas del **mismo color** cuyos anchos sumen ≤ un rollo y sugiere cortarlas juntas (ej. *"★ Blanco — cortinas #4 + #5 (1200+1200=2400) → rollo 2.5m (sobran 100mm)"*). Heurístico práctico, no el óptimo perfecto.
+
+Verificado en navegador con los 5 casos de Gastón (2500×3200→2.5 normal; 3700×3000→soldadura; 1200×1200→2.5 girada; 1200×2400→3.0 girada) + la combinación de dos Blanco 1200.
+
+PENDIENTE: alinear el descuento de stock de tela para que reste del rollo recomendado (hoy `calcInsumosParaItem` rama tela usa la aproximación vieja); + cargar cantidades reales de los 10 rollos.
+
 ## V362 — 2026-06-14 — Footer: año de copyright dinámico
 
 El pie del login decía "© 2024" (fijo). Ahora el año es dinámico (`<span id="copy-year">` seteado con `new Date().getFullYear()`), así muestra siempre el año actual y no queda viejo. (Aparte: se verificó que el HTTPS de app.rollermotion.com.ar ya funciona — cert Let's Encrypt vía Netlify, auto-renueva, http→https 301.)

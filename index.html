@@ -3191,6 +3191,58 @@ function getMecId(anchoMm){
   return null; // V343: >3730 va motorizado (manual). 50R motorizada llega a 3735.
 }
 
+// V363: recomendación de corte de tela — de qué rollo conviene cortar (menos desperdicio).
+// Prueba orientación NORMAL (ancho sobre el ancho del rollo) y GIRADA (alto+excedente sobre el
+// ancho del rollo) en los anchos de rollo disponibles, y elige la que menos tela gasta.
+const ROLLOS_TELA = [2500, 3000];      // anchos de rollo disponibles (mm)
+const EXCEDENTE_ALTO_TELA = 350;       // mm que se suman al alto (vuelta de tubo + dobladillo)
+function recomendarRolloTela(anchoMm, altoMm){
+  const ancho = parseInt(anchoMm)||0, alto = parseInt(altoMm)||0;
+  if(!ancho || !alto) return null;
+  const drop = alto + EXCEDENTE_ALTO_TELA;       // largo de tela necesario
+  let best = null;
+  for(const W of ROLLOS_TELA){
+    if(ancho <= W){ const m2 = W*drop/1e6;  if(!best || m2 < best.m2) best = {rolloMm:W, rolloM:W/1000, girada:false, largoMm:drop,  m2, soldadura:false}; }
+    if(drop  <= W){ const m2 = W*ancho/1e6; if(!best || m2 < best.m2) best = {rolloMm:W, rolloM:W/1000, girada:true,  largoMm:ancho, m2, soldadura:false}; }
+  }
+  if(best) return best;
+  // No entra entero en ningún rollo → requiere SOLDADURA (usar el rollo más ancho)
+  const W = Math.max(...ROLLOS_TELA);
+  const across = Math.min(ancho, drop), largo = Math.max(ancho, drop);
+  return { rolloMm:W, rolloM:W/1000, girada:(across===drop), largoMm:largo, m2: ancho*drop/1e6, soldadura:true };
+}
+
+// V363: sugiere combinar cortinas del MISMO color cuyos anchos sumen <= un rollo (menos desperdicio).
+function sugerirCombinacionesTela(items){
+  const grupos = {};
+  (items||[]).forEach((it, idx)=>{
+    const ancho = parseInt(it.ancho)||0, alto = parseInt(it.alto)||0;
+    if(!ancho || !alto) return;
+    const rec = recomendarRolloTela(ancho, alto);
+    if(!rec || rec.soldadura) return;            // las de soldadura no entran en combos
+    const k = `${it.tela}|${it.color||''}`;
+    (grupos[k] = grupos[k] || []).push({ n: idx+1, ancho, ref: it.ref || ('#'+(idx+1)) });
+  });
+  const combos = [];
+  const Wmax = Math.max(...ROLLOS_TELA);
+  Object.entries(grupos).forEach(([k, arr])=>{
+    if(arr.length < 2) return;
+    const pend = arr.slice().sort((a,b)=>b.ancho-a.ancho);
+    while(pend.length){
+      const grupo = [pend.shift()]; let suma = grupo[0].ancho;
+      for(let i=0;i<pend.length;){
+        if(suma + pend[i].ancho <= Wmax){ suma += pend[i].ancho; grupo.push(pend.splice(i,1)[0]); }
+        else i++;
+      }
+      if(grupo.length >= 2){
+        const rollo = ROLLOS_TELA.find(W => suma <= W) || Wmax;
+        combos.push({ tela:k.split('|')[0], color:k.split('|')[1], items:grupo, suma, rolloM:rollo/1000, sobraMm: rollo - suma });
+      }
+    }
+  });
+  return combos;
+}
+
 function getTelaCostoId(sistemaKey){
   const map = {
     'blackout':   'tela_blackout',
@@ -11460,10 +11512,13 @@ function openPlanilla(d){
     const dobleTag = it._dobleTag ? `<div style="font-size:8px;color:#8a6c3c;background:#fef7e8;border:1px solid #e8d8a8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔗 ${it._dobleTag}</div>` : '';
     // V292.4: tag visual para cambio de tela
     const cambioTag = esCambio ? `<div style="font-size:8px;color:#1f6e9c;background:#e8f1f7;border:1px solid #b8d4e8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔄 Cambio de tela</div>` : '';
-    // Subtítulo de tela (sólo para roller blackout/sunscreen5)
-    const telaSubtit = (it.tela==='blackout'||it.tela==='Roller Blackout') ? 'Vertilux Fiberglass ®'
-                     : (it.tela==='sunscreen5'||it.tela==='Roller Sunscreen 5%') ? 'Vertilux VX ®'
-                     : '';
+    // V363: en vez del nombre comercial (Vertilux Fiberglass es para el presupuesto, en fábrica es obvio),
+    // usamos este espacio para recomendarle al operario DE QUÉ ROLLO cortar (menos desperdicio).
+    const _recTela = recomendarRolloTela(it.ancho, it.alto);
+    const telaSubtit = !_recTela ? ''
+      : _recTela.soldadura
+        ? `<span style="font-size:8.5px;color:#b03a2e;font-weight:700">⚠ Soldadura · rollo ${_recTela.rolloM}m</span>`
+        : `<span style="font-size:8.5px;color:#1a6640;font-weight:700">✂ Rollo ${_recTela.rolloM}m · ${_recTela.girada?'GIRADA':'normal'}</span>`;
     // V292.7: mostrar el soporte cargado en el overlay de confirmación
     // Para cambio de tela no aplica (reusa el soporte existente).
     // V293.4: si tiene motor asignado → soporte "Motorizada" (con badge naranja distintivo)
@@ -11479,7 +11534,7 @@ function openPlanilla(d){
     return `<tr>
       <td style="text-align:center;border-right:2px solid #e0eaf4"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum">${i+1}</span></td>
-      <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br><span style="font-size:7.5px;color:#888">${telaSubtit}</span>`:''}${dobleTag}${cambioTag}</td>
+      <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br>${telaSubtit}`:''}${dobleTag}${cambioTag}</td>
       <td style="font-size:10.5px">${it.color||'—'}</td>
       <td style="text-align:center"><span class="fcut">${ct.a} mm</span></td>
       <td style="text-align:center"><span class="fcut">${ct.h} mm</span></td>
@@ -11805,6 +11860,19 @@ function openPlanilla(d){
   // .fab-page-break sigue siendo el marcador para print (page-break-before).
   if(rollerItems.length > 0){
     hojaNum++;
+    // V363: combinaciones sugeridas (mismo color, anchos que suman <= un rollo) para optimizar cortes
+    const _combosTela = sugerirCombinacionesTela(rollerRowsExpanded);
+    const combosHtml = !_combosTela.length ? '' : `
+    <div class="fab-section" style="margin-top:14px">
+      <div class="sec-hdr" style="background:#eef7f0;border:1px solid #a8d8b0;border-bottom:none">
+        <div class="sec-circle" style="background:#1a6640">★</div>
+        <div class="sec-ttl" style="color:#1a4a2a">Combinaciones sugeridas para optimizar cortes</div>
+        <span class="sec-sub" style="color:#1a4a2a">Mismo color · cortar juntas en un rollo para desperdiciar menos</span>
+      </div>
+      <div style="padding:10px 16px;font-size:11px;line-height:1.9;color:#244">
+        ${_combosTela.map(c=>`★ <strong>${esc(c.color||'(sin color)')}</strong> — cortinas ${c.items.map(x=>'#'+x.n).join(' + ')} (${c.items.map(x=>x.ancho).join(' + ')} = ${c.suma} mm) → cortar juntas en <strong>rollo ${c.rolloM}m</strong> <span style="color:#6a8a72">(sobran ${c.sobraMm} mm)</span>`).join('<br>')}
+      </div>
+    </div>`;
     html += `
     <div class="fab-sheet">
     ${headerHtml(`Corte de Tela &amp; Armado — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-hoja1')}
@@ -11832,6 +11900,7 @@ function openPlanilla(d){
         <tbody>${h1rows}</tbody>
       </table>
     </div>
+    ${combosHtml}
     </div>`;
   } // V354: fin Hoja 1 (armado roller). La hoja de aluminio sale en su propio if (abajo).
 
