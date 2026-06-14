@@ -1,5 +1,15 @@
 # Changelog
 
+## V360 — 2026-06-13 — Dashboard: los pedidos CANCELADOS ya no cuentan como venta ni deuda
+
+Fix de fidelidad del dashboard (de una auditoría con 4 agentes). Antes, cancelar un pedido solo cambiaba su `estado` a 'Cancelado' pero conservaba el `total`, y NINGUNA suma de ventas filtraba por estado → los cancelados seguían inflando "Ventas período", ticket, ventas por vendedor, por canal, top clientes y la deuda/saldo del cliente.
+
+Ahora hay un helper único `esVentaContable(d)` = `type==='order' && estado!=='Cancelado'`, aplicado en todas las sumas de plata: `_dashBuckets`, `pedidosPeriodo`/`pedidosPrev` (renderDashboard → ventas, ticket, por vendedor, por canal, telas, top clientes), `renderChartVentas`, `renderMiDashboard`, `calcClienteSaldo`, `verHistorialCliente`/`renderClientes` (total vendido), "clientes con saldo", y "Total facturado" del distribuidor (`renderMiniDashDistrib`). Las vistas de conteo/estado (pipeline, lista de fábrica, badge, export Excel) NO se tocaron — siguen mostrando los cancelados como tales.
+
+Borrar/eliminar ya funcionaba bien (saca el monto). El pago no se duplica (recibos en tabla aparte). Verificado en navegador: con un pedido cancelado de $999, ventas y saldo lo excluyen.
+
+PENDIENTE (auditoría): B) "Vincular con cotización" no cierra la cotización → doble conteo (venta + cotización abierta); C) "Total cotizado" incluye cotizaciones ya aprobadas/rechazadas; D) ranking por vendedor agrupa por nombre y no por `vendedor_id`; E) borrar un pedido no revierte stock ni CC (recomendado: cancelar en vez de borrar).
+
 ## V359 — 2026-06-13 — Stock: descuento de cadenas linkeado por color (Blanca/Negra/Metálica)
 
 Arreglo del descuento automático de cadenas (`calcInsumosParaItem`, rama cadena). Antes leía el color de `item.color_cadena` (campo que el overlay no llena → caía siempre en `'Blanco'`) y usaba `item.cad` como si fuera un largo (cuando `item.cad`/`item.cadena` es justamente el color). Ahora:

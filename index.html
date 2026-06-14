@@ -3385,6 +3385,10 @@ let _loadingDocs = false;
 
 function getDocs(){ return _docsCache; }
 
+// V360: una venta "contable" para el dashboard/saldos = pedido (order) que NO esté Cancelado.
+// Cancelar solo cambia el estado pero conserva el total; sin este filtro los cancelados seguían sumando.
+function esVentaContable(d){ return !!d && d.type==='order' && d.estado!=='Cancelado'; }
+
 // ── FLAGS DE TRACKING POR DOC (conf_recibida, roller_terminado) ──
 // Persistimos estos flags en localStorage independiente porque la tabla
 // Supabase 'documentos' no tiene columnas para ellos. Si el usuario agrega
@@ -9544,7 +9548,7 @@ function renderMiniDashDistrib(id){
   const el = document.getElementById('distrib-minidash');
   if(!el) return;
   const docs = getDocs().filter(d=>d.vendedor_id===id);
-  const peds = docs.filter(d=>d.type==='order');
+  const peds = docs.filter(d=>esVentaContable(d));
   const cots = docs.filter(d=>d.type==='quote');
   const facturado = peds.reduce((s,d)=>s+(+d.total||0),0);
   const saldo = ccSaldo(id);
@@ -13810,7 +13814,7 @@ function renderClientes(){
 
   tb.innerHTML = data.map(c=>{
     const cliDocs = docs.filter(d=>(d.cliente||'').toLowerCase()===c.nombre.toLowerCase());
-    const cliPedidos = cliDocs.filter(d=>d.type==='order');
+    const cliPedidos = cliDocs.filter(d=>esVentaContable(d));
     const cliCotizaciones = cliDocs.filter(d=>d.type==='quote');
     const total = cliPedidos.reduce((s,d)=>s+(d.total||0),0);
     const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
@@ -13883,7 +13887,7 @@ function renderClientes(){
 }
 
 function calcClienteSaldo(c, docs, recibos){
-  const cliDocs = docs.filter(d=>(d.cliente||'').toLowerCase()===c.nombre.toLowerCase()&&d.type==='order');
+  const cliDocs = docs.filter(d=>(d.cliente||'').toLowerCase()===c.nombre.toLowerCase()&&esVentaContable(d));
   const total = cliDocs.reduce((s,d)=>s+(d.total||0),0);
   const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
   const pagado = cliRecibos.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
@@ -13933,7 +13937,7 @@ function verHistorialCliente(id){
   const recibos = (typeof getRecibos==='function') ? getRecibos() : [];
   const cliDocs = docs.filter(d=>(d.cliente||'').toLowerCase()===c.nombre.toLowerCase());
   const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
-  const cliPedidos = cliDocs.filter(d=>d.type==='order');
+  const cliPedidos = cliDocs.filter(d=>esVentaContable(d));
   const cliCotizaciones = cliDocs.filter(d=>d.type==='quote');
 
   // Ordenar por número descendente (más nuevo primero)
@@ -15499,7 +15503,7 @@ function _dashBuckets(docs, desde, hasta, n){
   for(let i=0;i<n;i++){
     const ini = desde.getTime()+i*stepMs, fin = desde.getTime()+(i+1)*stepMs;
     const inB = d => { const t=new Date(d.fecha).getTime(); return t>=ini && t<fin; };
-    const peds = docs.filter(d=>d.type==='order' && inB(d));
+    const peds = docs.filter(d=>esVentaContable(d) && inB(d));
     const cots = docs.filter(d=>d.type==='quote' && inB(d));
     out.push({
       ventas: peds.reduce((s,d)=>s+(d.total||0),0),
@@ -15563,8 +15567,8 @@ function renderDashboard(){
   if(lbl) lbl.innerHTML = `Mostrando <strong>${fmtRango(desde)}</strong> → <strong>${fmtRango(hasta)}</strong> · ${diasRango} día${diasRango!==1?'s':''}`;
 
   const docs = getDocs();
-  const pedidosPeriodo = docs.filter(d=>d.type==='order' && inR(d,desde,hasta));
-  const pedidosPrev    = docs.filter(d=>d.type==='order' && inR(d,desdePrev,hastaPrev));
+  const pedidosPeriodo = docs.filter(d=>esVentaContable(d) && inR(d,desde,hasta));
+  const pedidosPrev    = docs.filter(d=>esVentaContable(d) && inR(d,desdePrev,hastaPrev));
   const cotPeriodo     = docs.filter(d=>d.type==='quote' && inR(d,desde,hasta));
   const cotPrev        = docs.filter(d=>d.type==='quote' && inR(d,desdePrev,hastaPrev));
 
@@ -15666,7 +15670,7 @@ function renderDashboard(){
     if(!k) return;
     if(!cliTotales[k]) cliTotales[k]={ cots:0, peds:0, total:0, ultimo:'—' };
     if(d.type==='quote') cliTotales[k].cots++;
-    if(d.type==='order'){ cliTotales[k].peds++; cliTotales[k].total+=d.total||0; if(d.fecha>cliTotales[k].ultimo||cliTotales[k].ultimo==='—') cliTotales[k].ultimo=d.fecha; }
+    if(esVentaContable(d)){ cliTotales[k].peds++; cliTotales[k].total+=d.total||0; if(d.fecha>cliTotales[k].ultimo||cliTotales[k].ultimo==='—') cliTotales[k].ultimo=d.fecha; }
   });
   const top10 = Object.entries(cliTotales).sort((a,b)=>b[1].total-a[1].total).slice(0,10);
   document.getElementById('dash-top-clientes').innerHTML = top10.length
@@ -15684,7 +15688,7 @@ function renderDashboard(){
   const recibos = (typeof getRecibos==='function') ? getRecibos() : [];
   const clientes = getClientes();
   const conSaldo = clientes.map(c => {
-    const cliPedidos = docs.filter(d=>d.type==='order' && (d.cliente||'').toLowerCase()===c.nombre.toLowerCase());
+    const cliPedidos = docs.filter(d=>esVentaContable(d) && (d.cliente||'').toLowerCase()===c.nombre.toLowerCase());
     const cliRecibos = recibos.filter(r=>(r.cliente||'').toLowerCase()===c.nombre.toLowerCase());
     const total = cliPedidos.reduce((s,d)=>s+(d.total||0),0);
     const pagado = cliRecibos.reduce((s,r)=>s+(parseFloat(r.monto)||0),0);
@@ -15733,7 +15737,7 @@ function renderMiDashboard(){
   const enPrev    = d => new Date(d.fecha) >= desdePrev && new Date(d.fecha) < desde;
 
   const mis = _misDocs();
-  const pedidos   = mis.filter(d=>d.type==='order');
+  const pedidos   = mis.filter(d=>esVentaContable(d));
   const cotiz     = mis.filter(d=>d.type==='quote');
   const pedPer    = pedidos.filter(enPeriodo);
   const pedPrev   = pedidos.filter(enPrev);
@@ -15861,7 +15865,7 @@ function renderMiDashboard(){
     const k=(d.cliente||'').trim(); if(!k) return;
     if(!cli[k]) cli[k]={ peds:0, cots:0, total:0, ultimo:'' };
     if(d.type==='quote') cli[k].cots++;
-    if(d.type==='order'){ cli[k].peds++; cli[k].total+=d.total||0; if(d.fecha>cli[k].ultimo) cli[k].ultimo=d.fecha; }
+    if(esVentaContable(d)){ cli[k].peds++; cli[k].total+=d.total||0; if(d.fecha>cli[k].ultimo) cli[k].ultimo=d.fecha; }
   });
   const topCli = Object.entries(cli).sort((a,b)=>b[1].total-a[1].total).slice(0,10);
   document.getElementById('midash-clientes').innerHTML = topCli.length
@@ -15898,7 +15902,7 @@ function renderChartVentas(docs, a, b, canvasId){
   for(let i=0;i<nBuckets;i++){
     const ini = new Date(desde.getTime() + i*stepMs); ini.setHours(0,0,0,0);
     const fin = new Date(desde.getTime() + (i+1)*stepMs - 1);
-    const total = docs.filter(d=>d.type==='order'&&new Date(d.fecha)>=ini&&new Date(d.fecha)<=fin).reduce((s,d)=>s+(d.total||0),0);
+    const total = docs.filter(d=>esVentaContable(d)&&new Date(d.fecha)>=ini&&new Date(d.fecha)<=fin).reduce((s,d)=>s+(d.total||0),0);
     const lbl = dias<=92
       ? `${ini.getDate()}/${ini.getMonth()+1}`
       : ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'][ini.getMonth()];
