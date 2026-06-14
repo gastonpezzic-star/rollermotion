@@ -1,5 +1,9 @@
 # Changelog
 
+## V365 — 2026-06-14 — Stock: inventario muestra "cuánto rollo es" además de los m²
+
+En el inventario de stock, los ítems que vienen en rollo (telas, con `ancho_rollo`) ahora muestran, debajo de los m², una ayuda visual de cuánto rollo representa — ej. *"≈ 1 rollo + 40%"* (= 140%), *"≈ 40% del rollo"*, *"≈ 2 rollos"*. Rollo = `ancho_rollo × 30m`. El sistema sigue todo en m² (descuento incluido); esto es solo para leerlo más fácil. Mecanismos/cadenas (sin `ancho_rollo`) no lo muestran. Verificada la cuenta con varios valores.
+
 ## V364 — 2026-06-14 — Stock: el descuento de tela baja del rollo recomendado
 
 Se alineó el descuento automático de tela (`calcInsumosParaItem` rama tela) con la recomendación de la planilla (V363). Antes usaba la aproximación vieja (`ancho×alto×1.10` + `insumo_ref` sin ancho de rollo) y nunca matcheaba las fichas de tela por ancho. Ahora usa `recomendarRolloTela(ancho, alto)`: descuenta los m² del **rollo recomendado** (el de menos desperdicio, normal/girada/soldadura), con `insumo_ref` `tela_<tela>_<color>_<W>m` + `buscar_por` por `categoria=Telas` + `subcategoria=tela` + `color` + `variante=<W>m`. Sin +10% (el excedente +350 del alto es la cuenta real).

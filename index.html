@@ -14380,13 +14380,25 @@ function renderStock(){
     const actual = getStockActual(i.id);
     const partidas = _stockPartidasCache.filter(p => p.item_id===i.id && p.activa && parseFloat(p.cantidad_actual)>0).length;
     const variante = [i.color, i.variante, i.ancho_rollo?`${i.ancho_rollo}m ancho`:''].filter(Boolean).join(' · ') || '—';
+    // V365: para telas (que vienen en rollos), mostrar además cuánto rollo es (ej. "≈ 1 rollo + 40%").
+    // El sistema sigue todo en m²; esto es solo una ayuda visual. Rollo = ancho_rollo × 30m de largo.
+    let rolloInfo = '';
+    const _anchoRollo = parseFloat(i.ancho_rollo)||0;
+    if(_anchoRollo > 0){
+      const _rollM2 = _anchoRollo * 30;
+      const _pct = Math.round(actual/_rollM2*100);
+      const _full = Math.floor(actual/_rollM2);
+      const _rem = _pct - _full*100;
+      const _txt = _full >= 1 ? `${_full} rollo${_full>1?'s':''}${_rem>0?` + ${_rem}%`:''}` : `${_pct}% del rollo`;
+      rolloInfo = `<div style="font-size:10px;color:var(--muted);font-weight:500">≈ ${_txt}</div>`;
+    }
     return `<tr>
       <td style="vertical-align:middle"><span class="stk-pill ${e}">${ec.emoji} ${ec.label}</span></td>
       <td style="vertical-align:middle;font-family:'Manrope',sans-serif;font-weight:700;font-size:11.5px;color:var(--muted);white-space:nowrap">${i.codigo||'—'}</td>
       <td style="vertical-align:middle;font-weight:600">${i.nombre}</td>
       <td style="vertical-align:middle;font-size:11.5px;color:var(--muted);white-space:nowrap">${i.categoria}${i.subcategoria?` · ${i.subcategoria}`:''}</td>
       <td style="vertical-align:middle;font-size:12px">${variante}</td>
-      <td style="vertical-align:middle;font-weight:700;white-space:nowrap;font-size:14px;color:${ec.color}">${formatStockQty(actual, i.unidad)}</td>
+      <td style="vertical-align:middle;font-weight:700;white-space:nowrap;font-size:14px;color:${ec.color}">${formatStockQty(actual, i.unidad)}${rolloInfo}</td>
       <td style="vertical-align:middle;font-size:11.5px;color:var(--muted);white-space:nowrap">${formatStockQty(i.stock_minimo,i.unidad)} / ${formatStockQty(i.punto_pedido,i.unidad)}</td>
       <td style="vertical-align:middle;text-align:center">
         ${partidas?`<button class="btn-t" onclick="verPartidas('${i.id}')" title="Ver ${partidas} partida${partidas!==1?'s':''}">📦 ${partidas}</button>`:'<span style="font-size:11px;color:var(--muted)">—</span>'}
