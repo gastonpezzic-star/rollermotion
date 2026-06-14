@@ -1,5 +1,11 @@
 # Changelog
 
+## V364 — 2026-06-14 — Stock: el descuento de tela baja del rollo recomendado
+
+Se alineó el descuento automático de tela (`calcInsumosParaItem` rama tela) con la recomendación de la planilla (V363). Antes usaba la aproximación vieja (`ancho×alto×1.10` + `insumo_ref` sin ancho de rollo) y nunca matcheaba las fichas de tela por ancho. Ahora usa `recomendarRolloTela(ancho, alto)`: descuenta los m² del **rollo recomendado** (el de menos desperdicio, normal/girada/soldadura), con `insumo_ref` `tela_<tela>_<color>_<W>m` + `buscar_por` por `categoria=Telas` + `subcategoria=tela` + `color` + `variante=<W>m`. Sin +10% (el excedente +350 del alto es la cuenta real).
+
+Verificado en navegador: Blanco 1200×2400 → 3.6 m² del rollo 3.0m (girada); Blanco 1200×1200 ×2 → 6 m² del 2.5m; Negro 3700×3000 → 12.4 m² del 3.0m (soldadura). Falta cargar las cantidades reales de los 10 rollos para verlo descontar en vivo.
+
 ## V363 — 2026-06-14 — Planilla: recomendación de rollo de tela + combinaciones para optimizar cortes
 
 Nueva ayuda de aprovechamiento de tela en la planilla de fábrica (hoja "Corte de Tela y Armado"):

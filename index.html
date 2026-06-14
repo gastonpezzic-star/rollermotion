@@ -15307,19 +15307,22 @@ function calcInsumosParaItem(item){
   const alto  = parseFloat(item.alto)||0;   // mm
   const cant  = parseInt(item.cant)||1;
 
-  // ── 1) TELA — solo para tipos que llevan tela
+  // ── 1) TELA — V363: descuenta del ROLLO recomendado (mismo criterio que la planilla:
+  // mejor orientación normal/girada + excedente del alto; m² = ancho_rollo × largo, sin +10%).
   const telasConDescuento = ['blackout','sunscreen5','sunscreen3','sunscreen1','cambiotela','doble','duozebra'];
   if(telasConDescuento.includes(tela) && ancho && alto){
-    // m² con +10% desperdicio
-    const m2 = (ancho * alto * 1.10) / 1_000_000;
     const colorRef = item.color||'';
-    reqs.push({
-      insumo_ref:  `tela_${tela}_${colorRef.toLowerCase().replace(/\s+/g,'_')}`,
-      buscar_por:  { categoria:'Telas', subcategoria_match:tela, color_match:colorRef },
-      cantidad:    +(m2*cant).toFixed(3),
-      unidad:      'm2',
-      descripcion: `Tela ${tela} ${colorRef} (${m2.toFixed(2)}m² × ${cant})`,
-    });
+    const rec = (typeof recomendarRolloTela==='function') ? recomendarRolloTela(ancho, alto) : null;
+    if(rec){
+      const rollLbl = rec.rolloM.toFixed(1) + 'm';                 // '2.5m' / '3.0m' (igual que el stock)
+      reqs.push({
+        insumo_ref:  `tela_${tela}_${colorRef.toLowerCase().replace(/\s+/g,'_')}_${rollLbl}`,  // ej. tela_blackout_blanco_2.5m
+        buscar_por:  { categoria:'Telas', subcategoria_match:tela, color_match:colorRef, variante_match:rollLbl },
+        cantidad:    +(rec.m2*cant).toFixed(3),
+        unidad:      'm2',
+        descripcion: `Tela ${tela} ${colorRef} · rollo ${rollLbl}${rec.girada?' girada':''}${rec.soldadura?' (soldadura)':''} (${rec.m2.toFixed(2)}m² × ${cant})`,
+      });
+    }
   }
 
   // ── 2) EJE — para roller (ancho-35 mm)
