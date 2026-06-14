@@ -1,5 +1,9 @@
 # Changelog
 
+## V362 — 2026-06-14 — Footer: año de copyright dinámico
+
+El pie del login decía "© 2024" (fijo). Ahora el año es dinámico (`<span id="copy-year">` seteado con `new Date().getFullYear()`), así muestra siempre el año actual y no queda viejo. (Aparte: se verificó que el HTTPS de app.rollermotion.com.ar ya funciona — cert Let's Encrypt vía Netlify, auto-renueva, http→https 301.)
+
 ## V361 — 2026-06-13 — Dashboard: anti doble-conteo (vincular), "Total cotizado" real y ranking por usuario
 
 Tres fixes de fidelidad del dashboard (continuación de la auditoría de V360):

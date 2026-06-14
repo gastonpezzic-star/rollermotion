@@ -1128,7 +1128,8 @@ button:not([disabled]):active,
     </div>
 
     <!-- Footer -->
-    <div style="font-size:12px;color:#bbb">© 2024 Roller Motion<sup style="font-size:9px">®</sup>. Todos los derechos reservados.</div>
+    <div style="font-size:12px;color:#bbb">© <span id="copy-year">2026</span> Roller Motion<sup style="font-size:9px">®</sup>. Todos los derechos reservados.</div>
+    <script>document.getElementById('copy-year').textContent = new Date().getFullYear();</script>
   </div>
 
   <!-- Panel derecho: imagen -->
