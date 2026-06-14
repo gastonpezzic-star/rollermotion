@@ -1,5 +1,17 @@
 # Changelog
 
+## V361 — 2026-06-13 — Dashboard: anti doble-conteo (vincular), "Total cotizado" real y ranking por usuario
+
+Tres fixes de fidelidad del dashboard (continuación de la auditoría de V360):
+
+- **B — "Vincular con cotización" ya no cuenta doble.** `vincularCot` creaba el pedido pero dejaba la cotización abierta → el mismo trabajo sumaba como venta y como cotización en el pipeline. Nuevo helper `cerrarCotizacionVinculada(order)` que, cuando se guarda un pedido con `cotizacionOrigen`, pone esa cotización en 'Aprobada' (igual que la conversión normal). Se llama en los dos caminos de guardado (`saveDoc` directo y `confirmarPedido`/rama draft-vincular). Idempotente.
+- **C — "Total cotizado" cuenta solo cotizaciones vivas.** Antes incluía las ya 'Aprobada'/'Rechazada'. Ahora `cotizadoTotal`/`cotizadoPrev` y el sparkline (`_dashBuckets.cotizado`) filtran por `_cotViva` (no Aprobada ni Rechazada). La **tasa de conversión** sigue usando TODAS las cotizaciones (no se tocó su denominador).
+- **D — Ranking por vendedor agrupa por `vendedor_id`** (antes por nombre): dos personas con el mismo nombre ya no se mezclan; el nombre queda solo como etiqueta.
+
+Verificado en navegador: vincular cierra la cotización origen (queda 'Aprobada'); "Total cotizado" excluye aprobadas/rechazadas pero la conversión las sigue contando; el ranking separa usuarios distintos con igual nombre.
+
+Queda pendiente E (borrar un pedido no revierte stock/CC → recomendado: cancelar en vez de borrar).
+
 ## V360 — 2026-06-13 — Dashboard: los pedidos CANCELADOS ya no cuentan como venta ni deuda
 
 Fix de fidelidad del dashboard (de una auditoría con 4 agentes). Antes, cancelar un pedido solo cambiaba su `estado` a 'Cancelado' pero conservaba el `total`, y NINGUNA suma de ventas filtraba por estado → los cancelados seguían inflando "Ventas período", ticket, ventas por vendedor, por canal, top clientes y la deuda/saldo del cliente.

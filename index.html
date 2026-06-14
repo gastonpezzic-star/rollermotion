@@ -8022,6 +8022,7 @@ async function saveDoc(andPreview){
     saveDocLocal(doc);
     // ⚡ CRÍTICO: setear editId para que el siguiente "Guardar" actualice en lugar de duplicar
     editId = doc.id;
+    await cerrarCotizacionVinculada(doc); // V361: si vino vinculado a una cotización, cerrarla
     toast('✅ Guardado y sincronizado','ok');
   } catch(e) {
     console.error('Error Supabase, guardando local:', e);
@@ -8802,6 +8803,21 @@ function cerrarOverlayPedido(){
   _pedidoIsDraft = false;
 }
 
+// V361: cuando un pedido nuevo se creó VINCULADO a una cotización (cotizacionOrigen), cerrar esa
+// cotización (ponerla 'Aprobada') — igual que la conversión normal — para que no quede contando
+// doble (como venta del pedido + como cotización abierta en el pipeline). Idempotente.
+async function cerrarCotizacionVinculada(order){
+  if(!order || order.type!=='order' || !order.cotizacionOrigen) return;
+  const ref = String(order.cotizacionOrigen);
+  const cot = _docsCache.find(x=>x.type==='quote' && (String(x.numero)===ref || String(x.id)===ref) && x.estado!=='Aprobada' && x.estado!=='Rechazada');
+  if(!cot) return;
+  try{
+    await updateStatusInSupabase(cot.id, 'Aprobada');
+    cot.estado = 'Aprobada';
+    saveDocLocal(cot);
+  }catch(e){ console.error('cerrarCotizacionVinculada:', e); }
+}
+
 async function confirmarPedido(){
   const src = _pedidoSrc;
   if(!src) return;
@@ -8976,6 +8992,7 @@ async function confirmarPedido(){
       saveDocLocal({..._docsCache[_docsCache.findIndex(x=>x.id===srcId)], estado:'Aprobada'});
     }
     saveDocLocal(order);
+    await cerrarCotizacionVinculada(order); // V361: rama "vincular" (draft) — cerrar la cotización origen
     autoCreateClienteFromDoc(order);
     renderCot(); renderPed();
     if(typeof renderClientes==='function') renderClientes();
@@ -15510,7 +15527,7 @@ function _dashBuckets(docs, desde, hasta, n){
       pedidos: peds.length,
       items: peds.reduce((s,d)=>s+(d.items||[]).filter(it=>it.ancho&&it.alto).reduce((ss,it)=>ss+(parseInt(it.cant)||1),0),0),
       cotiz: cots.length,
-      cotizado: cots.reduce((s,d)=>s+(d.total||0),0),
+      cotizado: cots.filter(d=>d.estado!=='Aprobada'&&d.estado!=='Rechazada').reduce((s,d)=>s+(d.total||0),0),
       aprob: cots.filter(d=>(d.estado||'')==='Aprobada').length,
     });
   }
@@ -15574,8 +15591,9 @@ function renderDashboard(){
 
   const ventasPeriodo  = pedidosPeriodo.reduce((s,d)=>s+(d.total||0),0);
   const ventasPrev     = pedidosPrev.reduce((s,d)=>s+(d.total||0),0);
-  const cotizadoTotal  = cotPeriodo.reduce((s,d)=>s+(d.total||0),0);
-  const cotizadoPrev   = cotPrev.reduce((s,d)=>s+(d.total||0),0);
+  const _cotViva = d => d.estado!=='Aprobada' && d.estado!=='Rechazada'; // V361: cotización "viva" (pipeline real, no cerradas)
+  const cotizadoTotal  = cotPeriodo.filter(_cotViva).reduce((s,d)=>s+(d.total||0),0);
+  const cotizadoPrev   = cotPrev.filter(_cotViva).reduce((s,d)=>s+(d.total||0),0);
   const ticketProm     = pedidosPeriodo.length ? ventasPeriodo/pedidosPeriodo.length : 0;
   const tasaConv       = cotPeriodo.length ? Math.round((cotPeriodo.filter(d=>d.estado==='Aprobada').length/cotPeriodo.length)*100) : 0;
 
@@ -15595,7 +15613,7 @@ function renderDashboard(){
     { lbl:'Ventas período', num:fmtM(ventasPeriodo), tr:trend(ventasPeriodo,ventasPrev), ctx:'vs período ant.', color:'#f09620', serie:bk.map(b=>b.ventas) },
     { lbl:'Pedidos nuevos',  num:pedidosPeriodo.length, tr:trend(pedidosPeriodo.length,pedidosPrev.length), ctx:'vs período ant.', color:'#1a4a7a', serie:bk.map(b=>b.pedidos) },
     { lbl:'Ticket promedio', num:fmtM(ticketProm), tr:'', ctx:'por pedido', color:'#1a6640', serie:bk.map(b=>b.pedidos?Math.round(b.ventas/b.pedidos):0) },
-    { lbl:'Total cotizado', num:fmtM(cotizadoTotal), tr:trend(cotizadoTotal,cotizadoPrev), ctx:`${cotPeriodo.length} cotizaciones`, color:'#8a5cc4', serie:bk.map(b=>b.cotizado) },
+    { lbl:'Total cotizado', num:fmtM(cotizadoTotal), tr:trend(cotizadoTotal,cotizadoPrev), ctx:`${cotPeriodo.filter(_cotViva).length} en pipeline`, color:'#8a5cc4', serie:bk.map(b=>b.cotizado) },
     { lbl:'Tasa de conversión', num:tasaConv+'%', tr:'', ctx:`${cotPeriodo.length} cotizaciones`, color:'#d4820e', serie:bk.map(b=>b.cotiz?Math.round(b.aprob/b.cotiz*100):0) },
   ].map(k=>`<div class="dash-kpi">
       <div class="lbl"><span class="kpi-dot" style="background:${k.color}"></span>${k.lbl}</div>
@@ -15607,16 +15625,16 @@ function renderDashboard(){
   // Chart ventas (canvas barras simples) — pasa el rango exacto
   renderChartVentas(docs, desde, hasta);
 
-  // Por vendedor
+  // Por vendedor (V361: agrupar por vendedor_id; el nombre es solo etiqueta)
   const vendedores = {};
-  pedidosPeriodo.forEach(d=>{ vendedores[d.vendedor]=(vendedores[d.vendedor]||0)+(d.total||0); });
-  const maxV = Math.max(...Object.values(vendedores),1);
+  pedidosPeriodo.forEach(d=>{ const k=d.vendedor_id||d.vendedor||'—'; if(!vendedores[k]) vendedores[k]={total:0,nombre:d.vendedor||'—'}; vendedores[k].total+=(d.total||0); });
+  const maxV = Math.max(...Object.values(vendedores).map(v=>v.total),1);
   document.getElementById('chart-vendedores').innerHTML = `<div class="bar-chart-wrap">${
-    Object.entries(vendedores).sort((a,b)=>b[1]-a[1]).map(([v,t])=>`
+    Object.values(vendedores).sort((a,b)=>b.total-a.total).map(v=>`
       <div class="bar-row">
-        <div class="bar-label">${v}</div>
-        <div class="bar-outer"><div class="bar-inner" style="width:${Math.round(t/maxV*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
-        <div class="bar-val">${fmtM(t)}</div>
+        <div class="bar-label">${v.nombre}</div>
+        <div class="bar-outer"><div class="bar-inner" style="width:${Math.round(v.total/maxV*100)}%;background:linear-gradient(90deg,var(--accent),var(--accent2))"></div></div>
+        <div class="bar-val">${fmtM(v.total)}</div>
       </div>`).join('')||'<div style="color:var(--muted);font-size:12px;text-align:center;padding:20px">Sin datos</div>'
   }</div>`;
 
