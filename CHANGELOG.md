@@ -1,5 +1,9 @@
 # Changelog
 
+## V366 — 2026-06-14 — Cotización: nombre del accesorio sin redundancia (barral, tubo, etc.)
+
+Antes, un accesorio mostraba la etiqueta genérica de la categoría en negrita y el detalle repetido en gris (ej. **"Barrales de aluminio"** + *"Barral de aluminio — Negro"*). Ahora un helper `itemNombreDetalle(it)` separa, para los items tipo accesorio (barrales, tubos, ángulos, ejes, cenefas…), el **nombre** (negrita, ej. "Barral de aluminio") del **color/variante** (gris, ej. "Negro"). El `it.color` de un accesorio trae "Nombre — Variante", así que se parte por " — ". Aplicado en las vistas de cotización: `openDoc` (rama accesorio + rama roller donde cae el barral por tener medida) y `verPresupuestoDist`. Rollers/motores quedan igual (el helper devuelve la etiqueta normal). Verificado.
+
 ## V365 — 2026-06-14 — Stock: inventario muestra "cuánto rollo es" además de los m²
 
 En el inventario de stock, los ítems que vienen en rollo (telas, con `ancho_rollo`) ahora muestran, debajo de los m², una ayuda visual de cuánto rollo representa — ej. *"≈ 1 rollo + 40%"* (= 140%), *"≈ 40% del rollo"*, *"≈ 2 rollos"*. Rollo = `ancho_rollo × 30m`. El sistema sigue todo en m² (descuento incluido); esto es solo para leerlo más fácil. Mecanismos/cadenas (sin `ancho_rollo`) no lo muestran. Verificada la cuenta con varios valores.

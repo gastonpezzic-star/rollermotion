@@ -9466,9 +9466,10 @@ function verPresupuestoDist(pedidoId){
     const cant = parseInt(it.cant)||1;
     const med  = (it.ancho||it.alto) ? `${it.ancho||'?'} × ${it.alto||'?'} mm` : '—';
     const pu   = parseFloat(it.precio)||0;
+    const nd   = itemNombreDetalle(it);
     return `<tr>
       <td class="n">${i+1}</td>
-      <td><strong>${getTelaLabel(it.tela)}</strong>${it.color?`<br><span class="muted">${esc(it.color)}</span>`:''}${it.ref?`<br><span class="muted">Ref: ${esc(it.ref)}</span>`:''}</td>
+      <td><strong>${esc(nd.nombre)}</strong>${nd.detalle?`<br><span class="muted">${esc(nd.detalle)}</span>`:''}${it.ref?`<br><span class="muted">Ref: ${esc(it.ref)}</span>`:''}</td>
       <td class="c">${med}</td>
       <td class="c">${cant}</td>
       <td class="r">${fmtM(pu)}</td>
@@ -10542,6 +10543,19 @@ async function renderPreciosTelas(){
     'toldo_vertical': 'Toldo Vertical',
   };
   function getTelaLabel(tela){ return TELA_LABELS[tela] || tela; }
+  // V366: nombre (negrita) + detalle/color (gris) de un item para las cotizaciones.
+  // Para accesorios (barrales, tubos, ángulos, ejes, cenefas…) el it.color trae "Nombre — Variante",
+  // así que lo separamos para no repetir la etiqueta genérica de la categoría.
+  // Ej. barral: negrita "Barral de aluminio" + gris "Negro" (en vez de "Barrales de aluminio" + "Barral de aluminio — Negro").
+  function itemNombreDetalle(it){
+    const t = (typeof TELAS!=='undefined' && it) ? TELAS[it.tela] : null;
+    if(t && t.tipo === 'accesorio' && it.color){
+      const i = it.color.indexOf(' — ');
+      if(i >= 0) return { nombre: it.color.slice(0, i).trim(), detalle: it.color.slice(i+3).trim() };
+      return { nombre: it.color.trim(), detalle: '' };
+    }
+    return { nombre: getTelaLabel(it ? it.tela : ''), detalle: (it && it.color) || '' };
+  }
 
 function ejeClass(eje){ return eje==='32mm'?'eje-32':eje==='38mm'?'eje-38':eje==='50mm'?'eje-50':'eje-50r'; }
 
@@ -10559,6 +10573,7 @@ function openDoc(d, fromForm){
     const esMotorOAccesorio = !it.ancho && !it.alto; // sin medidas → motor/accesorio
     const telaLabel = getTelaLabel(it.tela);
     const brand     = getBrand(it.tela);
+    const nd        = itemNombreDetalle(it); // V366: nombre + color separados (accesorios sin redundancia)
 
     if(esLibre){
       return `<tr style="border-bottom:1px solid #e0e0de">
@@ -10578,8 +10593,8 @@ function openDoc(d, fromForm){
       return `<tr style="border-bottom:1px solid #e0e0de">
         <td style="padding:7px 10px;font-weight:700;color:#888;text-align:center;width:28px">${i+1}</td>
         <td style="padding:7px 10px;white-space:nowrap" colspan="5">
-          <span style="font-weight:700;font-size:11.5px;color:#141414">${telaLabel}</span>
-          <span style="font-size:9.5px;color:#888;margin-left:8px">${it.color||''}</span>
+          <span style="font-weight:700;font-size:11.5px;color:#141414">${esc(nd.nombre)}</span>
+          <span style="font-size:9.5px;color:#888;margin-left:8px">${esc(nd.detalle)}</span>
           ${it.ref ? `<span style="font-size:9px;color:#aaa;margin-left:8px">· ${esc(it.ref)}</span>` : ''}
         </td>
         <td style="padding:7px 10px;text-align:center;width:38px">${cant}</td>
@@ -10592,10 +10607,10 @@ function openDoc(d, fromForm){
     return `<tr style="border-bottom:1px solid #e0e0de">
       <td style="padding:7px 10px;font-weight:700;color:#888;text-align:center;width:28px">${i+1}</td>
       <td style="padding:7px 10px;white-space:nowrap">
-        <span style="font-weight:700;font-size:11.5px;color:#141414">${telaLabel}</span>
+        <span style="font-weight:700;font-size:11.5px;color:#141414">${esc(nd.nombre)}</span>
         ${brand ? `<span style="font-size:9px;color:#bbb;margin-left:5px">${brand}</span>` : ''}
       </td>
-      <td style="padding:7px 10px;font-size:11px;white-space:nowrap;width:70px">${it.color||'—'}</td>
+      <td style="padding:7px 10px;font-size:11px;white-space:nowrap;width:70px">${esc(nd.detalle)||'—'}</td>
       <td style="padding:7px 10px;text-align:center;font-weight:600;white-space:nowrap;width:50px">${it.ancho||'—'}</td>
       <td style="padding:7px 10px;text-align:center;font-weight:600;white-space:nowrap;width:50px">${it.alto||'—'}</td>
       <td style="padding:7px 10px;font-size:10.5px;color:#666;white-space:nowrap;width:70px">${it.ref||'—'}</td>
