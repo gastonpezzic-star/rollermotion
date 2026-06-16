@@ -1,5 +1,9 @@
 # Changelog
 
+## V371 — 2026-06-14 — Editar color inline también en bandas verticales, tubos y ángulos
+
+Se generalizó el desplegable de color del formulario (V369, antes solo roller) a **bandas verticales, tubos y ángulos** (y ejes — todo accesorio con paleta de color). Nuevo helper `colorInfoItem(item)` que devuelve `{editable, opciones, actual, prefijo}` según el tipo: roller (color directo), accesorios con `colorOptions` ("Nombre — Color", preserva el nombre del ítem), bandas verticales ("SubtipoLabel · Color", preserva el subtipo y ofrece los colores de ESE subtipo). `editColor(sel)` reconstruye `it.color = prefijo + color` (cambia solo el color). Excluye Solo Riel, paneles y barrales (formato distinto). Verificado: cada tipo muestra sus colores correctos, preserva el resto, y al editar un tubo "Tubo 20/20 — Blanco · Blanco" queda "Tubo 20/20 — Negro" (limpio).
+
 ## V370 — 2026-06-14 — Números de cotización/pedido únicos entre terminales (anti-duplicado)
 
 Fix del bug de **números duplicados** cuando dos terminales/usuarios cotizaban o confirmaban a la vez (caso COT-647: dos terminales generaron el mismo número y ambos pasaron a fabricación). Causa: el número se generaba al **abrir** el formulario y la función `next_doc_numero` hacía `max+1` sin **reservar** el número.

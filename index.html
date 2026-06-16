@@ -6728,12 +6728,12 @@ function addRow(item){
   // V287.4: para toldos, resaltar (bold) la marca de brazos y la marca de tela en la descripción
   const isToldoItem = (item.tela||'').startsWith('toldo_');
   const colorDisplay = isToldoItem ? formatToldoColor(item.color) : (item.color || '');
-  // V369: para roller (blackout/sunscreen) el color es editable con un desplegable, para poder
-  // cambiar el color de una cotización ya hecha antes de pasarla a pedido (mismo producto y precio).
-  const _rollerColorEdit = ['blackout','sunscreen5','sunscreen3','sunscreen1'].includes(item.tela) && TELAS[item.tela] && (TELAS[item.tela].colors||[]).length;
-  const _colorOpts = _rollerColorEdit ? (TELAS[item.tela].colors.includes(item.color) ? TELAS[item.tela].colors : [item.color, ...TELAS[item.tela].colors].filter(Boolean)) : [];
-  const _colorCell = _rollerColorEdit
-    ? ` · <select onchange="editColor(this)" title="Cambiar color de la tela" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:#fff;font-family:inherit;color:var(--ink)">${_colorOpts.map(c=>`<option${c===item.color?' selected':''}>${esc(c)}</option>`).join('')}</select>`
+  // V371: color editable inline (desplegable) para roller, bandas verticales y accesorios con paleta
+  // de color (tubos, ángulos, ejes). Cambia SOLO el color; preserva el resto (nombre del ítem / subtipo).
+  const _ci = colorInfoItem(item);
+  const _colorOpts = _ci.editable ? (_ci.opciones.includes(_ci.actual) ? _ci.opciones : [_ci.actual, ..._ci.opciones].filter(Boolean)) : [];
+  const _colorCell = _ci.editable
+    ? ` · ${esc(_ci.prefijo)}<select onchange="editColor(this)" data-prefijo="${esc(_ci.prefijo)}" title="Cambiar color" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:#fff;font-family:inherit;color:var(--ink)">${_colorOpts.map(c=>`<option${c===_ci.actual?' selected':''}>${esc(c)}</option>`).join('')}</select>`
     : `<span style="color:var(--muted);font-size:12px"> · ${colorDisplay}</span>`;
   tr.innerHTML = `
     <td style="padding:10px 10px;color:var(--muted);font-weight:700;font-size:12px">${String(n).padStart(2,'0')}</td>
@@ -8226,12 +8226,41 @@ function editDim(input, which){
   if(h){ item.ctelah = h+350; }
   tr.dataset.item = JSON.stringify(item);
 }
-// V369: cambiar el color de una tela roller (blackout/sunscreen) en el form. Solo cambia el color
-// (mismo producto y precio); pensado para cuando el cliente pide otro color antes de pasar a pedido.
+// V371: info para editar el color inline. Devuelve {editable, opciones, actual, prefijo}. Para
+// accesorios (tubos/ángulos/ejes) y bandas el color va dentro de un texto compuesto; el "prefijo"
+// es lo que se conserva y el desplegable cambia solo el color. editColor reconstruye prefijo+color.
+function colorInfoItem(item){
+  const t = (typeof TELAS!=='undefined' && item) ? TELAS[item.tela] : null;
+  if(!t) return { editable:false };
+  // Roller: el color es directo
+  if(['blackout','sunscreen5','sunscreen3','sunscreen1'].includes(item.tela) && (t.colors||[]).length){
+    return { editable:true, opciones:t.colors, actual:item.color||'', prefijo:'' };
+  }
+  // Accesorios con paleta de color (tubos, ángulos, ejes): "Nombre — Color [· Color]"
+  if(t.tipo==='accesorio' && (t.colorOptions||[]).length){
+    const c = item.color||''; const i = c.indexOf(' — ');
+    if(i < 0) return { editable:false };
+    return { editable:true, opciones:t.colorOptions, actual: c.slice(i+3).split('·')[0].trim(), prefijo: c.slice(0,i) + ' — ' };
+  }
+  // Bandas verticales: "SubtipoLabel · Color" (excluye Solo Riel y Paneles)
+  if(item.tela==='bandas_verticales'){
+    const c = item.color||'';
+    if(!c || c==='Solo Riel' || /vías/.test(c)) return { editable:false };
+    const i = c.indexOf(' · '); if(i < 0) return { editable:false };
+    const subLabel = c.slice(0,i);
+    const sub = Object.values(t.subtipos||{}).find(s => s.label===subLabel);
+    const opciones = (sub && (sub.colors||[]).length && sub.colors[0]!=='—') ? sub.colors : [];
+    if(!opciones.length) return { editable:false };
+    return { editable:true, opciones, actual: c.slice(i+3).trim(), prefijo: subLabel + ' · ' };
+  }
+  return { editable:false };
+}
+// V369/V371: cambiar el color de un ítem en el form (roller / bandas / tubos / ángulos). Cambia solo
+// el color, preservando el resto (nombre del ítem o subtipo) vía el prefijo. getItems lo toma al guardar.
 function editColor(sel){
   const tr = sel.closest('tr'); if(!tr) return;
   const item = JSON.parse(tr.dataset.item||'{}');
-  item.color = sel.value;
+  item.color = (sel.dataset.prefijo||'') + sel.value;
   tr.dataset.item = JSON.stringify(item);
 }
 
