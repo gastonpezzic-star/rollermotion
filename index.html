@@ -1269,10 +1269,10 @@ button:not([disabled]):active,
           <option value="Cotización">Cotización</option><option value="Enviada">Enviada</option>
           <option value="Aprobada">Aprobada</option><option value="Rechazada">Rechazada</option>
         </select>
-        <select id="cq-sort" onchange="_pageCot=1;renderCot()" title="Ordenar">
+        <select id="cq-sort" onchange="_pageCot=1;renderCot()" title="Ordenar" autocomplete="off">
           <option value="num-desc">N° ↓ nuevo</option>
           <option value="num-asc">N° ↑ viejo</option>
-          <option value="fecha-desc">Fecha ↓ nueva</option>
+          <option value="fecha-desc" selected>Fecha ↓ nueva</option>
           <option value="fecha-asc">Fecha ↑ vieja</option>
         </select>
       </div>
@@ -1303,10 +1303,10 @@ button:not([disabled]):active,
           <option value="Pendiente">Pendiente</option><option value="Aprobado">Aprobado</option>
           <option value="En Fabricación">En Fabricación</option><option value="Finalizado">Finalizado</option><option value="Cancelado">Cancelado</option>
         </select>
-        <select id="pq-sort" onchange="_pagePed=1;renderPed()" title="Ordenar">
+        <select id="pq-sort" onchange="_pagePed=1;renderPed()" title="Ordenar" autocomplete="off">
           <option value="num-desc">N° ↓ nuevo</option>
           <option value="num-asc">N° ↑ viejo</option>
-          <option value="fecha-desc">Fecha ↓ nueva</option>
+          <option value="fecha-desc" selected>Fecha ↓ nueva</option>
           <option value="fecha-asc">Fecha ↑ vieja</option>
         </select>
       </div>
@@ -1351,10 +1351,10 @@ button:not([disabled]):active,
           <option value="Cancelado">Cancelado</option>
           <option value="Necesita Revisión">Necesita Revisión</option>
         </select>
-        <select id="fq-sort" onchange="renderFab()" title="Ordenar">
+        <select id="fq-sort" onchange="renderFab()" title="Ordenar" autocomplete="off">
           <option value="num-desc">N° ↓ nuevo</option>
           <option value="num-asc">N° ↑ viejo</option>
-          <option value="fecha-desc">Fecha ↓ nueva</option>
+          <option value="fecha-desc" selected>Fecha ↓ nueva</option>
           <option value="fecha-asc">Fecha ↑ vieja</option>
         </select>
       </div>
@@ -8496,16 +8496,17 @@ async function changeStatus(id, val){
 ════════════════════════════ */
 // V347 — orden configurable de las listas. sortVal: 'num-desc'|'num-asc'|'fecha-desc'|'fecha-asc'
 function docComparator(sortVal){
-  const parts = (sortVal||'num-desc').split('-');
+  const parts = (sortVal||'fecha-desc').split('-');  // V372: por defecto, fecha de lo más nuevo a lo más viejo
   const by = parts[0], mul = parts[1]==='asc' ? 1 : -1;
+  const num = d => parseInt((d.numero||'').replace(/\D/g,''))||0;
   return (a,b)=>{
     let va, vb;
     if(by==='fecha'){
       va = new Date(a.fecha||a.created_at||0).getTime();
       vb = new Date(b.fecha||b.created_at||0).getTime();
+      if(va===vb){ const na=num(a), nb=num(b); return na===nb ? 0 : (na<nb?-1:1)*mul; }  // mismo día → desempata por número
     } else {
-      va = parseInt((a.numero||'').replace(/\D/g,''))||0;
-      vb = parseInt((b.numero||'').replace(/\D/g,''))||0;
+      va = num(a); vb = num(b);
     }
     if(va===vb) return 0;
     return (va<vb ? -1 : 1) * mul;

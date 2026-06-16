@@ -1,5 +1,9 @@
 # Changelog
 
+## V372 — 2026-06-16 — Listas (cotizaciones / pedidos / fábrica) ordenadas por fecha, más nuevo primero por defecto
+
+El orden por defecto de las tres listas pasó de **N° ↓ (num-desc)** a **Fecha ↓ (fecha-desc)** — de lo más nuevo a lo más viejo cronológicamente. Motivo: tras la renumeración de duplicados (V370), algún documento viejo quedó con número alto y aparecía arriba aunque fuera antiguo; ordenando por fecha cada doc cae en su lugar real. Cambios: `docComparator` default → `'fecha-desc'` + desempate por número cuando dos docs son del mismo día (mismo día → mayor número primero); los selectores `cq-sort`/`pq-sort`/`fq-sort` arrancan en "Fecha ↓ nueva" (`selected`) y llevan `autocomplete="off"` para que al recargar siempre vuelvan al orden por defecto (no se queda pegado un orden cambiado a mano). El usuario igual puede cambiar el orden manualmente. Verificado: doc renumerado (nº alto, fecha vieja) cae debajo de los recientes; mismo día → más nuevo primero.
+
 ## V371 — 2026-06-14 — Editar color inline también en bandas verticales, tubos y ángulos
 
 Se generalizó el desplegable de color del formulario (V369, antes solo roller) a **bandas verticales, tubos y ángulos** (y ejes — todo accesorio con paleta de color). Nuevo helper `colorInfoItem(item)` que devuelve `{editable, opciones, actual, prefijo}` según el tipo: roller (color directo), accesorios con `colorOptions` ("Nombre — Color", preserva el nombre del ítem), bandas verticales ("SubtipoLabel · Color", preserva el subtipo y ofrece los colores de ESE subtipo). `editColor(sel)` reconstruye `it.color = prefijo + color` (cambia solo el color). Excluye Solo Riel, paneles y barrales (formato distinto). Verificado: cada tipo muestra sus colores correctos, preserva el resto, y al editar un tubo "Tubo 20/20 — Blanco · Blanco" queda "Tubo 20/20 — Negro" (limpio).
