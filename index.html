@@ -7399,10 +7399,8 @@ function goBack(){
 function resetForm(){
   const num = editId ? (getDocs().find(x=>x.id===editId)||{}).numero : autoNum(currentType);
   document.getElementById('f-num').value = num||'';
-  // V300: si es nuevo, pedir el número GLOBAL real al servidor (corrige el provisional local)
-  if(!editId){
-    nextNumero(currentType).then(n=>{ const el=document.getElementById('f-num'); if(n && el && !editId) el.value = n; });
-  }
+  // V370: NO pedimos el número atómico al abrir (lo "quemaría" sin guardar y dejaría huecos).
+  // Se muestra el provisional local; el número real y único se asigna recién al GUARDAR (ver saveDoc).
   ['f-cuit','f-cli','f-dir','f-obra','f-cont','f-tel1','f-tel2','f-obs','f-pago','f-tiempo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   ['f-pago-sel','f-tiempo-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-fecha').value = today();
@@ -8069,7 +8067,18 @@ async function saveDoc(andPreview){
   }
 
   try {
-    await saveDocToSupabase(doc);
+    // V370: número único entre terminales — pedir el número al servidor recién ahora (al guardar),
+    // de forma atómica; si choca con otro terminal (restricción única), reintenta con el siguiente.
+    if(!editId){ const _nr = await nextNumero(currentType); if(_nr) doc.numero = _nr; }
+    let _intentos = 0;
+    while(true){
+      try { await saveDocToSupabase(doc); break; }
+      catch(_se){
+        const _dup = _se && (String(_se.code)==='23505' || /duplicate|unique/i.test(String(_se.message||'')));
+        if(!editId && _dup && _intentos++ < 3){ const _n2 = await nextNumero(currentType); if(_n2) doc.numero = _n2; continue; }
+        throw _se;
+      }
+    }
     // Actualizar cache local
     const all = _docsCache;
     if(editId){ const i=all.findIndex(x=>x.id===editId); if(i>=0)all[i]=doc; else all.push(doc); }
@@ -8081,6 +8090,7 @@ async function saveDoc(andPreview){
     saveDocLocal(doc);
     // ⚡ CRÍTICO: setear editId para que el siguiente "Guardar" actualice en lugar de duplicar
     editId = doc.id;
+    { const _fnEl = document.getElementById('f-num'); if(_fnEl) _fnEl.value = doc.numero; } // V370: mostrar el número real asignado
     await cerrarCotizacionVinculada(doc); // V361: si vino vinculado a una cotización, cerrarla
     toast('✅ Guardado y sincronizado','ok');
   } catch(e) {
@@ -9017,7 +9027,7 @@ async function confirmarPedido(){
   let next, order;
   if(_pedidoIsDraft){
     // Pedido directo: no hay cotización origen
-    next = src.numero || autoNum('order');
+    next = await nextNumero('order'); // V370: número atómico al confirmar (evita duplicados entre terminales)
     order = {
       ...src,
       id:     uid(),

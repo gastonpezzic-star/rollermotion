@@ -1,5 +1,16 @@
 # Changelog
 
+## V370 — 2026-06-14 — Números de cotización/pedido únicos entre terminales (anti-duplicado)
+
+Fix del bug de **números duplicados** cuando dos terminales/usuarios cotizaban o confirmaban a la vez (caso COT-647: dos terminales generaron el mismo número y ambos pasaron a fabricación). Causa: el número se generaba al **abrir** el formulario y la función `next_doc_numero` hacía `max+1` sin **reservar** el número.
+
+Cambios en la app:
+- El número de un documento NUEVO se pide al servidor **recién al guardar** (`saveDoc`), no al abrir el form (que ahora muestra solo un provisional local). Pedido directo (`confirmarPedido` draft) también usa `nextNumero('order')` atómico en vez de `autoNum` local.
+- **Reintento automático**: si al guardar el número choca (violación de unicidad), pide el siguiente y reintenta (hasta 3 veces) — sin que el usuario haga nada.
+- Tras guardar, el form muestra el número real asignado.
+
+Requiere correr en Supabase (aparte): reemplazar `next_doc_numero` por una versión **atómica** con tabla contador (`doc_secuencias`) que reserva cada número (dos terminales nunca obtienen el mismo); y, como red de seguridad, una restricción UNIQUE en `documentos.numero` (tras limpiar duplicados existentes). Lógica del reintento verificada.
+
 ## V369 — 2026-06-14 — Editar cotización: cambiar el color de los roller con un desplegable
 
 En el formulario (al editar una cotización/pedido, o al cargar), los items **Roller Blackout y Sunscreen (5/3/1)** ahora muestran el color como un **desplegable** editable (en vez de texto fijo), con los colores de esa tela. Sirve para cambiar el color de una cotización ya hecha antes de pasarla a pedido (caso: el cliente confirma y después pide otro color). Mismo producto y precio. Función `editColor(sel)` actualiza `tr.dataset.item.color`; `getItems` (lo que se guarda) lo toma. Otros items (barrales, toldos, etc.) quedan con su texto como antes. Verificado: el desplegable aparece solo en roller, con la lista de colores correcta, y al cambiarlo se guarda el nuevo color.
