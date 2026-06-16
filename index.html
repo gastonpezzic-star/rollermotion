@@ -10507,8 +10507,10 @@ async function renderPreciosTelas(){
 ════════════════════════════ */
 
   const BRAND_NAMES = {
-    'blackout':   'Vertilux Fiberglass ®',
-    'sunscreen5': 'Vertilux VX ®',
+    'blackout':   'Vertilux USA Fiberglass ®',
+    'sunscreen5': 'Vertilux USA VX ®',
+    'sunscreen3': 'Vertilux USA VX ®',
+    'sunscreen1': 'Vertilux USA VX ®',
   };
   function getBrand(tela){ return BRAND_NAMES[tela] || ''; }
   const TELA_LABELS = {
@@ -10895,8 +10897,8 @@ function openDoc(d, fromForm){
           <td colspan="10" style="padding:7px 12px;background:#f0f5fa;border-top:1px solid #d0e4f4">
             <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
               <span style="font-size:8.5px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:#888">Fichas técnicas:</span>
-              ${items.some(it=>it.tela==='blackout') ? `<a href="https://drive.google.com/file/d/1Nb4cXmLdzY8OB51tD5JdsLTGFP4mUauY/view?usp=sharing" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#1a5f8a;background:#dceaf6;border-radius:3px;padding:2px 8px;text-decoration:none">↓ Blackout Vertilux Fiberglass ®</a>` : ''}
-              ${items.some(it=>it.tela==='sunscreen5') ? `<a href="https://drive.google.com/file/d/1komB-2FuGY3f3fX0bpChdzqFoNG3Hr_w/view?usp=sharing" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#1a5f8a;background:#dceaf6;border-radius:3px;padding:2px 8px;text-decoration:none">↓ Sunscreen 5% Vertilux VX ®</a>` : ''}
+              ${items.some(it=>it.tela==='blackout') ? `<a href="https://drive.google.com/file/d/1Nb4cXmLdzY8OB51tD5JdsLTGFP4mUauY/view?usp=sharing" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#1a5f8a;background:#dceaf6;border-radius:3px;padding:2px 8px;text-decoration:none">↓ Blackout Vertilux USA Fiberglass ®</a>` : ''}
+              ${items.some(it=>it.tela==='sunscreen5') ? `<a href="https://drive.google.com/file/d/1komB-2FuGY3f3fX0bpChdzqFoNG3Hr_w/view?usp=sharing" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#1a5f8a;background:#dceaf6;border-radius:3px;padding:2px 8px;text-decoration:none">↓ Sunscreen 5% Vertilux USA VX ®</a>` : ''}
               ${[...new Set(items.filter(it=>it.tela==='motores').map(it=>it.color))].map(modelo=>{
                 const fichaUrl = TELAS.motores?.fichas?.[modelo];
                 return fichaUrl ? `<a href="${fichaUrl}" target="_blank" style="display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:700;color:#1a5f8a;background:#dceaf6;border-radius:3px;padding:2px 8px;text-decoration:none">↓ ${modelo}</a>` : '';

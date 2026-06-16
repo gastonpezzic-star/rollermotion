@@ -1,5 +1,9 @@
 # Changelog
 
+## V367 — 2026-06-14 — Cotización: marcas Vertilux USA en todos los roller (Blackout y Sunscreen)
+
+Se actualizó `BRAND_NAMES`: **Blackout → "Vertilux USA Fiberglass ®"** y **Sunscreen 5%/3%/1% → "Vertilux USA VX ®"** (antes solo blackout y sunscreen5 tenían marca, y sin "USA"). La marca se muestra en la cotización en la letra gris suave (#bbb), junto al nombre del roller — denota calidad (con el ® de marca registrada). También se actualizaron los labels de las "Fichas técnicas" (links a PDF) para que coincidan. Verificado: las 4 telas muestran su marca USA en gris.
+
 ## V366 — 2026-06-14 — Cotización: nombre del accesorio sin redundancia (barral, tubo, etc.)
 
 Antes, un accesorio mostraba la etiqueta genérica de la categoría en negrita y el detalle repetido en gris (ej. **"Barrales de aluminio"** + *"Barral de aluminio — Negro"*). Ahora un helper `itemNombreDetalle(it)` separa, para los items tipo accesorio (barrales, tubos, ángulos, ejes, cenefas…), el **nombre** (negrita, ej. "Barral de aluminio") del **color/variante** (gris, ej. "Negro"). El `it.color` de un accesorio trae "Nombre — Variante", así que se parte por " — ". Aplicado en las vistas de cotización: `openDoc` (rama accesorio + rama roller donde cae el barral por tener medida) y `verPresupuestoDist`. Rollers/motores quedan igual (el helper devuelve la etiqueta normal). Verificado.
