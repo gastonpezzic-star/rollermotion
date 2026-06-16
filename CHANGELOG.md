@@ -1,5 +1,9 @@
 # Changelog
 
+## V368 — 2026-06-14 — Cotización: texto del servicio de instalación
+
+El detalle del servicio de instalación decía "+ Visita técnica previa". Ahora dice "Incluye visita técnica previa y asesoramiento en obra" (en las 2 vistas donde aparece) — se lee un poco mejor para el cliente.
+
 ## V367 — 2026-06-14 — Cotización: marcas Vertilux USA en todos los roller (Blackout y Sunscreen)
 
 Se actualizó `BRAND_NAMES`: **Blackout → "Vertilux USA Fiberglass ®"** y **Sunscreen 5%/3%/1% → "Vertilux USA VX ®"** (antes solo blackout y sunscreen5 tenían marca, y sin "USA"). La marca se muestra en la cotización en la letra gris suave (#bbb), junto al nombre del roller — denota calidad (con el ® de marca registrada). También se actualizaron los labels de las "Fichas técnicas" (links a PDF) para que coincidan. Verificado: las 4 telas muestran su marca USA en gris.
