@@ -6728,13 +6728,19 @@ function addRow(item){
   // V287.4: para toldos, resaltar (bold) la marca de brazos y la marca de tela en la descripción
   const isToldoItem = (item.tela||'').startsWith('toldo_');
   const colorDisplay = isToldoItem ? formatToldoColor(item.color) : (item.color || '');
+  // V369: para roller (blackout/sunscreen) el color es editable con un desplegable, para poder
+  // cambiar el color de una cotización ya hecha antes de pasarla a pedido (mismo producto y precio).
+  const _rollerColorEdit = ['blackout','sunscreen5','sunscreen3','sunscreen1'].includes(item.tela) && TELAS[item.tela] && (TELAS[item.tela].colors||[]).length;
+  const _colorOpts = _rollerColorEdit ? (TELAS[item.tela].colors.includes(item.color) ? TELAS[item.tela].colors : [item.color, ...TELAS[item.tela].colors].filter(Boolean)) : [];
+  const _colorCell = _rollerColorEdit
+    ? ` · <select onchange="editColor(this)" title="Cambiar color de la tela" style="font-size:12px;padding:2px 6px;border:1px solid var(--border);border-radius:4px;background:#fff;font-family:inherit;color:var(--ink)">${_colorOpts.map(c=>`<option${c===item.color?' selected':''}>${esc(c)}</option>`).join('')}</select>`
+    : `<span style="color:var(--muted);font-size:12px"> · ${colorDisplay}</span>`;
   tr.innerHTML = `
     <td style="padding:10px 10px;color:var(--muted);font-weight:700;font-size:12px">${String(n).padStart(2,'0')}</td>
     <td style="padding:10px 10px" ${esLibreItem ? 'colspan="3"' : ''}>
       ${esLibreItem
         ? `<span style="font-weight:600">${esc(item.color||'Producto personalizado')}</span>`
-        : `<span style="font-weight:600">${getTelaLabel(item.tela)}</span>
-           <span style="color:var(--muted);font-size:12px"> · ${colorDisplay}</span>`
+        : `<span style="font-weight:600">${getTelaLabel(item.tela)}</span>${_colorCell}`
       }
       ${cenefaHint?`<div style="font-size:10.5px;color:var(--muted);font-style:italic;margin-top:3px">💡 ${cenefaHint}</div>`:''}
     </td>
@@ -8208,6 +8214,14 @@ function editDim(input, which){
   const a = parseInt(item.ancho)||0, h = parseInt(item.alto)||0;
   if(a){ item.eje = getEje(a); item.ceje = a-35; item.ctela = a-30; }
   if(h){ item.ctelah = h+350; }
+  tr.dataset.item = JSON.stringify(item);
+}
+// V369: cambiar el color de una tela roller (blackout/sunscreen) en el form. Solo cambia el color
+// (mismo producto y precio); pensado para cuando el cliente pide otro color antes de pasar a pedido.
+function editColor(sel){
+  const tr = sel.closest('tr'); if(!tr) return;
+  const item = JSON.parse(tr.dataset.item||'{}');
+  item.color = sel.value;
   tr.dataset.item = JSON.stringify(item);
 }
 

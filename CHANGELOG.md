@@ -1,5 +1,9 @@
 # Changelog
 
+## V369 — 2026-06-14 — Editar cotización: cambiar el color de los roller con un desplegable
+
+En el formulario (al editar una cotización/pedido, o al cargar), los items **Roller Blackout y Sunscreen (5/3/1)** ahora muestran el color como un **desplegable** editable (en vez de texto fijo), con los colores de esa tela. Sirve para cambiar el color de una cotización ya hecha antes de pasarla a pedido (caso: el cliente confirma y después pide otro color). Mismo producto y precio. Función `editColor(sel)` actualiza `tr.dataset.item.color`; `getItems` (lo que se guarda) lo toma. Otros items (barrales, toldos, etc.) quedan con su texto como antes. Verificado: el desplegable aparece solo en roller, con la lista de colores correcta, y al cambiarlo se guarda el nuevo color.
+
 ## V368 — 2026-06-14 — Cotización: texto del servicio de instalación
 
 El detalle del servicio de instalación decía "+ Visita técnica previa". Ahora dice "Incluye visita técnica previa y asesoramiento en obra" (en las 2 vistas donde aparece) — se lee un poco mejor para el cliente.
