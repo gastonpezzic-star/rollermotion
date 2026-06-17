@@ -8593,9 +8593,15 @@ function convertToOrder(idOrDoc){
   // V313: DUO Zebra (tercerizada) — pide datos para el pedido al proveedor (lado mec, color tela, perfilería, cajón)
   const duoItems = (src.items||[]).filter(it => it.tela==='duozebra');
 
-  // Si no hay nada para configurar técnicamente → no mostrar overlay
+  // Si no hay nada para configurar técnicamente (p. ej. cotización de SOLO accesorios:
+  // mecanismos, cadenas, soportes, controles…), no hace falta el overlay de datos técnicos.
+  // V374: creamos el pedido DIRECTO desde la cotización. Antes esto retornaba skipOverlay y
+  // el botón "Convertir en pedido" (📦) no hacía NADA para cotizaciones sin cortinas.
+  // _pedidoSrc y _pedidoIsDraft ya quedaron seteados arriba, así que confirmarPedido() arma
+  // el pedido con todos los items (accesorios incluidos) y lo guarda.
   if(!cortinas.length && !motores.length && !confItems.length && !rieles.length && !cambioTelaItems.length && !duoItems.length){
-    return { skipOverlay: true };
+    confirmarPedido();
+    return;
   }
 
   const titulo = _pedidoIsDraft

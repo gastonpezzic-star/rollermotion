@@ -1,5 +1,9 @@
 # Changelog
 
+## V374 — 2026-06-17 — Pasar a fábrica una cotización de solo accesorios (antes el botón 📦 no hacía nada)
+
+Bug: una cotización compuesta **solo de accesorios** (mecanismos, cadenas, soportes, controles… sin ninguna cortina roller/confección/riel/cambio/DUO) no se podía convertir en pedido — al clickear "Convertir en pedido" (📦) no pasaba nada. Causa: `convertToOrder` detecta que no hay datos técnicos que configurar y retornaba `{ skipOverlay: true }` sin crear nada, y el botón ignora ese retorno. (El flujo de "Nuevo Pedido directo" sí manejaba este caso guardando directo; la conversión de cotización no.) Fix: en esa rama, en vez de no hacer nada, se crea el pedido directo llamando a `confirmarPedido()` (que arma el pedido con todos los items —accesorios incluidos—, lo numera PED-xxx, marca la cotización como Aprobada y sincroniza). Complementa V373 (que hizo visibles esos pedidos en fábrica). Verificado: cotización de solo accesorios → crea PED-xxxx con los items y toast de éxito; cotización con roller → sigue abriendo el overlay de datos técnicos como antes.
+
 ## V373 — 2026-06-17 — Planilla de fabricación para pedidos de solo accesorios (mecanismos, cadenas, etc.)
 
 Antes, una cotización/pedido compuesto **solo de accesorios** (mecanismos, cadenas, soportes, controles, motores, barrales, ejes sueltos…) no tenía cómo verse en fábrica: el botón 📋 solo aparecía con roller/confección/rieles, y dentro de `openPlanilla` esos items no caían en ningún "bucket" → saltaba el toast *"Sin cortinas con medidas"* y no se generaba nada. Ahora aparecen como **una línea simple** en su propia hoja "Accesorios e items a preparar" para que fábrica los prepare. Cambios:
