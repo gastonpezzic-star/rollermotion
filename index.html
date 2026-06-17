@@ -10008,6 +10008,19 @@ function renderFab(){
       || ((it.tela==='conf_liviana' || it.tela==='conf_blackout') && (it.conRiel === true || it.conRiel === 'true'))
     );
     const tieneConf   = (d.items||[]).some(it => it.tela==='conf_liviana' || it.tela==='conf_blackout');
+    // V373: items que NO son roller/confección/tercerizado pero fábrica igual debe PREPARAR
+    // (mecanismos, cadenas, soportes, controles, motores, barrales, ejes, toldos, accesorios…).
+    // Antes un pedido de SOLO accesorios no tenía botón de planilla y se "perdía" para fábrica.
+    const tieneOtrosFab = (d.items||[]).some(it =>
+      !esItemTercerizado(it)
+      && it.tela!=='conf_liviana' && it.tela!=='conf_blackout'
+      && !isRollerTela(it.tela) && !isCambioTela(it.tela)
+      && it.tela!=='libre'
+      && it.tela!=='riel_manual' && it.tela!=='riel_motorizado' && it.tela!=='riel_motorizado_celtic'
+    );
+    // Si el pedido entero está marcado tercerizado, openPlanilla enruta TODO a la Nota de
+    // Recepción (📦); el botón debe respetarlo para que ícono y hoja coincidan.
+    const tienePlanilla = (tieneRoller || tieneOtrosFab) && d.tercerizado !== true;
     return `<tr style="border-bottom:1px solid var(--border)">
     <td style="vertical-align:middle"><strong>#${d.numero||'—'}</strong></td>
     <td style="vertical-align:middle">${fmtD(d.fecha)}</td>
@@ -10023,8 +10036,8 @@ function renderFab(){
     </td>
     <td style="vertical-align:middle;white-space:nowrap">
       <div style="display:flex;gap:5px;align-items:center">
-        ${tieneRoller?`<button class="btn-t" onclick="abrirDocFab('${d.id}','planilla')" title="Planilla de armado (Roller)">📋</button>`:''}
-        ${(esDocTercerizado(d) && !tieneRoller)?`<button class="btn-t" style="border-color:#6a3a9a;color:#6a3a9a" onclick="abrirDocFab('${d.id}','planilla')" title="Nota de recepción (producto tercerizado)">📦</button>`:''}
+        ${tienePlanilla?`<button class="btn-t" onclick="abrirDocFab('${d.id}','planilla')" title="Planilla de fabricación">📋</button>`:''}
+        ${(esDocTercerizado(d) && !tienePlanilla)?`<button class="btn-t" style="border-color:#6a3a9a;color:#6a3a9a" onclick="abrirDocFab('${d.id}','planilla')" title="Nota de recepción (producto tercerizado)">📦</button>`:''}
         ${tieneConf?`<button class="btn-t" style="border-color:#2c6e49;color:#2c6e49" onclick="abrirDocFab('${d.id}','planilla-conf')" title="Planilla de confección (telas tradicionales)">🧵</button>`:''}
         <button class="btn-t" onclick="abrirDocFab('${d.id}','etiquetas')" title="Imprimir etiquetas">🏷</button>
         <button class="btn-t"${pedidoTrabado(d)?" style='opacity:.4'":""} onclick="editDoc('${d.id}')" title="Editar pedido">✏️</button>
@@ -11545,8 +11558,15 @@ function openPlanilla(d){
     return false;
   });
 
-  if(!rollerItems.length && !confItems.length && !rielItems.length && !toldoItems.length && !libreItems.length && !tercItems.length && !accesorioItems.length){
-    toast('Sin cortinas con medidas para generar planilla','err'); return;
+  // V373: catch-all — cualquier item que NO cayó en un bucket reconocido (mecanismos, cadenas,
+  // soportes, controles, motores, barrales, ejes/zócalos sueltos, accesorios varios). Antes se
+  // perdían: un pedido de SOLO accesorios saltaba el toast de abajo y no generaba nada. Ahora
+  // salen como una línea simple en su propia hoja para que fábrica los prepare.
+  const _yaClasificado = new Set([...rollerItemsRaw, ...rielItems, ...toldoItems, ...confItems, ...libreItems, ...accesorioItems]);
+  const otrosItems = allItems.filter(it => !_yaClasificado.has(it));
+
+  if(!rollerItems.length && !confItems.length && !rielItems.length && !toldoItems.length && !libreItems.length && !tercItems.length && !accesorioItems.length && !otrosItems.length){
+    toast('Sin items para generar planilla','err'); return;
   }
 
   const fecha  = d.entrega ? fmtD(d.entrega) : '—';
@@ -11921,7 +11941,7 @@ function openPlanilla(d){
   const hayHojaAlu = rollerItems.length > 0 || accesorioItems.length > 0 || rielesManualArr.length > 0;
   const hayLibreSolo = libreItems.length > 0 && rollerItems.length === 0 && rielesMotorArr.length === 0 && rielesManualArr.length === 0 && toldoItems.length === 0 && accesorioItems.length === 0;
   // V353: confección ya no genera hojas propias (sus rieles van en las secciones de rieles; la mesa se sacó)
-  const totalHojas = (rollerItems.length > 0 ? 1 : 0) + (hayHojaAlu ? 1 : 0) + (rielesMotorArr.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0);
+  const totalHojas = (rollerItems.length > 0 ? 1 : 0) + (hayHojaAlu ? 1 : 0) + (rielesMotorArr.length > 0 ? 1 : 0) + (toldoItems.length > 0 ? 1 : 0) + (hayLibreSolo ? 1 : 0) + (tercItems.length > 0 ? 1 : 0) + (otrosItems.length > 0 ? 1 : 0);
   let hojaNum = 0;
 
   let html = `<div class="fab-doc">`;
@@ -12157,6 +12177,57 @@ function openPlanilla(d){
     </div>`;
   }
 
+  // ── V373: Accesorios e items a preparar (mecanismos, cadenas, soportes, controles, motores,
+  // barrales, ejes/zócalos sueltos, accesorios varios). Una línea por item — sin corte/armado
+  // específico — para que fábrica los prepare aunque el pedido no tenga cortinas. ──
+  if(otrosItems.length > 0){
+    hojaNum++;
+    const breakOtros = hojaNum > 1 ? ' fab-page-break' : '';
+    html += `
+    <div class="fab-sheet${breakOtros}">
+    ${headerHtml(`Accesorios e items a preparar — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-otros')}
+    <div class="fab-section">
+      <div class="sec-hdr" style="background:#eaf3ee;border:1px solid #b8d8c4;border-bottom:none">
+        <div class="sec-circle" style="background:#1a6a4a">🧰</div>
+        <div class="sec-ttl" style="color:#0e4a30">Accesorios e items a preparar</div>
+        <span class="sec-sub" style="color:#0e4a30">Mecanismos, cadenas, soportes, controles, motores, barrales, ejes… — preparar y embolsar</span>
+      </div>
+      <table class="fab-table">
+        <thead style="background:#dcece3"><tr>
+          <th style="color:#0e4a30;text-align:center;width:38px">✓</th>
+          <th style="color:#0e4a30;width:22px">#</th>
+          <th style="color:#0e4a30">Item</th>
+          <th style="color:#0e4a30;text-align:center;width:96px">Cant. / Medida</th>
+          <th style="color:#0e4a30;width:54px">Ref.</th>
+        </tr></thead>
+        <tbody>
+          ${otrosItems.map((it,i)=>{
+            const cant = parseInt(it.cant)||1;
+            // medida: el accesorio guarda el largo en it.ancho cuando se vende por mm/ml.
+            // La unidad la recuperamos del catálogo (TELAS) por el nombre embebido en it.color.
+            const _nom = (it.color||'').split(' — ')[0].split(' · ')[0].trim();
+            const _u = (TELAS[it.tela]?.items||[]).find(x=>x.nombre===_nom)?.unidad;
+            let medida;
+            if(it.ancho && _u==='mm')      medida = `${it.ancho} mm`;
+            else if(it.ancho && _u==='ml') medida = `${it.ancho} m`;
+            else if(it.ancho)              medida = `${it.ancho}`;
+            else                           medida = `${cant} u`;
+            const cantTag = (it.ancho && cant>1) ? ` <span style="color:#7a9a88;font-weight:600">×${cant}</span>` : '';
+            const desc = it.color || getTelaLabel(it.tela) || '—';
+            return `<tr>
+              <td style="text-align:center;border-right:2px solid #b8d8c4"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
+              <td><span class="fnum" style="background:#1a6a4a">${i+1}</span></td>
+              <td style="font-size:11px;font-weight:600;color:#0e3a26">${esc(desc)}</td>
+              <td style="text-align:center;font-weight:700;font-family:'Manrope',sans-serif;font-size:11px">${esc(medida)}${cantTag}</td>
+              <td style="font-size:10px;color:#888">${esc(it.ref||'—')}</td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    </div>`;
+  }
+
   // ── V294: Productos personalizados (items 'libre') ──
   // Aparecen como una sección simple al final. Sin medidas ni fabricación específica,
   // solo descripción + cantidad + ref. Sirve para que el operario sepa que esos items
@@ -12164,7 +12235,7 @@ function openPlanilla(d){
   if(libreItems.length > 0){
     // V294.1: la sección libre también va en .fab-sheet.
     // Si no hay roller ni conf, es la primera (sin page-break). Si hay otras, va con page-break.
-    const breakLibre = (rollerItems.length > 0 || confItems.length > 0 || rielItems.length > 0 || toldoItems.length > 0) ? ' fab-page-break' : '';
+    const breakLibre = (rollerItems.length > 0 || confItems.length > 0 || rielItems.length > 0 || toldoItems.length > 0 || otrosItems.length > 0) ? ' fab-page-break' : '';
     if(hayLibreSolo) hojaNum++;
     html += `
     <div class="fab-sheet${breakLibre}">
@@ -12203,7 +12274,7 @@ function openPlanilla(d){
   // ── V308: Productos TERCERIZADOS — Nota de recepción (con código de barras para escanear al llegar) ──
   if(tercItems.length > 0){
     hojaNum++;
-    const breakTerc = (rollerItems.length > 0 || confItems.length > 0 || rielItems.length > 0 || toldoItems.length > 0 || libreItems.length > 0) ? ' fab-page-break' : '';
+    const breakTerc = (rollerItems.length > 0 || confItems.length > 0 || rielItems.length > 0 || toldoItems.length > 0 || libreItems.length > 0 || otrosItems.length > 0) ? ' fab-page-break' : '';
     html += `
     <div class="fab-sheet${breakTerc}">
     ${headerHtml(`Nota de Recepción — Hoja ${hojaNum} de ${totalHojas}`, totalHojas, 'fab-barcode-terc')}

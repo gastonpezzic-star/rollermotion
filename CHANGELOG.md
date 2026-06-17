@@ -1,5 +1,14 @@
 # Changelog
 
+## V373 — 2026-06-17 — Planilla de fabricación para pedidos de solo accesorios (mecanismos, cadenas, etc.)
+
+Antes, una cotización/pedido compuesto **solo de accesorios** (mecanismos, cadenas, soportes, controles, motores, barrales, ejes sueltos…) no tenía cómo verse en fábrica: el botón 📋 solo aparecía con roller/confección/rieles, y dentro de `openPlanilla` esos items no caían en ningún "bucket" → saltaba el toast *"Sin cortinas con medidas"* y no se generaba nada. Ahora aparecen como **una línea simple** en su propia hoja "Accesorios e items a preparar" para que fábrica los prepare. Cambios:
+
+- **Botón** (`renderFab`): nuevo `tieneOtrosFab` + `tienePlanilla` (`tieneRoller || tieneOtrosFab`, salvo doc entero tercerizado) → el 📋 aparece también para pedidos de solo accesorios. El 📦 (tercerizado) ahora se decide con `!tienePlanilla` (consistente). Confección sin riel sigue mostrando solo 🧵.
+- **`openPlanilla`**: catch-all `otrosItems` = items que no cayeron en ningún bucket reconocido (roller/riel/toldo/confección/libre/aluminio-corte). Se agregó al guard del toast y a `totalHojas`; nueva hoja con tabla simple (✓ · # · Item · Cant./Medida · Ref.). La medida muestra la unidad correcta recuperada del catálogo (cadena en mm, eje en m, con ×cant cuando hay largo y varias unidades). Los tubos/ángulos/guías/cenefas con medida de corte **siguen** en la hoja de Aluminio (no se duplican). `breakLibre`/`breakTerc` ahora contemplan `otrosItems` para los saltos de página.
+
+Verificado con ejecución real: solo-accesorios (botón + hoja + medidas correctas), mixto roller+tubo+mecanismo (3 hojas, tubo en Aluminio sin duplicar, mecanismo en "otros"), roller puro (sin hoja espuria), tercerizado puro y tercerizado-manual (📦, no 📋), confección sin riel (solo 🧵). Revisión adversarial: sin dobles conteos, numeración de hojas consistente, sin crash en el lookup de medida.
+
 ## V372 — 2026-06-16 — Listas (cotizaciones / pedidos / fábrica) ordenadas por fecha, más nuevo primero por defecto
 
 El orden por defecto de las tres listas pasó de **N° ↓ (num-desc)** a **Fecha ↓ (fecha-desc)** — de lo más nuevo a lo más viejo cronológicamente. Motivo: tras la renumeración de duplicados (V370), algún documento viejo quedó con número alto y aparecía arriba aunque fuera antiguo; ordenando por fecha cada doc cae en su lugar real. Cambios: `docComparator` default → `'fecha-desc'` + desempate por número cuando dos docs son del mismo día (mismo día → mayor número primero); los selectores `cq-sort`/`pq-sort`/`fq-sort` arrancan en "Fecha ↓ nueva" (`selected`) y llevan `autocomplete="off"` para que al recargar siempre vuelvan al orden por defecto (no se queda pegado un orden cambiado a mano). El usuario igual puede cambiar el orden manualmente. Verificado: doc renumerado (nº alto, fecha vieja) cae debajo de los recientes; mismo día → más nuevo primero.
