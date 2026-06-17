@@ -1374,7 +1374,6 @@ button:not([disabled]):active,
       <div class="sh">
         <h2>Lista de Precios</h2>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-outline btn-sm" onclick="resetInsumos()">↺ Restaurar defaults</button>
           <button class="btn btn-outline btn-sm" onclick="addInsumo()">＋ Agregar insumo</button>
           <button id="btn-guardar-insumos" class="btn btn-primary btn-sm" onclick="guardarInsumos()">💾 Guardar cambios</button>
         </div>
@@ -10103,12 +10102,12 @@ function renderInsumosAdmin(){
         ${esCalculo?'<span title="Usado en cálculo automático de cortinas" style="font-size:9px;background:#e8e4f8;color:#5c3d8f;border-radius:3px;padding:1px 5px;margin-right:6px;font-weight:700">CÁLCULO</span>':''}
         <input value="${ins.nombre.replace(/"/g,'&quot;')}"
           style="border:none;background:transparent;font-size:13px;font-weight:600;width:calc(100% - 80px);font-family:'DM Sans',sans-serif;outline:none;color:var(--ink)"
-          onchange="updateInsumo('${ins.id}','nombre',this.value)">
+          oninput="updateInsumo('${ins.id}','nombre',this.value)">
       </td>
       <td style="padding:7px 8px">
         <input value="${ins.cat}" list="cats-list"
           style="border:1px solid var(--border);border-radius:4px;background:#fff;font-size:11px;width:100%;font-family:'DM Sans',sans-serif;outline:none;padding:3px 6px;font-weight:600"
-          onchange="updateInsumo('${ins.id}','cat',this.value)">
+          oninput="updateInsumo('${ins.id}','cat',this.value)">
       </td>
       <td style="padding:7px 8px;text-align:center;color:var(--muted);font-size:11px">${ins.unidad}</td>
       <td style="padding:7px 8px;text-align:right">
@@ -10118,7 +10117,7 @@ function renderInsumosAdmin(){
             style="border:1.5px solid var(--border);border-radius:5px;padding:4px 6px;font-size:12px;font-weight:700;width:110px;text-align:right;font-family:'DM Sans',sans-serif;outline:none"
             onfocus="this.style.borderColor='var(--accent)'"
             onblur="this.style.borderColor='var(--border)'"
-            onchange="updateInsumo('${ins.id}','precio',parseFloat(this.value)||0)">
+            oninput="updateInsumo('${ins.id}','precio',parseFloat(this.value)||0)">
         </div>
       </td>
       <td style="padding:7px 8px;text-align:right;font-size:12px;font-weight:700;color:var(--accent)">

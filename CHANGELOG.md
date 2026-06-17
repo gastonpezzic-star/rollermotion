@@ -1,5 +1,13 @@
 # Changelog
 
+## V376 — 2026-06-17 — Lista de precios: el cambio se registra al instante (oninput) + se sacó "Restaurar defaults"
+
+Causa real del "no guarda" al editar un precio en la Lista de Precios: los inputs de la fila (nombre, categoría, precio) usaban `onchange`, que solo dispara cuando el campo **pierde el foco** (al clickear afuera). Si el usuario escribía el valor y se iba (scroll/navegación) sin clickear en otro lado, `updateInsumo` nunca corría → el buffer quedaba vacío y el botón "Guardar cambios" no se activaba → `guardarInsumos` salía temprano (`if(!_insumosBuffer) return`) y no guardaba nada. (No era la sincronización/RLS como se sospechó en V375.) Fix: `onchange` → `oninput` en los tres campos, así el cambio se registra en cada tecla, el botón pasa a "💾 Guardar cambios (sin guardar)" al instante y el valor queda en el buffer aunque no se saque el foco. Además se eliminó el botón "↺ Restaurar defaults" (a pedido del usuario: podía borrar toda la lista de precios por accidente). Verificado: escribir un precio sin blur ya marca el cambio y lo deja en el buffer.
+
+## V375 — 2026-06-17 — Lista de precios: el guardado verifica de verdad la respuesta del servidor (toast honesto)
+
+`guardarInsumos` hacía `await _sb.from('config').upsert(...)` sin chequear el `.error` que devuelve Supabase: mostraba "✅ Precios guardados y sincronizados" aunque el servidor rechazara la escritura. Ahora destructura `{ error }`, hace `throw` si viene, y el toast de error muestra el motivo real (`message`/`hint`/`code`). (Se sumó mientras se diagnosticaba el "no guarda"; el toast falso era un bug real aunque la causa de fondo terminó siendo otra — ver V376.)
+
 ## V374 — 2026-06-17 — Pasar a fábrica una cotización de solo accesorios (antes el botón 📦 no hacía nada)
 
 Bug: una cotización compuesta **solo de accesorios** (mecanismos, cadenas, soportes, controles… sin ninguna cortina roller/confección/riel/cambio/DUO) no se podía convertir en pedido — al clickear "Convertir en pedido" (📦) no pasaba nada. Causa: `convertToOrder` detecta que no hay datos técnicos que configurar y retornaba `{ skipOverlay: true }` sin crear nada, y el botón ignora ese retorno. (El flujo de "Nuevo Pedido directo" sí manejaba este caso guardando directo; la conversión de cotización no.) Fix: en esa rama, en vez de no hacer nada, se crea el pedido directo llamando a `confirmarPedido()` (que arma el pedido con todos los items —accesorios incluidos—, lo numera PED-xxx, marca la cotización como Aprobada y sincroniza). Complementa V373 (que hizo visibles esos pedidos en fábrica). Verificado: cotización de solo accesorios → crea PED-xxxx con los items y toast de éxito; cotización con roller → sigue abriendo el overlay de datos técnicos como antes.
