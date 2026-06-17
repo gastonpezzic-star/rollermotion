@@ -10284,11 +10284,16 @@ async function guardarInsumos(){
   const btn = document.getElementById('btn-guardar-insumos');
   if(btn){ btn.style.background=''; btn.textContent='💾 Guardar cambios'; }
   try {
-    await _sb.from('config').upsert({ key:'insumos', value: insumos }, { onConflict:'key' });
+    // V375: ANTES no se chequeaba el .error que devuelve Supabase → si el servidor
+    // rechazaba la escritura (p. ej. por permisos/RLS) igual mostraba "✅ sincronizado"
+    // y al recargar el precio volvía atrás ("no guarda"). Ahora verificamos de verdad.
+    const { error } = await _sb.from('config').upsert({ key:'insumos', value: insumos }, { onConflict:'key' });
+    if(error) throw error;
     toast('✅ Precios guardados y sincronizados','ok');
   } catch(e){
     console.error('Error sincronizando insumos:', e);
-    toast('⚠️ Precios guardados local — sin conexión','err');
+    const detalle = e?.message || e?.hint || e?.code || 'error desconocido';
+    toast('⚠️ NO se guardó en la base: ' + detalle, 'err');
   }
 }
 
