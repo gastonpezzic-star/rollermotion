@@ -1,5 +1,14 @@
 # Changelog
 
+## V378 — 2026-06-17 — Lista de Precios: los 6 motores reales y editables (faltaban 50/12 y RF 12N)
+
+Faltaban en la Lista de Precios el **Motor Vertilux 50/12 RF** y el **RF 12N Control remoto**. Causa de fondo: había **dos listas de motores desconectadas** — el desplegable de cotización usaba el mapa `TELAS.motores.precios` (6 modelos, fijo en el código), mientras la Lista de Precios mostraba 4 insumos (`motor_2n/6n/rf/wd`) que **no se usaban en ningún cálculo** (editar su precio no cambiaba nada). Unificación: la Lista de Precios (insumos categoría 'Motores') pasa a ser la **fuente única**. Cambios:
+- Se reemplazaron los 4 insumos muertos por los **6 modelos reales** (nombres y precios idénticos a los que ya cobraba la cotización → ningún precio cambió): BATERIA 2N, BATERIA 6N, RF 6N, WD, RF 12N, 50/12 RF.
+- Nuevo helper `getPrecioMotor(modelo)` que lee el precio del motor desde los insumos (respaldo al mapa de la TELA si faltara). La cotización (`esUnitario`, `tela==='motores'`) y el motor automático del toldo (`autoAddMotorToldoItem`) ahora usan `getPrecioMotor` → **editar un motor en la Lista de Precios sí cambia la cotización**.
+- Migración en `getInsumos()` que elimina los ids viejos (`motor_2n/6n/rf/wd`) para no dejar duplicados.
+
+Efecto secundario (correcto): el "Aumento general" de la lista ahora también escala los motores (antes quedaban fijos). Verificado: la categoría Motores muestra 6; `getPrecioMotor` devuelve los precios correctos; editar el 50/12 a $600.000 se refleja al instante; respaldo al mapa de la TELA si un modelo no estuviera; migración elimina los 4 viejos.
+
 ## V377 — 2026-06-17 — Descuentos de distribuidor más granulares (rieles separados + cambio de tela + ajustes)
 
 El panel de descuentos por producto (admin → cuenta distribuidor) se hizo más específico, a pedido:
