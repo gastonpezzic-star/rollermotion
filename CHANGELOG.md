@@ -1,5 +1,9 @@
 # Changelog
 
+## V384 — 2026-06-18 — Venecianas de madera/símil fuera de la planilla de fabricación
+
+Las venecianas de **madera** y **símil madera** no se fabrican en la planta, así que ya no aparecen en la planilla de fabricación (antes caían en el catch-all de cortes por tener ancho/alto). La de **aluminio** no se toca (sigue como antes). Nuevo helper `esVenecianaNoFab(it)` (tela 'venecianas' + color con 'mad'/'simil'); se excluye del `allItems` de `openPlanilla` y de `tieneOtrosFab` (para que un pedido de SOLO veneciana madera/símil no muestre botón de planilla vacía). Siguen apareciendo normalmente en cotización/pedido. Verificado: pedido mixto → roller y aluminio en la planilla, madera/símil fuera; pedido de solo madera → sin botón.
+
 ## V383 — 2026-06-18 — Corte de rieles: apertura en vez de frunce
 
 En la planilla, la sección de corte de rieles mostraba el **frunce** (dato de confección, irrelevante para el que corta el riel). Se reemplazó por la **apertura**: para rieles de confección usa `it.accionamiento` (Apertura central / Recoge izquierda / Recoge derecha); para rieles sueltos, `it.apertura` (+ `it.lado` si aplica). En `_rielRow`: `colorBase` ahora también quita el `· Frunce: X`, y se agrega una etiqueta con la apertura (↔) en la columna Color. Aplica a rieles manuales y motorizados. Verificado: pedido de confección con riel → muestra "Recoge izquierda" / "Apertura central" y ya no el frunce. (Nota: la apertura/lado de rieles SUELTOS no se persiste hoy en la base; el caso de confección sí porque accionamiento ya se guardaba.)

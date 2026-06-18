@@ -7293,6 +7293,13 @@ function isRollerDoble(t){ const k=(t||'').toLowerCase(); return k==='rollerdobl
 // formulario (los vendedores no ven que tercerizamos). Llevan "Nota de recepción" (con código
 // de barras) en vez de planilla de fábrica; al escanear el código cuando llega, pasa a Finalizado.
 function esItemTercerizado(it){ return (it && (it.tela||'').toLowerCase()) === 'duozebra'; }
+// V384 — Venecianas de MADERA / SÍMIL madera: no se fabrican acá, así que NO van a la planilla
+// de fabricación (sí siguen en la cotización/pedido normalmente). La de aluminio no se toca.
+function esVenecianaNoFab(it){
+  if(!it || (it.tela||'').toLowerCase() !== 'venecianas') return false;
+  const s = ((it.tela||'') + ' ' + (it.color||'')).toLowerCase();
+  return s.includes('mad') || s.includes('simil') || s.includes('símil');
+}
 function esDocTercerizado(d){
   if(!d) return false;
   if(d.tercerizado === true) return true;
@@ -10118,6 +10125,7 @@ function renderFab(){
     // Antes un pedido de SOLO accesorios no tenía botón de planilla y se "perdía" para fábrica.
     const tieneOtrosFab = (d.items||[]).some(it =>
       !esItemTercerizado(it)
+      && !esVenecianaNoFab(it)  // V384: madera/símil no generan planilla
       && it.tela!=='conf_liviana' && it.tela!=='conf_blackout'
       && !isRollerTela(it.tela) && !isCambioTela(it.tela)
       && it.tela!=='libre'
@@ -11562,7 +11570,7 @@ function openPlanilla(d){
   const _tercManual  = d.tercerizado === true;
   const esTercItem   = it => _tercManual || esItemTercerizado(it);
   const tercItems    = _allItemsRaw.filter(esTercItem);
-  const allItems     = _allItemsRaw.filter(it => !esTercItem(it));
+  const allItems     = _allItemsRaw.filter(it => !esTercItem(it) && !esVenecianaNoFab(it)); // V384: madera/símil fuera de la planilla
 
   // V345: detectar rieles sueltos y toldos para sacarlos del catch-all roller.
   // Antes caían en rollerItems (por tener ancho/alto) y se dibujaban como cortina
