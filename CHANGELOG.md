@@ -1,5 +1,9 @@
 # Changelog
 
+## V382 — 2026-06-17 — Cargador USB-C movido a Motores (subsección Accesorios)
+
+A pedido, el Cargador USB-C Vertilux pasó de "Acc. Motores" a la categoría **Motores** (subcat 'Accesorios'), igual que los controles (V380). Cambios: agregado a `TELAS.motores.colors`/`.precios` (25560, cotizable en el desplegable de Motores Tubulares); insumo recategorizado a Motores/Accesorios; `CAT_MIGRATIONS` para datos guardados; quitado del array de items de la TELA 'accesorios'. La categoría "Acc. Motores" queda vacía (ya no aparece). Verificado: en el desplegable de Motores, getPrecioMotor lo encuentra (25560), migración OK, fuera de accesorios generales.
+
 ## V381 — 2026-06-17 — "Precio venta público ref." para distribuidores (Modelo A) + precio con descuento en vivo
 
 En el formulario "+ Agregar ítem", **solo para cuentas distribuidor**, debajo del precio unitario aparece una caja unificada (Modelo A) con el **Precio venta público ref.** = precio de lista + IVA 21% (sin descuento ni cuotas). Además, el precio unitario ahora muestra el costo del distribuidor **ya con su descuento** en el preview (antes el descuento se veía recién al agregar el ítem → el form mostraba un número más alto que el real).

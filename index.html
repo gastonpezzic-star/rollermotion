@@ -2602,7 +2602,7 @@ const TELAS = {
 
   // ── MOTORES TUBULARES ──
   'motores': { label:'Motores Tubulares', grupo:'Motores', tipo:'unitario', colorLabel:'Modelo',
-    colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto','Motor Vertilux 50/12 RF','Somfy 6/28 RF','Somfy 6/28 WD','Somfy 10/28 RF','Control 1 Somfy','Control 5 Somfy','Control 1 canal Vertilux','Control 6 canales Vertilux'],
+    colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto','Motor Vertilux 50/12 RF','Somfy 6/28 RF','Somfy 6/28 WD','Somfy 10/28 RF','Control 1 Somfy','Control 5 Somfy','Control 1 canal Vertilux','Control 6 canales Vertilux','Cargador USB-C Vertilux'],
     fichas:{
       'Motor Vertilux BATERIA 2N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
       'Motor Vertilux BATERIA 6N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
@@ -2626,6 +2626,7 @@ const TELAS = {
       'Control 5 Somfy':1,
       'Control 1 canal Vertilux':28400,
       'Control 6 canales Vertilux':45866,
+      'Cargador USB-C Vertilux':25560,
     },
     aplicarFV: true,
     recomendaciones:{
@@ -2719,7 +2720,6 @@ const TELAS = {
       { insumoId:'mec_vtx10',      nombre:'Mecanismo VTX10 32mm',     unidad:'u' },
       { insumoId:'mec_vtx20',      nombre:'Mecanismo VTX20 38mm',     unidad:'u' },
       { insumoId:'mec_vtx30',      nombre:'Mecanismo VTX30 50mm',     unidad:'u' },
-      { insumoId:'cargador_usbc',  nombre:'Cargador USB-C Vertilux',  unidad:'u' },
     ]},
 
   // Cenefas: separadas en su propia TELA para que aparezcan en "Accesorios en aluminio"
@@ -2972,7 +2972,7 @@ const INSUMOS_DEFAULT = [
   // ACCESORIOS MOTORES
   { id:'ctrl_1ch',         cat:'Motores',     subcat:'Controles', nombre:'Control 1 canal Vertilux',    precio:28400,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   { id:'ctrl_6ch',         cat:'Motores',     subcat:'Controles', nombre:'Control 6 canales Vertilux',  precio:45866,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
-  { id:'cargador_usbc',    cat:'Acc. Motores',subcat:'',          nombre:'Cargador USB-C Vertilux',     precio:25560,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
+  { id:'cargador_usbc',    cat:'Motores',     subcat:'Accesorios', nombre:'Cargador USB-C Vertilux',     precio:25560,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   // GUÍAS Y CENEFAS
   { id:'guia_blanca',      cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral blanca (par)',         precio:2970,   unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
   { id:'guia_negra',       cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral negra (par)',          precio:29700,  unidad:'ml',  en_cotizador:false, cat_cotizador:'',           unidad_venta:'mm' },
@@ -3104,6 +3104,7 @@ function getInsumos(){
       // V380 — controles Vertilux: de 'Acc. Motores' a 'Motores' (subcat Controles), para tenerlos junto a los motores
       'ctrl_1ch':                 { cat:'Motores', subcat:'Controles' },
       'ctrl_6ch':                 { cat:'Motores', subcat:'Controles' },
+      'cargador_usbc':            { cat:'Motores', subcat:'Accesorios' },
     };
     arr.forEach(x => {
       const m = CAT_MIGRATIONS[x.id];
