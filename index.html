@@ -3136,8 +3136,11 @@ function _descKeyForItem(tela, color){
   if(t==='bandas_verticales') return 'bandas';
   if(t==='paneles_orientales') return 'paneles';
   if(t==='conf_liviana'||t==='conf_blackout') return 'confeccion';
-  if(t==='motores') return 'motores';
-  if(t.indexOf('riel')===0) return 'rieles';
+  if(t==='motores' || t==='motor_somfy_wt' || t==='motor_somfy_mv35') return 'motores';
+  if(t==='riel_manual') return 'riel_manual';
+  if(t==='riel_motorizado') return 'riel_somfy';
+  if(t==='riel_motorizado_celtic') return 'riel_celtic';
+  if(t.indexOf('riel')===0) return 'riel_manual'; // otros rieles → toman la regla del riel manual
   if(t.indexOf('toldo')===0 || t==='cobertor_toldo') return 'toldos';
   if(t==='venecianas' || s.indexOf('ven_')>=0 || s.indexOf('venec')>=0){
     if(s.indexOf('simil')>=0) return 'ven_simil';
@@ -3146,14 +3149,21 @@ function _descKeyForItem(tela, color){
     return 'ven_alum';
   }
   if(['tubos','angulos','guias','cenefas','ejes','accesorios'].indexOf(t)>=0) return 'accesorios';
-  return null; // cambio de tela, libre, unitarios → sin descuento por ahora
+  if(t==='cambiotela' || t==='cambiotela_bv') return 'cambiotela';
+  if(t==='servicios') return 'ajustes';  // ajustes y reparaciones de cortina
+  return null; // libre / unitarios sueltos → sin descuento por ahora
 }
 // Devuelve el % de descuento del usuario logueado (ME) para ese producto. 0 si no es distribuidor.
+// Migración transparente: las 3 categorías de riel heredan el descuento del viejo 'rieles'
+// si todavía no tienen un valor propio, así no se pierde lo ya cargado al separar la categoría.
+const _DESC_LEGACY = { riel_manual:'rieles', riel_somfy:'rieles', riel_celtic:'rieles' };
 function descDistribuidorPct(tela, color){
   if(!ME || !ME.esDistribuidor || !ME.descuentos) return 0;
   const k = _descKeyForItem(tela, color);
   if(!k) return 0;
-  const v = parseFloat(ME.descuentos[k]);
+  let raw = ME.descuentos[k];
+  if((raw==null || raw==='') && _DESC_LEGACY[k]) raw = ME.descuentos[_DESC_LEGACY[k]];
+  const v = parseFloat(raw);
   return (v>0 && v<=100) ? v : 0;
 }
 
@@ -9348,8 +9358,12 @@ const PRODUCTS_DESC = [
   {key:'toldos',      label:'Toldos'},
   {key:'confeccion',  label:'Cortinas de confección'},
   {key:'motores',     label:'Motores'},
-  {key:'rieles',      label:'Rieles'},
+  {key:'riel_manual', label:'Riel manual aluminio',     legacy:'rieles'},
+  {key:'riel_somfy',  label:'Riel motorizado Somfy',    legacy:'rieles'},
+  {key:'riel_celtic', label:'Riel motorizado Celtic ®', legacy:'rieles'},
   {key:'accesorios',  label:'Accesorios'},
+  {key:'cambiotela',  label:'Cambio de tela'},
+  {key:'ajustes',     label:'Ajustes y reparaciones'},
   {key:'instalacion', label:'Instalación / Colocación'},
 ];
 let _descProfiles = [];
@@ -9400,7 +9414,7 @@ function onSelectCuentaDescuento(){
         <div style="display:grid;grid-template-columns:1fr 130px;align-items:center;padding:6px 14px;border-top:1px solid var(--hair)">
           <div style="font-size:13px;font-weight:600">${p.label}</div>
           <div style="text-align:center">
-            <input type="number" min="0" max="100" step="0.5" class="desc-input" data-key="${p.key}" value="${desc[p.key]!=null?desc[p.key]:''}" placeholder="0"
+            <input type="number" min="0" max="100" step="0.5" class="desc-input" data-key="${p.key}" value="${desc[p.key]!=null ? desc[p.key] : (p.legacy && desc[p.legacy]!=null ? desc[p.legacy] : '')}" placeholder="0"
               style="width:78px;padding:6px 8px;border:1.5px solid var(--border);border-radius:6px;font-size:14px;font-weight:700;text-align:center;font-family:'DM Sans',sans-serif;outline:none">
             <span style="font-size:13px;color:var(--muted);font-weight:700">%</span>
           </div>

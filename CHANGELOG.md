@@ -1,5 +1,14 @@
 # Changelog
 
+## V377 — 2026-06-17 — Descuentos de distribuidor más granulares (rieles separados + cambio de tela + ajustes)
+
+El panel de descuentos por producto (admin → cuenta distribuidor) se hizo más específico, a pedido:
+- **Rieles** dejó de ser una sola categoría y se separó en **Riel manual aluminio**, **Riel motorizado Somfy** y **Riel motorizado Celtic ®** (`_descKeyForItem`: `riel_manual`→`riel_manual`, `riel_motorizado`→`riel_somfy`, `riel_motorizado_celtic`→`riel_celtic`).
+- Se agregaron **Cambio de tela** (roller + bandas, antes sin descuento) y **Ajustes y reparaciones** (categoría `servicios`, antes sin descuento).
+- Los motores Somfy de riel sueltos (`motor_somfy_wt`/`mv35`, antes sin descuento) ahora toman el de **Motores**.
+
+Migración transparente (sin tocar la base): las 3 categorías de riel **heredan** el % del viejo `rieles` mientras no tengan valor propio — vía `_DESC_LEGACY` en `descDistribuidorPct` (runtime) y `legacy` en `PRODUCTS_DESC` que pre-llena los campos del panel. Al guardar, ese valor heredado se persiste como las 3 claves nuevas y el `rieles` viejo se descarta. Verificado: distribuidor con `rieles:20` → las 3 categorías aplican 20% en cotización; override granular (ej. `riel_somfy:10`) manda sobre el heredado; cambio de tela/ajustes aplican su % propio; no-distribuidores sin descuento; el panel pre-llena los 3 campos de riel con el 20 heredado.
+
 ## V376 — 2026-06-17 — Lista de precios: el cambio se registra al instante (oninput) + se sacó "Restaurar defaults"
 
 Causa real del "no guarda" al editar un precio en la Lista de Precios: los inputs de la fila (nombre, categoría, precio) usaban `onchange`, que solo dispara cuando el campo **pierde el foco** (al clickear afuera). Si el usuario escribía el valor y se iba (scroll/navegación) sin clickear en otro lado, `updateInsumo` nunca corría → el buffer quedaba vacío y el botón "Guardar cambios" no se activaba → `guardarInsumos` salía temprano (`if(!_insumosBuffer) return`) y no guardaba nada. (No era la sincronización/RLS como se sospechó en V375.) Fix: `onchange` → `oninput` en los tres campos, así el cambio se registra en cada tecla, el botón pasa a "💾 Guardar cambios (sin guardar)" al instante y el valor queda en el buffer aunque no se saque el foco. Además se eliminó el botón "↺ Restaurar defaults" (a pedido del usuario: podía borrar toda la lista de precios por accidente). Verificado: escribir un precio sin blur ya marca el cambio y lo deja en el buffer.
