@@ -11995,14 +11995,19 @@ function openPlanilla(d){
     const corteCell = esCeltic && celtic
       ? `<div style="font-family:'Manrope',sans-serif;font-size:12px;font-weight:800;color:#6a3a00">${esc(celtic)}</div><div style="font-size:7.5px;color:#888">combinación de tramos</div>`
       : `<div style="font-family:'Manrope',sans-serif;font-size:15px;font-weight:800;color:#141414">${corteRiel} mm</div><div style="font-size:7.5px;color:#888">corte exacto al ancho</div>`;
-    const colorBase = (it.color||'—').replace(/\s*·\s*Motor[^·]*/i,'').trim() || '—';
+    // V383 — para el corte de rieles el frunce no es relevante: lo sacamos del color y,
+    // en su lugar, mostramos la apertura (Central / Recoge izquierda / Recoge derecha).
+    const colorBase = (it.color||'—').replace(/\s*·\s*Motor[^·]*/i,'').replace(/\s*·\s*Frunce:[^·]*/i,'').trim() || '—';
+    const _apertura = it._conf
+      ? (it.accionamiento||'')
+      : (it.apertura ? (it.apertura==='Central' ? 'Apertura central' : (it.apertura + (it.lado ? ' · '+it.lado : ''))) : '');
     const _baseRef  = it._conf ? ('Cort. '+it._idx) : ('Riel '+it._idx);
     const refLabel  = it._cant>1 ? `${it.ref||_baseRef} (${it._k}/${it._cant})` : (it.ref||_baseRef);
     return `<tr>
       <td style="text-align:center;border-right:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum" style="background:#a05c00">${i+1}</span></td>
       <td style="font-weight:700;font-size:10.5px">${esc(tipoLbl)}</td>
-      <td style="font-size:9.5px;color:#555">${esc(colorBase)}</td>
+      <td style="font-size:9.5px;color:#555">${esc(colorBase)}${_apertura?`<div style="margin-top:3px;font-size:9px;font-weight:800;color:#6a3a00;background:#fde8c0;border:1px solid #f0d8a0;border-radius:3px;padding:1px 6px;display:inline-block">↔ ${esc(_apertura)}</div>`:''}</td>
       <td style="text-align:center">${motorCell}</td>
       <td style="text-align:center">${corteCell}</td>
       <td style="font-size:10px;color:#888">${esc(refLabel)}</td>

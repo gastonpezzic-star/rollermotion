@@ -1,5 +1,9 @@
 # Changelog
 
+## V383 — 2026-06-18 — Corte de rieles: apertura en vez de frunce
+
+En la planilla, la sección de corte de rieles mostraba el **frunce** (dato de confección, irrelevante para el que corta el riel). Se reemplazó por la **apertura**: para rieles de confección usa `it.accionamiento` (Apertura central / Recoge izquierda / Recoge derecha); para rieles sueltos, `it.apertura` (+ `it.lado` si aplica). En `_rielRow`: `colorBase` ahora también quita el `· Frunce: X`, y se agrega una etiqueta con la apertura (↔) en la columna Color. Aplica a rieles manuales y motorizados. Verificado: pedido de confección con riel → muestra "Recoge izquierda" / "Apertura central" y ya no el frunce. (Nota: la apertura/lado de rieles SUELTOS no se persiste hoy en la base; el caso de confección sí porque accionamiento ya se guardaba.)
+
 ## V382 — 2026-06-17 — Cargador USB-C movido a Motores (subsección Accesorios)
 
 A pedido, el Cargador USB-C Vertilux pasó de "Acc. Motores" a la categoría **Motores** (subcat 'Accesorios'), igual que los controles (V380). Cambios: agregado a `TELAS.motores.colors`/`.precios` (25560, cotizable en el desplegable de Motores Tubulares); insumo recategorizado a Motores/Accesorios; `CAT_MIGRATIONS` para datos guardados; quitado del array de items de la TELA 'accesorios'. La categoría "Acc. Motores" queda vacía (ya no aparece). Verificado: en el desplegable de Motores, getPrecioMotor lo encuentra (25560), migración OK, fuera de accesorios generales.
