@@ -2990,8 +2990,8 @@ const INSUMOS_DEFAULT = [
   // ── RIELES ──
   { id:'riel_manual_ml',  cat:'Rieles', subcat:'Manual',     nombre:'Riel Manual Aluminio (ml)',          precio:26260,  unidad:'ml', en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'ml' },
   { id:'riel_motor_ml',   cat:'Rieles', subcat:'Motorizado',  nombre:'Riel Motorizado Somfy (ml)',         precio:253970, unidad:'ml', en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'ml' },
-  { id:'motor_somfy_wt',  cat:'Rieles', subcat:'Motores',     nombre:'Motor Somfy WT',                    precio:623000, unidad:'u',  en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'u'  },
-  { id:'motor_somfy_mv35',cat:'Rieles', subcat:'Motores',     nombre:'Motor Somfy Movelite 35 RTS',       precio:730000, unidad:'u',  en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'u'  },
+  { id:'motor_somfy_wt',  cat:'Rieles', subcat:'Motores',     nombre:'Motor Somfy WT',                    precio:461481, unidad:'u',  en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'u'  },
+  { id:'motor_somfy_mv35',cat:'Rieles', subcat:'Motores',     nombre:'Motor Somfy Movelite 35 RTS',       precio:540741, unidad:'u',  en_cotizador:true, cat_cotizador:'Rieles', unidad_venta:'u'  },
   // Riel Motorizado Celtic + Motor — precio por tramo (no por ml). Para anchos
   // > 6m se combinan tramos (ej. 7m = 6m + 2m).
   { id:'riel_celtic_2m',  cat:'Rieles', subcat:'Motorizado Celtic', nombre:'Riel Motorizado Celtic + Motor (hasta 2m)', precio:815000,  unidad:'u', en_cotizador:false, cat_cotizador:'Rieles', unidad_venta:'u' },
@@ -3056,6 +3056,12 @@ function getInsumos(){
     // se rearma con los 6 modelos reales que SÍ controlan la cotización (se agregan vía missing).
     const _OLD_MOTORES = ['motor_2n','motor_6n','motor_rf','motor_wd'];
     if(arr.some(x => _OLD_MOTORES.includes(x.id))){ arr = arr.filter(x => !_OLD_MOTORES.includes(x.id)); changed = true; }
+    // V379 — alinear el precio de lista de los motores Somfy de riel al que realmente se cobraba
+    // (estaban desconectados: la lista mostraba 623000/730000 pero la cotización usaba 461481/540741).
+    arr.forEach(x => {
+      if(x.id==='motor_somfy_wt'   && x.precio === 623000){ x.precio = 461481; changed = true; }
+      if(x.id==='motor_somfy_mv35' && x.precio === 730000){ x.precio = 540741; changed = true; }
+    });
     arr.forEach(x => {
       if(x.id === 'duozebra_ancho' && x.precio > 80000){
         x.precio = 50800; x.nombre = 'DUO Zebra — estructura por metro de ancho (sin tela)'; changed = true;
@@ -3122,7 +3128,8 @@ function getPrecio(id){ return getInsumo(id)?.precio || 0; }
 // categoría 'Motores') es la fuente ÚNICA; si por algún motivo no estuviera, cae al mapa
 // estático de la TELA como respaldo. Así editar un motor en la Lista de Precios sí cambia la cotización.
 function getPrecioMotor(modelo){
-  const ins = getInsumos().find(x => x.cat==='Motores' && x.nombre===modelo);
+  // Tubulares (cat 'Motores') + Somfy de riel (cat 'Rieles', subcat 'Motores') — todos por nombre.
+  const ins = getInsumos().find(x => x.nombre===modelo && (x.cat==='Motores' || x.subcat==='Motores'));
   if(ins && ins.precio != null) return ins.precio;
   return (TELAS.motores && TELAS.motores.precios && TELAS.motores.precios[modelo]) || 0;
 }
@@ -6340,8 +6347,10 @@ function qaAgregar(){
   let medidaVal = itemMedida?.unidad==='u' ? (parseInt(medidaRaw)||1) : (parseFloat(medidaRaw)||0);
 
   if(esUnitario){
-    // V378 — motores: precio desde la Lista de Precios (fuente única). Resto de unitarios: TELA.
-    precio = (tela==='motores' ? getPrecioMotor(color) : 0) ||
+    // V378/V379 — motores (tubulares + Somfy de riel): precio desde la Lista de Precios
+    // (fuente única). Resto de unitarios: TELA.
+    const _esMotor = (tela==='motores' || tela==='motor_somfy_wt' || tela==='motor_somfy_mv35');
+    precio = (_esMotor ? getPrecioMotor(color) : 0) ||
              (telaObjA.precios && telaObjA.precios[color]) ||
              getAdicionalesLocal().find(a=>a.nombre===color)?.precio || 0;
     if(precio > 0 && telaObjA.aplicarFV){

@@ -1,5 +1,9 @@
 # Changelog
 
+## V379 — 2026-06-17 — Motores Somfy de riel (WT y Movelite 35) también editables desde la Lista de Precios
+
+Completa V378 para **todos** los motores cotizables. Los 2 motores Somfy de riel (`motor_somfy_wt`, `motor_somfy_mv35`) aparecían en la Lista de Precios (categoría Rieles · subcat Motores) pero tenían el mismo desfasaje: editarlos no cambiaba la cotización (el precio salía del mapa estático de su TELA), y además mostraban un número distinto del que se cobraba (lista 623000/730000 vs cobrado 461481/540741). A pedido del usuario se alinearon al precio **realmente cobrado** (no cambia ninguna cotización). Cambios: precios de `INSUMOS_DEFAULT` corregidos a 461481/540741; migración en `getInsumos()` que alinea los datos ya guardados (de 623000/730000 → 461481/540741); `getPrecioMotor` generalizado para encontrar también los de subcat 'Motores'; la rama `esUnitario` enruta `motor_somfy_wt`/`motor_somfy_mv35` a `getPrecioMotor`. Verificado: migración correcta, `getPrecioMotor` devuelve los valores cobrados, editar el WT se refleja al instante, tubulares siguen OK.
+
 ## V378 — 2026-06-17 — Lista de Precios: los 6 motores reales y editables (faltaban 50/12 y RF 12N)
 
 Faltaban en la Lista de Precios el **Motor Vertilux 50/12 RF** y el **RF 12N Control remoto**. Causa de fondo: había **dos listas de motores desconectadas** — el desplegable de cotización usaba el mapa `TELAS.motores.precios` (6 modelos, fijo en el código), mientras la Lista de Precios mostraba 4 insumos (`motor_2n/6n/rf/wd`) que **no se usaban en ningún cálculo** (editar su precio no cambiaba nada). Unificación: la Lista de Precios (insumos categoría 'Motores') pasa a ser la **fuente única**. Cambios:
