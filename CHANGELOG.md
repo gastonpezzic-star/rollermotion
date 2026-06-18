@@ -1,5 +1,14 @@
 # Changelog
 
+## V380 — 2026-06-17 — Nuevos motores/controles Somfy en Motores Tubulares + controles agrupados
+
+A pedido, se sumaron a **Motores Tubulares** (cotización + Lista de Precios) y se reorganizaron los controles:
+- **Motores nuevos** (precio $1, a ajustar): Somfy 6/28 RF, Somfy 6/28 WD, Somfy 10/28 RF.
+- **Controles Somfy nuevos** (precio $1): Control 1 Somfy, Control 5 Somfy.
+- Los **controles Vertilux** (`ctrl_1ch`, `ctrl_6ch`) se trajeron de "Accesorios generales" a la categoría Motores (subcat 'Controles') para tenerlos todos juntos — conservan su precio (28400/45866) y se sacaron del desplegable de accesorios (el Cargador USB-C queda en Acc. Motores).
+
+Cambios: se agregaron a `TELAS.motores.colors` y `.precios` (los nuevos en 1, los Vertilux como respaldo); 5 insumos nuevos en `INSUMOS_DEFAULT` (cat Motores; los controles con subcat 'Controles'); `ctrl_1ch/ctrl_6ch` recategorizados a Motores/Controles + migración en `CAT_MIGRATIONS` para datos ya guardados; se quitaron del array de items de la TELA 'accesorios'. Como la cotización de motores ya lee de la Lista de Precios (V378), editar el precio de cualquiera de estos surte efecto. Verificado: desplegable con 13 opciones, controles fuera de accesorios, migración mueve los Vertilux, getPrecioMotor devuelve $1 para los nuevos y el real para los Vertilux, lista agrupada (9 motores + sub-sección Controles con 4).
+
 ## V379 — 2026-06-17 — Motores Somfy de riel (WT y Movelite 35) también editables desde la Lista de Precios
 
 Completa V378 para **todos** los motores cotizables. Los 2 motores Somfy de riel (`motor_somfy_wt`, `motor_somfy_mv35`) aparecían en la Lista de Precios (categoría Rieles · subcat Motores) pero tenían el mismo desfasaje: editarlos no cambiaba la cotización (el precio salía del mapa estático de su TELA), y además mostraban un número distinto del que se cobraba (lista 623000/730000 vs cobrado 461481/540741). A pedido del usuario se alinearon al precio **realmente cobrado** (no cambia ninguna cotización). Cambios: precios de `INSUMOS_DEFAULT` corregidos a 461481/540741; migración en `getInsumos()` que alinea los datos ya guardados (de 623000/730000 → 461481/540741); `getPrecioMotor` generalizado para encontrar también los de subcat 'Motores'; la rama `esUnitario` enruta `motor_somfy_wt`/`motor_somfy_mv35` a `getPrecioMotor`. Verificado: migración correcta, `getPrecioMotor` devuelve los valores cobrados, editar el WT se refleja al instante, tubulares siguen OK.

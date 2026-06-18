@@ -2596,7 +2596,7 @@ const TELAS = {
 
   // ── MOTORES TUBULARES ──
   'motores': { label:'Motores Tubulares', grupo:'Motores', tipo:'unitario', colorLabel:'Modelo',
-    colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto','Motor Vertilux 50/12 RF'],
+    colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto','Motor Vertilux 50/12 RF','Somfy 6/28 RF','Somfy 6/28 WD','Somfy 10/28 RF','Control 1 Somfy','Control 5 Somfy','Control 1 canal Vertilux','Control 6 canales Vertilux'],
     fichas:{
       'Motor Vertilux BATERIA 2N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
       'Motor Vertilux BATERIA 6N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
@@ -2613,6 +2613,13 @@ const TELAS = {
       'Motor Vertilux WD Accionamiento tecla':210306,
       'Motor Vertilux RF 12N Control remoto':478500,
       'Motor Vertilux 50/12 RF':511000,
+      'Somfy 6/28 RF':1,
+      'Somfy 6/28 WD':1,
+      'Somfy 10/28 RF':1,
+      'Control 1 Somfy':1,
+      'Control 5 Somfy':1,
+      'Control 1 canal Vertilux':28400,
+      'Control 6 canales Vertilux':45866,
     },
     aplicarFV: true,
     recomendaciones:{
@@ -2706,8 +2713,6 @@ const TELAS = {
       { insumoId:'mec_vtx10',      nombre:'Mecanismo VTX10 32mm',     unidad:'u' },
       { insumoId:'mec_vtx20',      nombre:'Mecanismo VTX20 38mm',     unidad:'u' },
       { insumoId:'mec_vtx30',      nombre:'Mecanismo VTX30 50mm',     unidad:'u' },
-      { insumoId:'ctrl_1ch',       nombre:'Control 1 canal Vertilux', unidad:'u' },
-      { insumoId:'ctrl_6ch',       nombre:'Control 6 canales Vertilux', unidad:'u' },
       { insumoId:'cargador_usbc',  nombre:'Cargador USB-C Vertilux',  unidad:'u' },
     ]},
 
@@ -2951,9 +2956,16 @@ const INSUMOS_DEFAULT = [
   { id:'motor_wdtecla',cat:'Motores', subcat:'', nombre:'Motor Vertilux WD Accionamiento tecla', precio:210306, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   { id:'motor_rf12n',  cat:'Motores', subcat:'', nombre:'Motor Vertilux RF 12N Control remoto',  precio:478500, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   { id:'motor_5012rf', cat:'Motores', subcat:'', nombre:'Motor Vertilux 50/12 RF',               precio:511000, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  // V380 — motores Somfy tubulares nuevos (precio $1, el usuario lo ajusta)
+  { id:'motor_somfy_628rf',  cat:'Motores', subcat:'', nombre:'Somfy 6/28 RF',  precio:1, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'motor_somfy_628wd',  cat:'Motores', subcat:'', nombre:'Somfy 6/28 WD',  precio:1, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'motor_somfy_1028rf', cat:'Motores', subcat:'', nombre:'Somfy 10/28 RF', precio:1, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  // CONTROLES (todos juntos en Motores: Somfy nuevos + Vertilux traídos de Accesorios)
+  { id:'ctrl_somfy_1', cat:'Motores', subcat:'Controles', nombre:'Control 1 Somfy', precio:1, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'ctrl_somfy_5', cat:'Motores', subcat:'Controles', nombre:'Control 5 Somfy', precio:1, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   // ACCESORIOS MOTORES
-  { id:'ctrl_1ch',         cat:'Acc. Motores',subcat:'',          nombre:'Control 1 canal Vertilux',    precio:28400,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
-  { id:'ctrl_6ch',         cat:'Acc. Motores',subcat:'',          nombre:'Control 6 canales Vertilux',  precio:45866,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
+  { id:'ctrl_1ch',         cat:'Motores',     subcat:'Controles', nombre:'Control 1 canal Vertilux',    precio:28400,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
+  { id:'ctrl_6ch',         cat:'Motores',     subcat:'Controles', nombre:'Control 6 canales Vertilux',  precio:45866,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   { id:'cargador_usbc',    cat:'Acc. Motores',subcat:'',          nombre:'Cargador USB-C Vertilux',     precio:25560,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   // GUÍAS Y CENEFAS
   { id:'guia_blanca',      cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral blanca (par)',         precio:2970,   unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
@@ -3083,6 +3095,9 @@ function getInsumos(){
       'srv_ajuste_manual':        { cat:'Servicios y reparaciones', subcat:'Ajustes' },
       'srv_ajuste_motor':         { cat:'Servicios y reparaciones', subcat:'Ajustes' },
       'srv_soldado_roller':       { cat:'Servicios y reparaciones', subcat:'Soldados' },
+      // V380 — controles Vertilux: de 'Acc. Motores' a 'Motores' (subcat Controles), para tenerlos junto a los motores
+      'ctrl_1ch':                 { cat:'Motores', subcat:'Controles' },
+      'ctrl_6ch':                 { cat:'Motores', subcat:'Controles' },
     };
     arr.forEach(x => {
       const m = CAT_MIGRATIONS[x.id];
