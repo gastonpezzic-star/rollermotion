@@ -1,5 +1,11 @@
 # Changelog
 
+## V381 — 2026-06-17 — "Precio venta público ref." para distribuidores (Modelo A) + precio con descuento en vivo
+
+En el formulario "+ Agregar ítem", **solo para cuentas distribuidor**, debajo del precio unitario aparece una caja unificada (Modelo A) con el **Precio venta público ref.** = precio de lista + IVA 21% (sin descuento ni cuotas). Además, el precio unitario ahora muestra el costo del distribuidor **ya con su descuento** en el preview (antes el descuento se veía recién al agregar el ítem → el form mostraba un número más alto que el real).
+
+Implementación (overlay, sin tocar cada rama de cálculo): se renombró el cálculo a `_qaCalcPrecioBase` y `qaCalcPrecio` ahora hace base + `_qaRefDistribuidor`. El overlay, para distribuidores: descuenta los importes mostrados (precio unitario + subtotal) según `descDistribuidorPct` del producto, y muestra el ref = `displayed / multiplicador × 1.21` (multiplicador = `getFV()` o `getCoefCuotas()` según el producto). HTML: la caja de precio pasó a un contenedor `#qa-precio-box` con `#qa-precio-display` arriba y `#qa-ref-publico` (oculto por defecto) abajo con divisor y tono cálido. Guardas: no se muestra ref para productos 'libre' ni con precio manual; no-distribuidores no ven nada. No hay doble descuento: el overlay solo cambia lo mostrado; `_lastPrecio` y el guardado (que aplica el descuento en `addItem`) quedan intactos. Verificado en aislamiento: distribuidor 25% → unitario $70.358 + ref $93.811; subtotal también descontado; sin descuento → ref = costo; IVA 10,5% → ref sigue lista×1,21; no-distribuidor → sin ref; libre/manual → sin ref.
+
 ## V380 — 2026-06-17 — Nuevos motores/controles Somfy en Motores Tubulares + controles agrupados
 
 A pedido, se sumaron a **Motores Tubulares** (cotización + Lista de Precios) y se reorganizaron los controles:

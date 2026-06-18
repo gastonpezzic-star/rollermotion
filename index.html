@@ -1552,7 +1552,13 @@ button:not([disabled]):active,
             <!-- precio calculado — compacto -->
             <div id="qa-precio-wrap" style="display:flex;flex-direction:column;gap:2px;align-items:flex-end">
               <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)">Precio unitario</div>
-              <div id="qa-precio-display" style="font-size:15px;font-weight:600;color:var(--brand);font-variant-numeric:tabular-nums;min-width:120px;text-align:right;padding:9px 13px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius)">—</div>
+              <div id="qa-precio-box" style="min-width:130px;background:var(--surface2);border:1.5px solid var(--border);border-radius:var(--radius);overflow:hidden">
+                <div id="qa-precio-display" style="font-size:15px;font-weight:600;color:var(--brand);font-variant-numeric:tabular-nums;text-align:right;padding:9px 13px">—</div>
+                <div id="qa-ref-publico" style="display:none;background:#fef6e8;border-top:1px solid #f3d59a;padding:6px 13px;text-align:right">
+                  <div style="font-size:9px;font-weight:700;letter-spacing:.04em;color:#7a4e00;line-height:1.3">PRECIO VENTA PÚBLICO REF.</div>
+                  <div id="qa-ref-val" style="font-size:13px;font-weight:700;color:#7a4e00;font-variant-numeric:tabular-nums">—</div>
+                </div>
+              </div>
               <div id="qa-subtotal-display" style="font-size:11px;color:var(--muted);text-align:right;display:none"></div>
               <div id="qa-round-notice" style="display:none;font-size:10px;color:var(--amber);font-weight:600;text-align:right;padding:2px 0"></div>
             </div>
@@ -5489,7 +5495,46 @@ function _renderToldoTelaPanel(A, S){
   return opActiva;
 }
 
+// V381 — Modelo A (distribuidores): el form muestra el precio CON el descuento del distribuidor
+// y, debajo, el "Precio venta público ref." (= precio de lista + IVA 21%, sin descuento ni cuotas).
+// Se implementa como overlay sobre el cálculo base para no tocar cada rama de precio.
 function qaCalcPrecio(){
+  _qaCalcPrecioBase();
+  try { _qaRefDistribuidor(); } catch(e){ console.warn('[ref distribuidor]', e); }
+}
+function _qaRefDistribuidor(){
+  const refBox = document.getElementById('qa-ref-publico');
+  if(refBox) refBox.style.display = 'none';
+  if(!ME || !ME.esDistribuidor) return;          // solo cuentas distribuidor
+  const disp = document.getElementById('qa-precio-display');
+  if(!disp) return;
+  const tela  = document.getElementById('qa-tela')?.value || '';
+  const color = document.getElementById('qa-color')?.value || '';
+  if(tela === 'libre') return;                   // producto libre: precio arbitrario, sin ref público
+  const manualWrap = document.getElementById('qa-precio-manual-wrap');
+  if(manualWrap && manualWrap.style.display !== 'none') return; // precio manual: no calcular ref
+  // valor que dejó el cálculo base = precio de venta del distribuidor SIN su descuento
+  const num = parseInt((disp.textContent||'').replace(/[^\d]/g,'')) || 0;
+  if(num <= 0) return;                            // "—" / "Sin precio"
+  // multiplicador con el que se llegó a num desde el precio de lista
+  const M = (TELAS[tela] && TELAS[tela].aplicarSoloCoef) ? (getCoefCuotas()||1) : (getFV()||1);
+  const refUnit = Math.round(num / M * 1.21);     // lista × 1.21 (sin descuento, sin cuotas)
+  // Descontar lo mostrado según el descuento del distribuidor para ESTE producto
+  const desc = descDistribuidorPct(tela, color);
+  if(desc > 0){
+    const f = 1 - desc/100;
+    const descontar = (s)=> (s||'').replace(/\$\s*[\d.]+/g, (mm)=>{ const v=parseInt(mm.replace(/[^\d]/g,''))||0; return fmtM(Math.round(v*f)); });
+    disp.textContent = descontar(disp.textContent);
+    const subD = document.getElementById('qa-subtotal-display');
+    if(subD && subD.style.display!=='none') subD.textContent = descontar(subD.textContent);
+  }
+  if(refBox){
+    refBox.style.display = 'block';
+    const rv = document.getElementById('qa-ref-val');
+    if(rv) rv.textContent = fmtM(refUnit);
+  }
+}
+function _qaCalcPrecioBase(){
   const tela  = document.getElementById('qa-tela').value;
   const ancho = document.getElementById('qa-ancho').value;
   const alto  = document.getElementById('qa-alto').value;
