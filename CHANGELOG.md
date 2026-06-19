@@ -1,5 +1,9 @@
 # Changelog
 
+## V388 — 2026-06-19 — Estado y Entrega est. alineados y centrados en las listas (Opción 1)
+
+Pulido visual de las columnas Estado y Entrega est. en las listas (Cotizaciones/Pedidos, que comparten `renderRow`). Las burbujas de estado ahora son del **mismo ancho** y **centradas** (CSS `.st-cell .badge{min-width:130px;justify-content:center}` + celda con `text-align:center`), así quedan alineadas una debajo de otra. La **entrega estimada** pasó a chip cálido tipo pill (`border-radius:20px`), ancho mínimo y centrado; el "a confirmar" usa un pill punteado del mismo tamaño para no romper la alineación (celda `.ent-cell`). Encabezados Estado (cot + ped) y Entrega est. (ped) centrados, editando cada thead por su `tbody` id para no afectar otras tablas. No toca la tabla de Fábrica ni otras listas (renderRow es exclusivo de cot/ped). Verificado: estados uniformes y alineados, entrega centrada, "a confirmar" armónico.
+
 ## V387 — 2026-06-19 — Entrega estimada: más chica en Fábrica (texto) + columna propia en Pedidos
 
 Ajuste estético (a pedido). **Fábrica:** la tarjeta grande se reemplazó por texto minimalista (F2): "📅 Entrega: 22 jun 2026 ✎" (o "Definir entrega"), con el calendario nativo encima (input transparente + `showPicker`). Más chico, no desentona con la burbuja de estado. **Pedidos:** se quitó la línea dentro de la celda de estado y se agregó una **columna propia "Entrega est."** entre Estado y Acciones — chip cálido con la fecha o "a confirmar". La columna va solo en la tabla de Pedidos (se agregó el `<th>` solo a ese thead y `renderRow` emite la celda únicamente cuando `!isQuote`); Cotizaciones queda igual (8 columnas, sin desalinear), confirmado porque `renderPed` solo muestra orders y `renderCot` solo quotes. Verificado: pedido con/sin fecha (9 celdas), cotización (8 celdas), F2 con/sin fecha.
