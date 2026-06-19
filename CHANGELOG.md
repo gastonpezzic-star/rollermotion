@@ -1,5 +1,15 @@
 # Changelog
 
+## V385 — 2026-06-19 — Fecha estimada de entrega (la carga fábrica) + "Válido hasta" solo admin
+
+Dos cosas relacionadas con fechas:
+
+**Entrega estimada (nueva):** campo nuevo `entrega_estimada` (columna en `documentos`, requiere SQL: `ALTER TABLE documentos ADD COLUMN entrega_estimada DATE`). Fábrica la carga con un calendario en la fila de cada pedido (celda Estado), opcional, en cualquier momento tras la aprobación. Función `setEntregaEstimada(id, value)` (update propio a Supabase, tolera que falte la columna con toast como `destacada` — NO se agrega al guardado general del doc para no romper nada). El vendedor/distribuidor la ve en su pedido (`openDoc`: "Entrega estimada: DD/MM" o "a confirmar") y el widget "Próximas entregas" pasó a usar `entrega_estimada` en vez de la validez. `normalizeDoc` lee la columna (seguro si no existe).
+
+**"Válido hasta" solo admin:** el campo de validez del presupuesto (`f-ent`) ahora queda `disabled` para vendedor/distribuidor (solo el admin lo edita); se calcula igual automático con `autoValidez`. Aplicado en `resetForm` y `editDoc`.
+
+Verificado: fábrica setea la fecha en su fila; el pedido del vendedor muestra "Entrega estimada"/"a confirmar"; Próximas entregas filtra por entrega estimada; f-ent disabled para vendedor y habilitado para admin.
+
 ## V384 — 2026-06-18 — Venecianas de madera/símil fuera de la planilla de fabricación
 
 Las venecianas de **madera** y **símil madera** no se fabrican en la planta, así que ya no aparecen en la planilla de fabricación (antes caían en el catch-all de cortes por tener ancho/alto). La de **aluminio** no se toca (sigue como antes). Nuevo helper `esVenecianaNoFab(it)` (tela 'venecianas' + color con 'mad'/'simil'); se excluye del `allItems` de `openPlanilla` y de `tieneOtrosFab` (para que un pedido de SOLO veneciana madera/símil no muestre botón de planilla vacía). Siguen apareciendo normalmente en cotización/pedido. Verificado: pedido mixto → roller y aluminio en la planilla, madera/símil fuera; pedido de solo madera → sin botón.

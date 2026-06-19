@@ -3730,6 +3730,7 @@ function normalizeDoc(d){
     vendedor:         d.vendedor_nombre,
     vendedor_id:      d.vendedor_id,
     entrega:          d.entrega,
+    entrega_estimada: d.entrega_estimada || null,   // V385 — fecha estimada de entrega (la carga fábrica)
     estado:           d.estado === 'Borrador' ? 'Cotización' : d.estado,
     cliente:          d.cliente,
     cuit:             d.cuit||'',
@@ -4456,16 +4457,16 @@ function renderInicioEntregas(){
   const limit = now + 7 * 86400 * 1000;
   const entregas = _docsVisiblesParaMi().filter(d => {
     if(d.type !== 'order') return false;
-    if(!d.entrega) return false;
-    const t = new Date(d.entrega).getTime();
+    if(!d.entrega_estimada) return false;   // V385 — solo pedidos con entrega estimada por fábrica
+    const t = new Date(d.entrega_estimada).getTime();
     return t >= now - 86400000 && t <= limit;
-  }).sort((a,b) => new Date(a.entrega) - new Date(b.entrega)).slice(0, 8);
+  }).sort((a,b) => new Date(a.entrega_estimada) - new Date(b.entrega_estimada)).slice(0, 8);
   if(!entregas.length){
     wrap.innerHTML = `<div class="inicio-empty"><div class="ic">📅</div><div class="ms">Sin entregas en los próximos 7 días</div><div class="sub">Asigná una fecha de entrega a los pedidos para que aparezcan acá</div></div>`;
     return;
   }
   wrap.innerHTML = entregas.map(d => {
-    const fechaEnt = new Date(d.entrega);
+    const fechaEnt = new Date(d.entrega_estimada);
     const dias = Math.ceil((fechaEnt - now) / 86400000);
     const diasTxt = dias < 0 ? `Vencida hace ${-dias}d` : dias === 0 ? 'Hoy' : dias === 1 ? 'Mañana' : `En ${dias} días`;
     const diasClass = dias < 0 ? 'warn' : '';
@@ -4629,6 +4630,26 @@ async function toggleDocDestacada(id, value){
     renderInicioDestacadas();
   }
   if(document.getElementById('pg-cot').classList.contains('on')) renderCot();
+}
+
+/* ── V385 — Fecha estimada de entrega (la carga fábrica en la fila del pedido) ── */
+async function setEntregaEstimada(id, value){
+  const doc = getDocs().find(x => x.id === id);
+  if(!doc) return;
+  doc.entrega_estimada = value || null;
+  const i = _docsCache.findIndex(x=>x.id===id);
+  if(i>=0) _docsCache[i].entrega_estimada = doc.entrega_estimada;
+  try {
+    if(_sb){
+      const { error } = await _sb.from('documentos').update({ entrega_estimada: doc.entrega_estimada }).eq('id', id);
+      if(error){
+        console.warn('[EntregaEst] Supabase rechazó (¿falta columna?):', error.message);
+        toast('⚠ Falta correr el SQL: ALTER TABLE documentos ADD COLUMN entrega_estimada DATE','err');
+      } else {
+        toast(value ? `📅 Entrega estimada: ${fmtD(value)}` : 'Entrega estimada borrada','ok');
+      }
+    }
+  } catch(e){ console.warn('[EntregaEst]', e); }
 }
 
 // V334 — entrada escalonada de las primeras filas de una lista. Se llama al NAVEGAR
@@ -7508,6 +7529,7 @@ function resetForm(){
   document.getElementById('f-fecha').value = today();
   document.getElementById('f-vend').value  = ME?ME.name:'';
   autoValidez();
+  { const _fe=document.getElementById('f-ent'); if(_fe) _fe.disabled = (ME?.role!=='admin'); } // V385: "Válido hasta" (validez) solo la edita admin
   _vincCotNum = null; actualizarVincBadge();  // V327
   // Show/hide pedido-only fields
   const isOrder = currentType === 'order';
@@ -8413,6 +8435,7 @@ function editDoc(id){
   document.getElementById('f-fecha').value = doc.fecha||'';
   document.getElementById('f-vend').value  = doc.vendedor||'';
   document.getElementById('f-ent').value   = doc.entrega||'';
+  { const _fe=document.getElementById('f-ent'); if(_fe) _fe.disabled = (ME?.role!=='admin'); } // V385: validez solo admin
   document.getElementById('f-cli').value   = doc.cliente||'';
   document.getElementById('f-cuit').value  = doc.cuit||'';
   document.getElementById('f-dir').value   = doc.dir||'';
@@ -10146,6 +10169,10 @@ function renderFab(){
     <td style="vertical-align:middle">
       <select class="st-sel" onchange="changeStatus('${d.id}',this.value)">${statusOpts(d.type,d.estado,d)}</select>
       ${d.revision_comentario?`<div style="font-size:10px;color:#856404;background:#fff3cd;border:1px solid #ffc107;border-radius:4px;padding:4px 8px;margin-top:4px">💬 ${d.revision_comentario}</div>`:''}
+      <div style="margin-top:6px;display:flex;align-items:center;gap:5px" title="Fecha estimada de entrega (la ve el vendedor)">
+        <span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#888;white-space:nowrap">📅 Entrega est.</span>
+        <input type="date" value="${d.entrega_estimada||''}" onchange="setEntregaEstimada('${d.id}',this.value)" onclick="event.stopPropagation()" style="font-size:11px;padding:3px 6px;border:1.5px solid var(--border);border-radius:5px;font-family:'DM Sans',sans-serif;color:#1a4a2a;background:#fff">
+      </div>
     </td>
     <td style="vertical-align:middle;white-space:nowrap">
       <div style="display:flex;gap:5px;align-items:center">
@@ -11018,7 +11045,9 @@ function openDoc(d, fromForm){
       <div style="font-family:'Manrope',sans-serif;font-size:15px;color:#f09620;line-height:1;font-weight:600;letter-spacing:.04em">#${d.numero||'—'}</div>
       <div style="font-size:11px;color:#888;margin-top:3px">
         Fecha: ${fmtD(d.fecha)}<br>
-        ${isOrder?'Entrega':'Válida hasta'}: ${fmtD(d.entrega)||'—'}${(isOrder && d.cotizacionOrigen)?`<br>Cotización: ${d.cotizacionOrigen}`:''}
+        ${isOrder
+          ? `Entrega estimada: ${d.entrega_estimada ? fmtD(d.entrega_estimada) : '<span style="color:#bbb">a confirmar</span>'}`
+          : `Válida hasta: ${fmtD(d.entrega)||'—'}`}${(isOrder && d.cotizacionOrigen)?`<br>Cotización: ${d.cotizacionOrigen}`:''}
       </div>
     </div>
   </div>
