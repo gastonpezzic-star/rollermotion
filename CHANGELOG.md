@@ -1,5 +1,9 @@
 # Changelog
 
+## V387 — 2026-06-19 — Entrega estimada: más chica en Fábrica (texto) + columna propia en Pedidos
+
+Ajuste estético (a pedido). **Fábrica:** la tarjeta grande se reemplazó por texto minimalista (F2): "📅 Entrega: 22 jun 2026 ✎" (o "Definir entrega"), con el calendario nativo encima (input transparente + `showPicker`). Más chico, no desentona con la burbuja de estado. **Pedidos:** se quitó la línea dentro de la celda de estado y se agregó una **columna propia "Entrega est."** entre Estado y Acciones — chip cálido con la fecha o "a confirmar". La columna va solo en la tabla de Pedidos (se agregó el `<th>` solo a ese thead y `renderRow` emite la celda únicamente cuando `!isQuote`); Cotizaciones queda igual (8 columnas, sin desalinear), confirmado porque `renderPed` solo muestra orders y `renderCot` solo quotes. Verificado: pedido con/sin fecha (9 celdas), cotización (8 celdas), F2 con/sin fecha.
+
 ## V386 — 2026-06-19 — Entrega estimada: tarjeta Modelo D con lápiz (Fábrica) + visible en Pedidos
 
 Mejora estética de la entrega estimada (V385). En la fila de **Fábrica**, el input de fecha crudo se reemplazó por una **tarjeta tipo Modelo D**: recuadro con ícono de calendario, etiqueta "Entrega estimada", la fecha (formato corto "22 jun 2026") y un **lápiz** ✎. Estado con fecha → fondo cálido (crema/ámbar); estado vacío → recuadro punteado suave con "Definir fecha". Al tocar la tarjeta se abre el **calendario nativo** (input `type=date` transparente encima + `showPicker()`); al elegir, guarda con `setEntregaEstimada` y re-renderiza. Nuevo helper `fmtFechaCorta(s)` → "22 jun 2026". En la pestaña **Pedidos** (`renderRow`, solo `type==='order'`) se agregó una línea de solo lectura en la celda de estado: "📅 Entrega: 22 jun 2026" o "a confirmar"; las cotizaciones no la muestran. Verificado: tarjeta con/sin fecha, fecha corta, Pedidos muestra la entrega, Cotizaciones no.
