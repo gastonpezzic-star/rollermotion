@@ -1,5 +1,9 @@
 # Changelog
 
+## V389 — 2026-06-20 — Vista de tarjetas en celular para las listas (solo ≤600px)
+
+Calidad de vida en el teléfono. Las listas de **Cotizaciones, Pedidos y Fábrica** pasan a **tarjetas apiladas** en pantallas de celular (`@media max-width:600px`), en vez de la tabla con scroll horizontal de antes. En **tablet y compu queda idéntico** (la tabla normal). Implementación CSS-only, sin tocar los render: se agregó la clase `mob-cards` a las 3 tablas (cot/ped/fab) y un bloque `@media (max-width:600px)` que transforma `table/thead/tr/td` en tarjetas (N° como título, resto como filas "etiqueta: valor"). Las etiquetas se generan con `::before content` por columna, scopeadas a cada `tbody` id (cot 8 col, ped 9 col con Entrega, fab 7 col) — así no afecta otras tablas `.lt` (recibos, admin, etc.). Se muestran Vendedor e Items (que en mobile estaban ocultos). Verificado: a 390px se ven tarjetas legibles sin scroll; a 820px sigue la tabla intacta.
+
 ## V388 — 2026-06-19 — Estado y Entrega est. alineados y centrados en las listas (Opción 1)
 
 Pulido visual de las columnas Estado y Entrega est. en las listas (Cotizaciones/Pedidos, que comparten `renderRow`). Las burbujas de estado ahora son del **mismo ancho** y **centradas** (CSS `.st-cell .badge{min-width:130px;justify-content:center}` + celda con `text-align:center`), así quedan alineadas una debajo de otra. La **entrega estimada** pasó a chip cálido tipo pill (`border-radius:20px`), ancho mínimo y centrado; el "a confirmar" usa un pill punteado del mismo tamaño para no romper la alineación (celda `.ent-cell`). Encabezados Estado (cot + ped) y Entrega est. (ped) centrados, editando cada thead por su `tbody` id para no afectar otras tablas. No toca la tabla de Fábrica ni otras listas (renderRow es exclusivo de cot/ped). Verificado: estados uniformes y alineados, entrega centrada, "a confirmar" armónico.

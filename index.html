@@ -780,6 +780,49 @@ body{
   .bpa{ padding:6px 12px; font-size:11px }
 }
 
+/* V389 — Vista de TARJETAS en celular para las listas (Cotizaciones/Pedidos/Fábrica).
+   Solo ≤600px (celular); en tablet/compu las tablas quedan IGUAL. */
+@media (max-width: 600px){
+  .mob-cards{ display:block; width:100%; min-width:0 !important; }
+  .mob-cards thead{ display:none; }
+  .mob-cards tbody{ display:block; }
+  .mob-cards tr{ display:block; background:var(--surface); border:1px solid var(--border); border-radius:14px; box-shadow:var(--shadow); margin:0 0 10px; padding:8px 2px; height:auto !important; cursor:pointer; }
+  .mob-cards tr:hover td{ background:transparent; }
+  .mob-cards td{ display:flex !important; justify-content:space-between; align-items:center; gap:12px; width:auto !important; min-width:0 !important; border:none !important; padding:5px 14px !important; font-size:13px; text-align:right !important; white-space:normal !important; }
+  .mob-cards td::before{ font-size:10px; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; flex:0 0 auto; text-align:left; }
+  /* N° = título de la tarjeta (1ra celda, sin etiqueta) */
+  .mob-cards td:first-child{ justify-content:flex-start; font-size:15px; font-weight:700; border-bottom:1px solid var(--border) !important; padding-bottom:9px !important; margin-bottom:3px; }
+  /* mostrar Vendedor (4) e Items (5) que en mobile estaban ocultos */
+  .mob-cards td:nth-child(4), .mob-cards td:nth-child(5){ display:flex !important; }
+  /* estado/entrega: burbuja a la derecha */
+  .mob-cards .st-cell, .mob-cards .ent-cell{ text-align:right !important; }
+  .mob-cards .st-cell .badge{ min-width:0 !important; }
+  /* etiquetas por columna — Cotizaciones (8 col) */
+  #cot-tbody td:nth-child(2)::before{ content:"Fecha"; }
+  #cot-tbody td:nth-child(3)::before{ content:"Cliente"; }
+  #cot-tbody td:nth-child(4)::before{ content:"Vendedor"; }
+  #cot-tbody td:nth-child(5)::before{ content:"Items"; }
+  #cot-tbody td:nth-child(6)::before{ content:"Total"; }
+  #cot-tbody td:nth-child(7)::before{ content:"Estado"; }
+  #cot-tbody td:nth-child(8)::before{ content:"Acciones"; }
+  /* Pedidos (9 col, con Entrega) */
+  #ped-tbody td:nth-child(2)::before{ content:"Fecha"; }
+  #ped-tbody td:nth-child(3)::before{ content:"Cliente"; }
+  #ped-tbody td:nth-child(4)::before{ content:"Vendedor"; }
+  #ped-tbody td:nth-child(5)::before{ content:"Items"; }
+  #ped-tbody td:nth-child(6)::before{ content:"Total"; }
+  #ped-tbody td:nth-child(7)::before{ content:"Estado"; }
+  #ped-tbody td:nth-child(8)::before{ content:"Entrega"; }
+  #ped-tbody td:nth-child(9)::before{ content:"Acciones"; }
+  /* Fábrica (7 col) */
+  #fab-tbody td:nth-child(2)::before{ content:"Fecha"; }
+  #fab-tbody td:nth-child(3)::before{ content:"Cliente"; }
+  #fab-tbody td:nth-child(4)::before{ content:"Vendedor"; }
+  #fab-tbody td:nth-child(5)::before{ content:"Items"; }
+  #fab-tbody td:nth-child(6)::before{ content:"Estado / Entrega"; }
+  #fab-tbody td:nth-child(7)::before{ content:"Acciones"; }
+}
+
 /* ══════════════════════════════════════
    RESPONSIVE — COTIZADOR especial
 ══════════════════════════════════════ */
@@ -1281,7 +1324,7 @@ button:not([disabled]):active,
         </select>
       </div>
       <div class="lt-wrap">
-        <table class="lt"><thead><tr>
+        <table class="lt mob-cards"><thead><tr>
           <th>N°</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Items</th><th>Total</th><th style="text-align:center">Estado</th><th style="width:120px;min-width:120px">Acciones</th>
         </tr></thead><tbody id="cot-tbody"></tbody></table>
         <div id="cot-empty" class="empty-st" style="display:none"><div class="ei">📄</div><div>Sin cotizaciones aún.</div></div>
@@ -1315,7 +1358,7 @@ button:not([disabled]):active,
         </select>
       </div>
       <div class="lt-wrap">
-        <table class="lt"><thead><tr>
+        <table class="lt mob-cards"><thead><tr>
           <th>N°</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Items</th><th>Total</th><th style="text-align:center">Estado</th><th style="text-align:center">Entrega est.</th><th style="width:120px;min-width:120px">Acciones</th>
         </tr></thead><tbody id="ped-tbody"></tbody></table>
         <div id="ped-empty" class="empty-st" style="display:none"><div class="ei">📦</div><div>Sin pedidos cargados.</div></div>
@@ -1363,7 +1406,7 @@ button:not([disabled]):active,
         </select>
       </div>
       <div class="lt-wrap">
-        <table class="lt"><thead><tr>
+        <table class="lt mob-cards"><thead><tr>
           <th>N°</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Items</th><th>Estado</th><th>Acciones</th>
         </tr></thead><tbody id="fab-tbody"></tbody></table>
         <div id="fab-empty" class="empty-st" style="display:none"><div class="ei">🏭</div><div>Sin pedidos en fábrica.</div></div>
