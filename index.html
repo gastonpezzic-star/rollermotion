@@ -11387,7 +11387,32 @@ async function printDoc(){
   const tituloPdf = `${numPdf} ${cliPdf} Roller Motion`.replace(/\s+/g,' ').trim();
 
   if(isMobile){
-    // En mobile: imprimir directamente desde la ventana actual usando @media print
+    // V390 — iOS (Safari/Chrome del iPhone) imprimía EN BLANCO con el truco de @media print
+    // + visibility:hidden + position:absolute. Ahora armamos el documento limpio en un IFRAME
+    // (flujo normal, sin esos trucos) y lo imprimimos desde ahí → renderiza bien en iPhone/iPad.
+    {
+      const content = document.getElementById('doc-content').innerHTML;
+      const styles = Array.from(document.styleSheets).map(ss=>{ try{ return Array.from(ss.cssRules).map(r=>r.cssText).join('\n'); }catch(e){ return ''; } }).join('\n');
+      const _old = document.getElementById('rm-print-iframe'); if(_old) _old.remove();
+      const ifr = document.createElement('iframe');
+      ifr.id = 'rm-print-iframe';
+      ifr.setAttribute('aria-hidden','true');
+      ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+      document.body.appendChild(ifr);
+      const idoc = ifr.contentWindow.document;
+      idoc.open();
+      idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+tituloPdf+'</title>'
+        +'<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">'
+        +'<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}html,body{width:100%;margin:0}body{font-family:\'DM Sans\',sans-serif;background:#fff;color:#141414;font-size:12px}@page{size:A4 portrait;margin:10mm}'+styles
+        +'.doc{position:static!important;padding:0!important;width:100%!important;max-width:none!important;overflow:visible!important}.doc table{width:100%!important}body *{visibility:visible!important}.overlay,.ptbar{display:none!important}</style>'
+        +'</head><body><div class="doc">'+content+'</div></body></html>');
+      idoc.close();
+      const _doPrint = function(){ try{ ifr.contentWindow.focus(); ifr.contentWindow.print(); }catch(e){ console.warn('[print iframe]', e); } setTimeout(function(){ try{ ifr.remove(); }catch(e){} }, 6000); };
+      if(idoc.readyState === 'complete') setTimeout(_doPrint, 650);
+      else ifr.onload = function(){ setTimeout(_doPrint, 450); };
+    }
+    return;
+    // ── (método anterior, ya no se usa: en iOS salía en blanco) ──
     const oldTitle = document.title;
     document.title = tituloPdf;
 
