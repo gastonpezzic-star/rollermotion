@@ -1,5 +1,9 @@
 # Changelog
 
+## V393 — 2026-06-20 — Export PDF iPhone: imprime en A4 como la compu (reglas mobile solo en pantalla)
+
+Causa raíz del PDF "achicado/cortado" en el iPhone: el bloque `@media (max-width:600px)` (sin tipo de media = `all`) se aplicaba **también al imprimir** en el celular, comprimiendo el documento al ancho del teléfono (~390px) en vez de A4. La compu no lo sufría porque imprime a un ancho mayor. Fix correcto: ese bloque pasó a `@media screen and (max-width:600px)` (las adaptaciones de celular son solo para pantalla, nunca para impresión) y el `#rm-print-root` imprime el documento a **ancho A4 (190mm)** con `margin:0 auto`, como en la compu — sin las reglas que lo achicaban (se quitaron los overrides de table-layout:fixed/font-size). Resultado esperado: el PDF desde el iPhone se ve igual que el de escritorio. Verificado: la media query de celular sigue matcheando en pantalla ≤600px (mobile screen intacto) y por spec no aplica a print. Falta confirmar el render en iPhone real.
+
 ## V392 — 2026-06-20 — Export PDF iPhone: arreglar la tabla cortada (table-layout:fixed)
 
 El PDF del iPhone ya salía con el nombre correcto y 1 página (V391), pero la **tabla de artículos seguía cortada a la derecha** (columnas ANCHO/ALTO/… fuera de la hoja) y las tarjetas de financiación recortadas. Causa: al imprimir a ~390px en el iPhone, `.dtbl` quedaba con el contenido empujando el ancho (la regla mobile le pone `min-width:560px` + `white-space:nowrap`, y aun neutralizándolas el `table-layout:auto` no comprimía). Fix en el `#rm-print-root-style`: `table-layout:fixed` + `width:100%` + `word-break/overflow-wrap` en las celdas (reparte columnas y envuelve el texto), `.dtbl-wrap{overflow:visible;margin:0}`, y las tarjetas de financiación se apilan en una columna (`grid-template-columns:1fr`). Verificado en preview a 390px: la tabla (8 columnas, texto largo) entra justa sin desbordar (`scrollWidth == container`).
