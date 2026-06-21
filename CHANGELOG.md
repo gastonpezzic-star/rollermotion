@@ -1,5 +1,9 @@
 # Changelog
 
+## V392 — 2026-06-20 — Export PDF iPhone: arreglar la tabla cortada (table-layout:fixed)
+
+El PDF del iPhone ya salía con el nombre correcto y 1 página (V391), pero la **tabla de artículos seguía cortada a la derecha** (columnas ANCHO/ALTO/… fuera de la hoja) y las tarjetas de financiación recortadas. Causa: al imprimir a ~390px en el iPhone, `.dtbl` quedaba con el contenido empujando el ancho (la regla mobile le pone `min-width:560px` + `white-space:nowrap`, y aun neutralizándolas el `table-layout:auto` no comprimía). Fix en el `#rm-print-root-style`: `table-layout:fixed` + `width:100%` + `word-break/overflow-wrap` en las celdas (reparte columnas y envuelve el texto), `.dtbl-wrap{overflow:visible;margin:0}`, y las tarjetas de financiación se apilan en una columna (`grid-template-columns:1fr`). Verificado en preview a 390px: la tabla (8 columnas, texto largo) entra justa sin desbordar (`scrollWidth == container`).
+
 ## V391 — 2026-06-20 — Export PDF iPhone: nombre correcto + sin cortes (contenedor propio, display:none)
 
 Iteración del fix mobile. El iframe (V390) renderizaba el contenido pero en iOS quedaba el **nombre viejo** del archivo (el título de la página "…v77" en vez de "COT-XXX Cliente Roller Motion") y la tabla **cortada** (por un `min-width:560px` que desbordaba la hoja A4). Nuevo método: el documento limpio se mete en un contenedor propio `#rm-print-root`, se ocultan el resto de elementos con **`display:none`** (que iOS sí respeta, a diferencia de `visibility:hidden` del método original que salía en blanco), se setea `document.title = tituloPdf` antes de imprimir (nombre correcto del PDF, restaurado en `afterprint` + respaldo por timeout) y se fuerza `table{width:100%;min-width:0}` para que no se corte. Escritorio sin cambios. Verificado el mecanismo en preview (título correcto durante la impresión, contenedor con el contenido, oculto en pantalla); falta confirmar el render en un iPhone real.
