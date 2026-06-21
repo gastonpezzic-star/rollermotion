@@ -11387,43 +11387,34 @@ async function printDoc(){
   const tituloPdf = `${numPdf} ${cliPdf} Roller Motion`.replace(/\s+/g,' ').trim();
 
   if(isMobile){
-    // V391 — iOS (iPhone): ni el truco viejo de visibility/position:absolute (salía en BLANCO),
-    // ni el iframe (iOS imprimía la página → quedaba "cortado" y con el nombre viejo) andaban bien.
-    // Método robusto: metemos el documento LIMPIO en un contenedor propio (#rm-print-root),
-    // ocultamos TODO lo demás con display:none (iOS sí lo respeta, a diferencia de visibility),
-    // ponemos el título correcto (para el nombre del PDF) y forzamos la tabla a 100% (sin min-width).
+    // V394 — el iPhone imprime usando el ANCHO de la pantalla del teléfono (~390px) → el PDF salía
+    // "achicado/copiando la pantalla". Para forzar el ancho A4 como en la compu, renderizamos el
+    // documento en un IFRAME con su PROPIO viewport ANCHO (900px, igual que la ventana de escritorio).
+    // Dentro del iframe las reglas de celular NO aplican (900 > 600) → el doc se arma A4. Se imprime
+    // desde el propio iframe (su window.print en onload) para que el PDF salga del iframe, no de la página.
     {
       const content = document.getElementById('doc-content').innerHTML;
-      const _oldTitle = document.title;
-      document.title = tituloPdf;
-      let proot = document.getElementById('rm-print-root'); if(proot) proot.remove();
-      proot = document.createElement('div');
-      proot.id = 'rm-print-root';
-      proot.innerHTML = '<div class="doc">' + content + '</div>';
-      document.body.appendChild(proot);
-      if(!document.getElementById('rm-print-root-style')){
-        const pstyle = document.createElement('style');
-        pstyle.id = 'rm-print-root-style';
-        pstyle.textContent = '#rm-print-root{display:none}'
-          + '@media print{'
-          +   '@page{size:A4 portrait;margin:10mm}'
-          +   'html,body{margin:0!important;padding:0!important;background:#fff!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
-          +   'body>*{display:none!important}'
-          +   '#rm-print-root{display:block!important;position:static!important;visibility:visible!important}'
-          +   '#rm-print-root *{visibility:visible!important}'
-          +   // El doc se imprime a ANCHO A4 (190mm = A4 menos los márgenes), como en la compu — no
-          +   // achicado al ancho del celular. Las reglas mobile ya quedaron limitadas a screen.
-          +   '#rm-print-root{width:190mm!important;margin:0 auto!important}'
-          +   '#rm-print-root .doc{width:190mm!important;max-width:190mm!important;margin:0 auto!important;padding:0!important;overflow:visible!important}'
-          +   '#rm-print-root .dtbl-wrap{overflow:visible!important}'
-          +   '#rm-print-root .page-break{page-break-before:always!important}'
-          + '}';
-        document.head.appendChild(pstyle);
-      }
-      const _cleanup = function(){ document.title = _oldTitle; const pr = document.getElementById('rm-print-root'); if(pr) pr.remove(); };
-      window.addEventListener('afterprint', function _h(){ window.removeEventListener('afterprint', _h); _cleanup(); });
-      setTimeout(_cleanup, 60000); // respaldo: iOS a veces no dispara afterprint
-      setTimeout(function(){ window.print(); }, 250);
+      const styles = Array.from(document.styleSheets).map(function(ss){ try{ return Array.from(ss.cssRules).map(function(r){ return r.cssText; }).join('\n'); }catch(e){ return ''; } }).join('\n');
+      const _old = document.getElementById('rm-print-iframe'); if(_old) _old.remove();
+      const ifr = document.createElement('iframe');
+      ifr.id = 'rm-print-iframe';
+      ifr.setAttribute('aria-hidden','true');
+      ifr.style.cssText = 'position:fixed;left:-10000px;top:0;width:900px;height:1200px;border:0;background:#fff';
+      document.body.appendChild(ifr);
+      const idoc = ifr.contentWindow.document;
+      idoc.open();
+      idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=900"><title>' + tituloPdf + '</title>'
+        + '<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">'
+        + '<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
+        + 'html,body{width:900px;margin:0;background:#fff;font-family:\'DM Sans\',sans-serif;color:#141414;font-size:12px}'
+        + '@page{size:A4 portrait;margin:10mm}' + styles
+        + '.doc{position:static!important;width:100%!important;max-width:none!important;padding:0!important;overflow:visible!important}.doc table{width:100%!important}'
+        + '.overlay,.ptbar{display:none!important}</style></head>'
+        + '<body><div class="doc">' + content + '</div>'
+        + '<scr'+'ipt>window.onload=function(){ setTimeout(function(){ try{ window.focus(); window.print(); }catch(e){} }, 500); };<\/scr'+'ipt>'
+        + '</body></html>');
+      idoc.close();
+      setTimeout(function(){ try{ ifr.remove(); }catch(e){} }, 30000);
     }
     return;
     // ── (método anterior, ya no se usa: en iOS salía en blanco) ──
