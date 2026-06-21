@@ -11361,6 +11361,95 @@ window.onload = function(){
   win.document.close();
 }
 
+// ── Carga perezosa de un script (mismo origen) ──
+function _rmLoadScript(src){
+  return new Promise(function(resolve,reject){
+    const s = document.createElement('script');
+    s.src = src; s.async = true;
+    s.onload = function(){ resolve(); };
+    s.onerror = function(){ reject(new Error('no se pudo cargar '+src)); };
+    document.head.appendChild(s);
+  });
+}
+
+// ── V396 — Export PDF para TELÉFONO: dibujar el documento a imagen A4 y escribirlo como PDF.
+// El motor de impresión de iOS (iPhone) no respeta el layout A4 (sale cortado/achicado/“copia la
+// pantalla”). Esto lo evita: renderizamos el doc en un iframe de ancho A4 (794px) → html2canvas lo
+// captura como imagen exactamente igual que en la compu → jsPDF la escribe en hojas A4. Resultado
+// IDÉNTICO en cualquier dispositivo. Devuelve true si generó el PDF; false si no pudo (p.ej. sin
+// internet para bajar las librerías) → el llamador cae al método de impresión normal.
+async function exportDocPdfImagen(tituloPdf){
+  // 1) Asegurar las librerías (alojadas en el propio sitio, /vendor)
+  try{
+    if(typeof window.html2canvas === 'undefined') await _rmLoadScript('vendor/html2canvas.min.js');
+    if(!(window.jspdf && window.jspdf.jsPDF))      await _rmLoadScript('vendor/jspdf.umd.min.js');
+    if(typeof window.html2canvas === 'undefined' || !(window.jspdf && window.jspdf.jsPDF)) return false;
+  }catch(e){ console.warn('PDF libs no cargaron', e); return false; }
+
+  let ifr = null;
+  try{
+    try{ toast('🧾 Generando PDF…','info'); }catch(e){}
+    const content = document.getElementById('doc-content').innerHTML;
+    const styles = Array.from(document.styleSheets).map(function(ss){ try{ return Array.from(ss.cssRules).map(function(r){ return r.cssText; }).join('\n'); }catch(e){ return ''; } }).join('\n');
+    const W = 794; // ancho de una A4 a 96dpi → el doc se arma a tamaño hoja, no del teléfono
+
+    ifr = document.getElementById('rm-pdf-iframe'); if(ifr) ifr.remove();
+    ifr = document.createElement('iframe');
+    ifr.id = 'rm-pdf-iframe';
+    ifr.setAttribute('aria-hidden','true');
+    ifr.style.cssText = 'position:fixed;left:-10000px;top:0;width:'+W+'px;height:200px;border:0;background:#fff';
+    document.body.appendChild(ifr);
+    const idoc = ifr.contentWindow.document;
+    idoc.open();
+    idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width='+W+'">'
+      + '<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">'
+      + '<style>*{box-sizing:border-box;margin:0;padding:0}html,body{width:'+W+'px;margin:0;background:#fff;font-family:\'DM Sans\',sans-serif;color:#141414;font-size:12px}'
+      + styles
+      + '.doc{width:100%!important;max-width:none!important;overflow:visible!important;background:#fff}'
+      + '.doc table{width:100%!important;display:table!important}'
+      + '.dtbl-wrap{overflow:visible!important}'
+      + '.rm-fincard-cuotas{background:linear-gradient(145deg,#ff9d00,#e06800)!important}'
+      + '.rm-fincard-contado{background:linear-gradient(145deg,#f00020,#980012)!important}'
+      + '.overlay,.ptbar{display:none!important}</style></head>'
+      + '<body><div class="doc">' + content + '</div></body></html>');
+    idoc.close();
+
+    await new Promise(function(r){ setTimeout(r, 500); });          // dar tiempo a layout
+    try{ if(idoc.fonts && idoc.fonts.ready) await idoc.fonts.ready; }catch(e){}  // y a las fuentes
+
+    const target = idoc.querySelector('.doc');
+    const fullH = Math.ceil(target.scrollHeight);
+    ifr.style.height = (fullH + 40) + 'px';
+
+    const canvas = await window.html2canvas(target, {
+      scale: 2.5, backgroundColor:'#ffffff', useCORS:true, logging:false,
+      width: W, windowWidth: W, height: fullH, windowHeight: fullH + 40, scrollX:0, scrollY:0
+    });
+    if(ifr){ ifr.remove(); ifr = null; }
+
+    const jsPDF = window.jspdf.jsPDF;
+    const pdf = new jsPDF('p','mm','a4');
+    const pageW = 210, pageH = 297, M = 8, imgW = pageW - M*2;
+    const imgH = canvas.height * imgW / canvas.width;
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    let heightLeft = imgH, pos = M;
+    pdf.addImage(imgData, 'JPEG', M, pos, imgW, imgH);
+    heightLeft -= (pageH - M*2);
+    while(heightLeft > 0){
+      pos = M - (imgH - heightLeft);   // desplazar la imagen para mostrar el siguiente tramo
+      pdf.addPage();
+      pdf.addImage(imgData, 'JPEG', M, pos, imgW, imgH);
+      heightLeft -= (pageH - M*2);
+    }
+    pdf.save(tituloPdf + '.pdf');
+    return true;
+  }catch(e){
+    console.warn('exportDocPdfImagen falló', e);
+    if(ifr){ try{ ifr.remove(); }catch(_){} }
+    return false;
+  }
+}
+
 async function printDoc(){
   if(_previewFromForm){
     const doc = await saveDoc(true);
@@ -11379,12 +11468,27 @@ async function printDoc(){
   // ── Detección de mobile / tablet ──
   const isMobile = /Mobi|Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
                    window.innerWidth < 900;
+  // ── Detección de TELÉFONO (NO tablet) ──
+  // El motor de impresión de iOS en iPhone no respeta el layout A4 (sale cortado / achicado al ancho
+  // del teléfono). En tablet (iPad) y compu el método de impresión funciona bien y NO se toca. Solo el
+  // teléfono usa el método de "dibujar a imagen A4" (html2canvas + jsPDF), idéntico en todo dispositivo.
+  const _ua = navigator.userAgent || '';
+  const isPhone = /iPhone|iPod/i.test(_ua)
+                  || (/Android/i.test(_ua) && /Mobile/i.test(_ua))
+                  || (Math.min(window.screen.width||9999, window.screen.height||9999) <= 500 && /Mobi/i.test(_ua));
 
   // Nombre del archivo: "COT-XXX Cliente Roller Motion" — número primero para que
   // los PDFs queden ordenados por número al descargarse (V302).
   const cliPdf = (_overlayDoc?.cliente||'Cliente').replace(/[\\/:*?"<>|]/g,'').trim();
   const numPdf = (_overlayDoc?.numero||'').toString().trim();
   const tituloPdf = `${numPdf} ${cliPdf} Roller Motion`.replace(/\s+/g,' ').trim();
+
+  // ── TELÉFONO: generar el PDF como imagen A4 (no depende del motor de impresión de iOS) ──
+  if(isPhone){
+    const ok = await exportDocPdfImagen(tituloPdf);
+    if(ok) return;
+    // si no pudo (sin internet para bajar las librerías) → sigue al método de impresión de abajo
+  }
 
   if(isMobile){
     // V395 — el iPhone imprime usando como viewport el ANCHO del documento (no escala a la hoja: si
