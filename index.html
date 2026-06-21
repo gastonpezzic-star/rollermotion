@@ -10955,7 +10955,7 @@ function openDoc(d, fromForm){
       </div>
     </div>` : `
     <div style="display:flex;gap:10px;margin:0 32px 16px;align-items:stretch">
-      <div style="flex:1;border-radius:10px;padding:16px 16px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:7px;
+      <div class="rm-fincard rm-fincard-cuotas" style="flex:1;border-radius:10px;padding:16px 16px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:7px;
         background:radial-gradient(ellipse at 12% 20%, rgba(255,255,255,.26) 0%, transparent 52%),
                    radial-gradient(ellipse at 88% 80%, rgba(0,0,0,.12) 0%, transparent 48%),
                    linear-gradient(145deg,#ff9d00,#e06800)">
@@ -10967,7 +10967,7 @@ function openDoc(d, fromForm){
         <div style="font-size:22px;font-weight:600;color:rgba(255,255,255,.92);line-height:1">${fmtM(Math.round(d.total/6))} <span style="font-size:13px;font-weight:400;color:rgba(255,255,255,.7)">/ cuota</span></div>
         <div style="font-size:8px;color:rgba(255,255,255,.42)">Valores incluyen IVA</div>
       </div>
-      <div style="flex:1;border-radius:10px;padding:16px 16px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:7px;
+      <div class="rm-fincard rm-fincard-contado" style="flex:1;border-radius:10px;padding:16px 16px;text-align:center;display:flex;flex-direction:column;justify-content:center;gap:7px;
         background:radial-gradient(ellipse at 12% 20%, rgba(255,255,255,.2) 0%, transparent 52%),
                    radial-gradient(ellipse at 88% 80%, rgba(0,0,0,.16) 0%, transparent 48%),
                    linear-gradient(145deg,#f00020,#980012)">
@@ -11387,11 +11387,14 @@ async function printDoc(){
   const tituloPdf = `${numPdf} ${cliPdf} Roller Motion`.replace(/\s+/g,' ').trim();
 
   if(isMobile){
-    // V394 — el iPhone imprime usando el ANCHO de la pantalla del teléfono (~390px) → el PDF salía
-    // "achicado/copiando la pantalla". Para forzar el ancho A4 como en la compu, renderizamos el
-    // documento en un IFRAME con su PROPIO viewport ANCHO (900px, igual que la ventana de escritorio).
-    // Dentro del iframe las reglas de celular NO aplican (900 > 600) → el doc se arma A4. Se imprime
-    // desde el propio iframe (su window.print en onload) para que el PDF salga del iframe, no de la página.
+    // V395 — el iPhone imprime usando como viewport el ANCHO del documento (no escala a la hoja: si
+    // el contenido es más ancho que la A4, lo CORTA). Por eso V394 (900px) salía cortado a la derecha.
+    // Fix: renderizamos en un IFRAME cuyo viewport mide EXACTAMENTE el área imprimible de una A4
+    // (190mm ≈ 718px @96dpi; usamos 715 con un mini margen de seguridad). Así el doc se arma al ancho
+    // de la hoja —ni cortado ni achicado al teléfono— y se imprime desde el propio iframe (window.print
+    // en su onload) para que el PDF salga del iframe, no de la página. Además, las tarjetas de
+    // financiación usan radial-gradients en capas que iOS imprime como "círculos negros": en el PDF
+    // las pasamos a un degradado lineal plano (se imprime limpio).
     {
       const content = document.getElementById('doc-content').innerHTML;
       const styles = Array.from(document.styleSheets).map(function(ss){ try{ return Array.from(ss.cssRules).map(function(r){ return r.cssText; }).join('\n'); }catch(e){ return ''; } }).join('\n');
@@ -11399,16 +11402,19 @@ async function printDoc(){
       const ifr = document.createElement('iframe');
       ifr.id = 'rm-print-iframe';
       ifr.setAttribute('aria-hidden','true');
-      ifr.style.cssText = 'position:fixed;left:-10000px;top:0;width:900px;height:1200px;border:0;background:#fff';
+      ifr.style.cssText = 'position:fixed;left:-10000px;top:0;width:715px;height:1000px;border:0;background:#fff';
       document.body.appendChild(ifr);
       const idoc = ifr.contentWindow.document;
       idoc.open();
-      idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=900"><title>' + tituloPdf + '</title>'
+      idoc.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=715"><title>' + tituloPdf + '</title>'
         + '<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&family=Inter:wght@600;700;800;900&display=swap" rel="stylesheet">'
         + '<style>*{box-sizing:border-box;margin:0;padding:0;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}'
-        + 'html,body{width:900px;margin:0;background:#fff;font-family:\'DM Sans\',sans-serif;color:#141414;font-size:12px}'
+        + 'html,body{width:715px;margin:0;background:#fff;font-family:\'DM Sans\',sans-serif;color:#141414;font-size:12px}'
         + '@page{size:A4 portrait;margin:10mm}' + styles
         + '.doc{position:static!important;width:100%!important;max-width:none!important;padding:0!important;overflow:visible!important}.doc table{width:100%!important}'
+        + '.dtbl-wrap{overflow:visible!important}'
+        + '.rm-fincard-cuotas{background:linear-gradient(145deg,#ff9d00,#e06800)!important}'
+        + '.rm-fincard-contado{background:linear-gradient(145deg,#f00020,#980012)!important}'
         + '.overlay,.ptbar{display:none!important}</style></head>'
         + '<body><div class="doc">' + content + '</div>'
         + '<scr'+'ipt>window.onload=function(){ setTimeout(function(){ try{ window.focus(); window.print(); }catch(e){} }, 500); };<\/scr'+'ipt>'
