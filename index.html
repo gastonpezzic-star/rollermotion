@@ -3021,7 +3021,7 @@ const INSUMOS_DEFAULT = [
   { id:'ctrl_6ch',         cat:'Motores',     subcat:'Controles', nombre:'Control 6 canales Vertilux',  precio:45866,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   { id:'cargador_usbc',    cat:'Motores',     subcat:'Accesorios', nombre:'Cargador USB-C Vertilux',     precio:25560,  unidad:'u',   en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'u' },
   // GUÍAS Y CENEFAS
-  { id:'guia_blanca',      cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral blanca (par)',         precio:2970,   unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
+  { id:'guia_blanca',      cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral blanca (par)',         precio:29700,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
   { id:'guia_negra',       cat:'Accesorios',  subcat:'Guías',     nombre:'Guía lateral negra (par)',          precio:29700,  unidad:'ml',  en_cotizador:false, cat_cotizador:'',           unidad_venta:'mm' },
   { id:'cenefa_grande',    cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa curva MAXI',    precio:40736,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
   { id:'cenefa_chica',     cat:'Accesorios',  subcat:'Cenefas',   nombre:'Cenefa curva SLIM',  precio:31800,  unidad:'ml',  en_cotizador:true,  cat_cotizador:'Accesorios', unidad_venta:'mm' },
@@ -3126,6 +3126,11 @@ function getInsumos(){
     arr.forEach(x => {
       if(x.id==='motor_somfy_wt'   && x.precio === 623000){ x.precio = 461481; changed = true; }
       if(x.id==='motor_somfy_mv35' && x.precio === 730000){ x.precio = 540741; changed = true; }
+    });
+    // Guía lateral blanca: se había cargado con un cero de menos (2970). El precio real es 29700,
+    // igual que la negra. Autocorrige el valor viejo sin tocar otros precios.
+    arr.forEach(x => {
+      if(x.id==='guia_blanca' && x.precio === 2970){ x.precio = 29700; changed = true; }
     });
     arr.forEach(x => {
       if(x.id === 'duozebra_ancho' && x.precio > 80000){
