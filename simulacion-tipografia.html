@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulación tipográfica · RollerMotion (Apple SF Pro)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#efece6; --card:#ffffff; --ink:#1b1b1d; --muted:#8c857a; --soft:#b6afa1;
+    --line:#e9e3d8; --brand:#e07a16; --brand-d:#bd5f0c; --brand-soft:#fbe9d4;
+    --ok:#1f8f5f; --ok-soft:#e3f3ea; --info:#2f6fb0; --info-soft:#e6eef7;
+    --shadow:0 1px 2px rgba(40,30,15,.05), 0 14px 34px -22px rgba(60,40,16,.4);
+    /* dos stacks tipográficos */
+    --f-actual-ui:'DM Sans', sans-serif;
+    --f-actual-num:'Manrope', sans-serif;
+    --f-apple:-apple-system, BlinkMacSystemFont, 'SF Pro Text','SF Pro Display','SF Pro','Inter', system-ui, sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--ink);font-family:var(--f-apple);-webkit-font-smoothing:antialiased;
+    padding:30px 18px 60px;line-height:1.45;
+    background-image:radial-gradient(110% 70% at 80% -10%, rgba(224,122,22,.10), transparent 60%);}
+  .wrap{max-width:1080px;margin:0 auto}
+
+  .lede{max-width:760px;margin:0 auto 30px}
+  .kicker{font-size:12px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;color:var(--brand);margin-bottom:8px}
+  .lede h1{font-size:32px;font-weight:700;letter-spacing:-.022em;line-height:1.08;margin-bottom:10px}
+  .lede p{font-size:16px;color:#5c564c;line-height:1.5}
+  .lede .note{margin-top:12px;font-size:13px;color:var(--muted);background:#fff;border:1px solid var(--line);
+    border-radius:12px;padding:11px 14px}
+
+  /* comparación */
+  .compare{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:34px}
+  @media(max-width:720px){ .compare{grid-template-columns:1fr} }
+  .col-h{display:flex;align-items:center;gap:9px;margin-bottom:10px;padding-left:2px}
+  .col-h .tag{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:4px 9px;border-radius:20px}
+  .tag.act{background:#efe7da;color:#8a6a3a}
+  .tag.app{background:var(--ink);color:#fff}
+  .col-h .sub{font-size:12.5px;color:var(--muted)}
+
+  /* ── mock de pantalla RollerMotion ── */
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);overflow:hidden}
+  .s-top{display:flex;align-items:center;gap:10px;padding:15px 17px;border-bottom:1px solid var(--line)}
+  .s-logo{display:flex;align-items:center;gap:8px}
+  .s-logo svg{width:24px;height:24px}
+  .s-logo b{font-size:16px;font-weight:600;letter-spacing:-.01em}
+  .s-logo b i{font-style:normal;color:var(--brand)}
+  .s-role{margin-left:auto;font-size:11.5px;font-weight:600;color:var(--muted);background:#f4f0e8;border:1px solid var(--line);padding:5px 11px;border-radius:20px}
+  .s-body{padding:16px 17px 18px}
+  .s-head{display:flex;align-items:baseline;gap:8px;margin-bottom:14px}
+  .s-head h2{font-size:21px;font-weight:700;letter-spacing:-.018em;color:var(--brand)}
+  .s-head .cnt{font-size:13px;color:var(--muted);font-weight:500}
+
+  .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:9px;margin-bottom:16px}
+  .stat{background:#fbf9f5;border:1px solid var(--line);border-radius:13px;padding:11px 12px}
+  .stat .lbl{font-size:11px;font-weight:600;color:var(--muted);letter-spacing:.01em;margin-bottom:4px;white-space:nowrap}
+  .stat .num{font-size:25px;font-weight:800;color:var(--ink);line-height:1;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .stat.brand .num{color:var(--brand)}
+
+  .row{display:flex;align-items:center;gap:12px;padding:13px 14px;border:1px solid var(--line);border-radius:14px;margin-bottom:9px;background:#fff}
+  .row .n{font-size:15px;font-weight:700;color:var(--brand);font-variant-numeric:tabular-nums;letter-spacing:-.01em;flex:0 0 auto}
+  .row .who{min-width:0}
+  .row .who .name{font-size:15px;font-weight:600;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .who .meta{font-size:12.5px;color:var(--muted)}
+  .row .tot{margin-left:auto;text-align:right;flex:0 0 auto}
+  .row .tot .v{font-size:16px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .row .tot .u{font-size:10.5px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+  .badge{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:5px 10px;border-radius:20px;flex:0 0 auto}
+  .badge.env{background:var(--info-soft);color:var(--info)}
+  .badge.apr{background:var(--ok-soft);color:var(--ok)}
+
+  .s-actions{display:flex;gap:9px;margin-top:14px}
+  .btn{flex:1;height:46px;border:none;border-radius:24px;font-size:15px;font-weight:600;letter-spacing:-.01em;cursor:pointer;
+    display:inline-flex;align-items:center;justify-content:center;gap:7px}
+  .btn.primary{background:linear-gradient(140deg,var(--brand),var(--brand-d));color:#fff;box-shadow:0 10px 20px -10px rgba(224,122,22,.6)}
+  .btn.ghost{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
+
+  /* aplicar el stack de cada columna */
+  .screen.actual{font-family:var(--f-actual-ui)}
+  .screen.actual .num,.screen.actual .row .n,.screen.actual .tot .v{font-family:var(--f-actual-num)}
+  .screen.actual .s-head h2{font-weight:600;letter-spacing:-.01em}
+  .screen.actual .badge,.screen.actual .stat .lbl{letter-spacing:0}
+  .screen.apple{font-family:var(--f-apple)}
+
+  /* ── escala tipográfica de Apple aplicada ── */
+  .scalecard{background:var(--card);border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:22px 22px 8px;font-family:var(--f-apple)}
+  .scalecard > h3{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--brand);margin-bottom:4px}
+  .scalecard > .desc{font-size:14px;color:#5c564c;margin-bottom:18px}
+  .scale-row{display:flex;align-items:baseline;gap:16px;padding:12px 0;border-bottom:1px solid var(--line)}
+  .scale-row:last-child{border-bottom:none}
+  .scale-spec{flex:0 0 138px;font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums;line-height:1.4;padding-top:3px}
+  .scale-spec b{display:block;color:var(--ink);font-size:12.5px;font-weight:600;letter-spacing:.01em}
+  .scale-ex{min-width:0}
+  .ex-largetitle{font-size:34px;font-weight:700;letter-spacing:-.022em;line-height:1.05}
+  .ex-title1{font-size:28px;font-weight:700;letter-spacing:-.021em}
+  .ex-title2{font-size:22px;font-weight:700;letter-spacing:-.018em}
+  .ex-title3{font-size:20px;font-weight:600;letter-spacing:-.015em}
+  .ex-headline{font-size:17px;font-weight:600;letter-spacing:-.012em}
+  .ex-body{font-size:17px;font-weight:400;letter-spacing:-.01em}
+  .ex-callout{font-size:16px;font-weight:400;letter-spacing:-.008em}
+  .ex-subhead{font-size:15px;font-weight:400;color:#4a463c;letter-spacing:-.006em}
+  .ex-footnote{font-size:13px;font-weight:400;color:var(--muted)}
+  .ex-caption{font-size:12px;font-weight:400;color:var(--muted);text-transform:uppercase;letter-spacing:.03em}
+
+  .foot{max-width:760px;margin:30px auto 0;font-size:12.5px;color:var(--muted);line-height:1.6;text-align:center}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="lede">
+    <div class="kicker">Simulación tipográfica</div>
+    <h1>RollerMotion con la tipografía de Apple</h1>
+    <p>Misma pantalla, dos tipografías. A la izquierda, la actual (DM Sans + Manrope). A la derecha, la tipografía del sistema de Apple, <b>San Francisco (SF&nbsp;Pro)</b>, con los criterios de la Human Interface Guidelines: jerarquía por escala y peso, números tabulares, <i>tracking</i> ajustado y aire generoso.</p>
+    <div class="note">📱 Si abrís esto en un <b>iPhone o Mac</b>, la columna “Apple” se ve con la <b>San Francisco real</b> del sistema. En Android/Windows usa <b>Inter</b> (su primo cercano). Así se vería de verdad en los teléfonos de tus clientes.</div>
+  </div>
+
+  <!-- COMPARACIÓN -->
+  <div class="compare">
+    <!-- ACTUAL -->
+    <div>
+      <div class="col-h"><span class="tag act">Actual</span><span class="sub">DM Sans · Manrope</span></div>
+      <div class="screen actual">
+        <div class="s-top">
+          <span class="s-logo">
+            <svg viewBox="0 0 100 100"><rect x="42" y="6" width="16" height="88" rx="4" fill="#1b1b1d"/><rect x="6" y="42" width="88" height="16" rx="4" fill="#1b1b1d"/><rect x="20" y="20" width="22" height="22" rx="3" fill="#f0a020"/><rect x="58" y="20" width="22" height="22" rx="3" fill="#df6a16"/><rect x="20" y="58" width="22" height="22" rx="3" fill="#df6a16"/><rect x="58" y="58" width="22" height="22" rx="3" fill="#f0a020"/></svg>
+            <b>Roller<i>·</i>Motion</b>
+          </span>
+          <span class="s-role">Vendedor</span>
+        </div>
+        <div class="s-body">
+          <div class="s-head"><h2>Cotizaciones</h2><span class="cnt">· 28 este mes</span></div>
+          <div class="stats">
+            <div class="stat"><div class="lbl">Pendientes</div><div class="num">12</div></div>
+            <div class="stat brand"><div class="lbl">Facturación</div><div class="num">$4.2M</div></div>
+            <div class="stat"><div class="lbl">En fábrica</div><div class="num">5</div></div>
+          </div>
+          <div class="row">
+            <span class="n">#0765</span>
+            <span class="who"><div class="name">Karla Giménez</div><div class="meta">Roller Blackout · Gris Plomo</div></span>
+            <span class="tot"><div class="v">$146.534</div><div class="u">Total</div></span>
+          </div>
+          <div class="row">
+            <span class="n">#0764</span>
+            <span class="who"><div class="name">Estudio Norte SRL</div><div class="meta">Sunscreen 5% · motorizada</div></span>
+            <span class="badge apr">Aprobada</span>
+          </div>
+          <div class="s-actions">
+            <button class="btn ghost">Filtrar</button>
+            <button class="btn primary">＋ Nueva cotización</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- APPLE -->
+    <div>
+      <div class="col-h"><span class="tag app">Apple</span><span class="sub">San Francisco (SF Pro)</span></div>
+      <div class="screen apple">
+        <div class="s-top">
+          <span class="s-logo">
+            <svg viewBox="0 0 100 100"><rect x="42" y="6" width="16" height="88" rx="4" fill="#1b1b1d"/><rect x="6" y="42" width="88" height="16" rx="4" fill="#1b1b1d"/><rect x="20" y="20" width="22" height="22" rx="3" fill="#f0a020"/><rect x="58" y="20" width="22" height="22" rx="3" fill="#df6a16"/><rect x="20" y="58" width="22" height="22" rx="3" fill="#df6a16"/><rect x="58" y="58" width="22" height="22" rx="3" fill="#f0a020"/></svg>
+            <b>Roller<i>·</i>Motion</b>
+          </span>
+          <span class="s-role">Vendedor</span>
+        </div>
+        <div class="s-body">
+          <div class="s-head"><h2>Cotizaciones</h2><span class="cnt">· 28 este mes</span></div>
+          <div class="stats">
+            <div class="stat"><div class="lbl">Pendientes</div><div class="num">12</div></div>
+            <div class="stat brand"><div class="lbl">Facturación</div><div class="num">$4.2M</div></div>
+            <div class="stat"><div class="lbl">En fábrica</div><div class="num">5</div></div>
+          </div>
+          <div class="row">
+            <span class="n">#0765</span>
+            <span class="who"><div class="name">Karla Giménez</div><div class="meta">Roller Blackout · Gris Plomo</div></span>
+            <span class="tot"><div class="v">$146.534</div><div class="u">Total</div></span>
+          </div>
+          <div class="row">
+            <span class="n">#0764</span>
+            <span class="who"><div class="name">Estudio Norte SRL</div><div class="meta">Sunscreen 5% · motorizada</div></span>
+            <span class="badge apr">Aprobada</span>
+          </div>
+          <div class="s-actions">
+            <button class="btn ghost">Filtrar</button>
+            <button class="btn primary">＋ Nueva cotización</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ESCALA -->
+  <div class="scalecard">
+    <h3>La escala de Apple, aplicada a RollerMotion</h3>
+    <p class="desc">Apple usa <b>pocos</b> tamaños y pesos, siempre los mismos, para crear jerarquía sin ruido. Estos son los estilos nombrados de la HIG con contenido real de la plataforma:</p>
+
+    <div class="scale-row"><div class="scale-spec"><b>Large Title</b>34&nbsp;pt · Bold</div><div class="scale-ex ex-largetitle">Cotizaciones</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Title 1</b>28&nbsp;pt · Bold</div><div class="scale-ex ex-title1">$146.534</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Title 2</b>22&nbsp;pt · Bold</div><div class="scale-ex ex-title2">Pedido #0765 — Karla</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Title 3</b>20&nbsp;pt · Semibold</div><div class="scale-ex ex-title3">Roller Blackout</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Headline</b>17&nbsp;pt · Semibold</div><div class="scale-ex ex-headline">Estado: Enviada</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Body</b>17&nbsp;pt · Regular</div><div class="scale-ex ex-body">Cortina motorizada con control remoto y guías laterales.</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Callout</b>16&nbsp;pt · Regular</div><div class="scale-ex ex-callout">50% anticipo, 50% contra entrega.</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Subhead</b>15&nbsp;pt · Regular</div><div class="scale-ex ex-subhead">Vendedor: Gastón Pezzic</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Footnote</b>13&nbsp;pt · Regular</div><div class="scale-ex ex-footnote">Válida por 7 días desde la emisión.</div></div>
+    <div class="scale-row"><div class="scale-spec"><b>Caption</b>12&nbsp;pt · Regular</div><div class="scale-ex ex-caption">Precios con IVA incluido</div></div>
+  </div>
+
+  <p class="foot">San Francisco es la fuente del sistema de Apple: no se puede incluir como archivo, pero en iPhone/iPad/Mac se obtiene la real con el stack del sistema (<code>-apple-system</code>), con Inter como respaldo para el resto. Cero peso extra, máxima nitidez.</p>
+
+</div>
+</body>
+</html>
