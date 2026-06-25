@@ -3240,9 +3240,9 @@ function _descKeyForItem(tela, color){
   if(t.indexOf('riel')===0) return 'riel_manual'; // otros rieles → toman la regla del riel manual
   if(t.indexOf('toldo')===0 || t==='cobertor_toldo') return 'toldos';
   if(t==='venecianas' || s.indexOf('ven_')>=0 || s.indexOf('venec')>=0){
-    if(s.indexOf('simil')>=0) return 'ven_simil';
-    if(s.indexOf('alum')>=0)  return 'ven_alum';
-    if(s.indexOf('mad')>=0)   return 'ven_madera';
+    if(s.indexOf('simil')>=0 || s.indexOf('ven_sim')>=0) return 'ven_simil'; // 'ven_sim50' (clave) o 'Simil' (etiqueta)
+    if(s.indexOf('alum')>=0  || s.indexOf('ven_alum')>=0) return 'ven_alum';
+    if(s.indexOf('mad')>=0   || s.indexOf('ven_mad')>=0)  return 'ven_madera';
     return 'ven_alum';
   }
   if(['tubos','angulos','guias','cenefas','ejes','accesorios'].indexOf(t)>=0) return 'accesorios';
