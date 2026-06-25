@@ -1,5 +1,9 @@
 # Changelog
 
+## V399 — 2026-06-25 — Login: subtítulo nuevo + arreglo responsive en celular
+
+Dos cambios en la pantalla de login (la ven revendedores/clientes). (1) Subtítulo: "Soluciones integrales para la gestión y control de tu negocio" → "Estamos para acompañar tu crecimiento." (en letra leve, gris suave). El título "Sistema de Gestión Integral" se mantiene. (2) Fix responsive: el login usaba 2 columnas (formulario fijo de 480px + foto) que NO se apilaban en celular → los campos y el botón salían cortados a la derecha. Se agregó `@media (max-width:760px)`: el login se apila en columna, el formulario pasa a ancho completo (flex-shrink:1) con padding cómodo + safe-area, y la foto decorativa se oculta. Verificado: en móvil (390px) entra todo sin scroll horizontal (panel 390px); en escritorio (1280px) las 2 columnas quedan intactas (formulario 480 + foto 796, altura completa). Era un problema pre-existente, no del cambio de tipografía.
+
 ## V398 — 2026-06-22 — Tipografía de la plataforma → San Francisco (Apple) con Inter de respaldo
 
 La interfaz pasa a la tipografía del sistema de Apple: se reemplazaron las 184 declaraciones de DM Sans / Manrope / Raleway por el stack del sistema `-apple-system, BlinkMacSystemFont, system-ui, Inter, sans-serif`. En iPhone/iPad/Mac rinde San Francisco (SF Pro) real; en Android/Windows usa Inter (que ya se cargaba y estaba sin usar). Cero peso extra y se resuelve de paso que Manrope no se cargaba en la app (los números caían a la fuente del sistema). Se mantienen DM Serif Display (marca/numero del documento), Courier New y Oswald (planilla de fabricación). El PDF se verificó: sigue entrando en A4, tabla completa, tarjetas limpias, con el serif del documento intacto. Stack sin comillas internas para entrar limpio en CSS y en los strings de JS. Cambio acotado y reversible (solo font-family).
