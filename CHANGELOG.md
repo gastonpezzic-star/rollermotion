@@ -1,5 +1,9 @@
 # Changelog
 
+## V398 — 2026-06-22 — Tipografía de la plataforma → San Francisco (Apple) con Inter de respaldo
+
+La interfaz pasa a la tipografía del sistema de Apple: se reemplazaron las 184 declaraciones de DM Sans / Manrope / Raleway por el stack del sistema `-apple-system, BlinkMacSystemFont, system-ui, Inter, sans-serif`. En iPhone/iPad/Mac rinde San Francisco (SF Pro) real; en Android/Windows usa Inter (que ya se cargaba y estaba sin usar). Cero peso extra y se resuelve de paso que Manrope no se cargaba en la app (los números caían a la fuente del sistema). Se mantienen DM Serif Display (marca/numero del documento), Courier New y Oswald (planilla de fabricación). El PDF se verificó: sigue entrando en A4, tabla completa, tarjetas limpias, con el serif del documento intacto. Stack sin comillas internas para entrar limpio en CSS y en los strings de JS. Cambio acotado y reversible (solo font-family).
+
 ## V397 — 2026-06-22 — Fix precio: Guía lateral blanca (cero de menos) 2970 → 29700
 
 La Guía lateral blanca (par) estaba cargada en \$2.970 cuando el precio real es \$29.700 (igual que la negra) — le faltaba un cero. Al cotizar una guía en color Blanco/Anodizado salía ~10× más barata. Se corrigió el valor por defecto en INSUMOS_DEFAULT y se agregó una migracion automatica en getInsumos() (mismo patron que V378/V379): si guia_blanca tiene el valor viejo 2970, lo lleva a 29700 y persiste — corrige solo en todos los dispositivos sin accion manual. Targeteado y seguro: solo cambia guia_blanca si esta exactamente en 2970. La logica de cotizacion de guias (precio/ml x largo x cant, par incluido) ya era correcta; el editor de Lista de Precios ya las mostraba editables (blanca y negra). Verificado: migracion 2970->29700 ok, negra y otros precios intactos.
