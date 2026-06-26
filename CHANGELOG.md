@@ -1,8 +1,12 @@
 # Changelog
 
-## V402 — 2026-06-26 — Cotización PDF: tabla de artículos centrada (margen derecho ya no se pega)
+## V403 — 2026-06-26 — Cotización PDF: fix correcto del margen derecho (revierte V402)
 
-En las cotizaciones, la tabla de artículos salía pegada al margen derecho (medido: izq 8,4mm vs der 2,4mm). Causa: la tabla (anchos de columna fijos que suman ~506px + nombres largos de Sistema) necesitaba más ancho del disponible dentro del padding, y al ser table-layout:auto se desbordaba ~5mm a la derecha, comiéndose el margen. Fix: se agregó table-layout:fixed + word-break a la tabla del documento (openDoc), que la obliga a quedar exactamente en el 100% del área con padding → márgenes simétricos; el texto largo se acomoda en dos líneas. Verificado regenerando el PDF: la barra de la tabla quedó izq 13,4mm / der 13,6mm (dif 0,2mm), centrada; precios y nombres entran bien. Aplica a los 3 caminos de PDF (escritorio, tablet, teléfono) porque el fix está en el markup del documento.
+V402 (table-layout:fixed) salió mal: en cotizaciones compactas dejaba un hueco a la derecha; quedaba peor que antes. Se revirtió. Se diagnosticó la causa REAL del problema original: solo se desbordaba en cotizaciones como la de Felisa (COT-0829) y no en las "buenas" como Cristian (COT-0807). El motivo: la celda SISTEMA mostraba el nombre del producto + la marca en la MISMA línea con `white-space:nowrap`; en productos con marca larga (ej. "Roller Sunscreen 5%" + "Vertilux USA VX ®") esa celda quedaba demasiado ancha y empujaba toda la tabla más allá del margen derecho. Cristian ("Cambio de Tela", sin marca) entraba, por eso salía perfecta. Fix quirúrgico: (1) en SISTEMA el nombre y la marca van en dos líneas apiladas (nombre en negro arriba, marca en gris fino abajo) en vez de una sola línea ancha; (2) la columna COLOR se ensanchó a 116px para que colores comunes ("Blackout Vinílico") entren en una línea y solo el color doble largo ("BK:Blanco · SC:Blanco") envuelva a dos líneas. Verificado con prueba paramétrica (anchos 92–124px) y regenerando ambos PDF: Felisa queda centrada con márgenes simétricos y Cristian queda IDÉNTICA a la original (sin desbordes en ninguna). Cambio solo en el markup del documento (openDoc), aplica a los 3 caminos de PDF (escritorio, tablet, teléfono).
+
+## V402 — 2026-06-26 — [REVERTIDA por V403] Intento con table-layout:fixed (dejaba huecos)
+
+Intento de centrar la tabla con table-layout:fixed + word-break. Funcionaba en cotizaciones anchas pero en las compactas dejaba un hueco a la derecha (distribuía los anchos fijos sobre el 100% aunque el contenido fuera corto). Revertida en V403, que ataca la causa real (celda SISTEMA demasiado ancha por nombre+marca en una línea).
 
 ## V401 — 2026-06-25 — Verificación masiva descuento distribuidor + fix accesorios de toldos (chapón)
 
