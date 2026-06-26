@@ -2584,7 +2584,9 @@ const TELAS_CONFECCION = [{"cod": "2470", "cod_full": "2470 - 01 al 23", "nombre
 
 const TELAS = {
   // ── CORTINAS ──
-  'blackout':   { label:'Roller Blackout',     grupo:'Cortinas', tipo:'cortina',   colorLabel:'Color',
+  'blackout':   { label:'Roller Blackout USA',  grupo:'Cortinas', tipo:'cortina',   colorLabel:'Color',
+                  colors:['Blanco','Ivory','Beige','Gris','Negro'], priceKey:'blackout' },
+  'blackout_euro': { label:'Roller Blackout EURO', grupo:'Cortinas', tipo:'cortina', colorLabel:'Color',
                   colors:['Blanco','Ivory','Beige','Gris','Negro'], priceKey:'blackout' },
   'sunscreen5': { label:'Roller Sunscreen 5%',  grupo:'Cortinas', tipo:'cortina',   colorLabel:'Color',
                   colors:['Blanco','Beige','Gris Claro','Gris Oscuro','Tabacco','Carbón','Negro','Bicolor Beige','Bicolor Gris','Bicolor Marrón','Bicolor Negro','Otro'], priceKey:'screen5' },
@@ -2951,7 +2953,8 @@ const PRICE_TABLES = {"blackout":{"widths":[800,900,1000,1100,1200,1300,1400,150
 
 const INSUMOS_DEFAULT = [
   // TELAS — internas para cálculo + a la venta
-  { id:'tela_blackout',    cat:'Telas',       subcat:'',          nombre:'Tela Blackout Vinílico (costo)',      precio:13400,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
+  { id:'tela_blackout',      cat:'Telas',     subcat:'',          nombre:'Tela Blackout Vinílico (costo)',        precio:13400,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
+  { id:'tela_blackout_euro', cat:'Telas',     subcat:'',          nombre:'Tela Roller Blackout EURO 520 (costo)', precio:5700,   unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
   { id:'tela_screen5',     cat:'Telas',       subcat:'',          nombre:'Tela Sunscreen 5% (costo)',           precio:16700,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
   { id:'tela_screen3',     cat:'Telas',       subcat:'',          nombre:'Tela Sunscreen 3% (costo)',           precio:26718,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
   { id:'tela_screen1',     cat:'Telas',       subcat:'',          nombre:'Tela Sunscreen 1% (costo)',           precio:18400,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
@@ -3224,7 +3227,7 @@ function getFV(){
 // Mapea la tela/color de un item a la clave del panel de descuentos (PRODUCTS_DESC).
 function _descKeyForItem(tela, color){
   const t = (tela||'').toLowerCase(), c = (color||'').toLowerCase(), s = t+' '+c;
-  if(t==='blackout') return 'blackout';
+  if(t==='blackout'||t==='blackout_euro') return 'blackout';
   if(t==='sunscreen5') return 'sunscreen5';
   if(t==='sunscreen3') return 'sunscreen3';
   if(t==='sunscreen1') return 'sunscreen1';
@@ -3351,7 +3354,8 @@ function sugerirCombinacionesTela(items){
 
 function getTelaCostoId(sistemaKey){
   const map = {
-    'blackout':   'tela_blackout',
+    'blackout':      'tela_blackout',
+    'blackout_euro': 'tela_blackout_euro',
     'sunscreen5': 'tela_screen5',
     'sunscreen3': 'tela_screen3',
     'sunscreen1': 'tela_screen1',
@@ -7289,7 +7293,7 @@ const TIPOS_TOLDO_BRAZOS   = ['toldo_brazos_invisibles','toldo_brazos_invisibles
 const TIPOS_TOLDO_VERTICAL = ['toldo_vertical'];
 
 // Tipos que son cortinas Roller (todos los porcentajes de Sunscreen + Blackout)
-const TIPOS_ROLLER = ['blackout','sunscreen5','sunscreen3','sunscreen1','rollerdoble','doble'];
+const TIPOS_ROLLER = ['blackout','blackout_euro','sunscreen5','sunscreen3','sunscreen1','rollerdoble','doble'];
 
 // ── TELAS PARA TOLDOS ──
 // Catálogo de telas usadas en toldos. Agrupadas por marca: una misma marca puede
@@ -8413,7 +8417,7 @@ function colorInfoItem(item){
   const t = (typeof TELAS!=='undefined' && item) ? TELAS[item.tela] : null;
   if(!t) return { editable:false };
   // Roller: el color es directo
-  if(['blackout','sunscreen5','sunscreen3','sunscreen1'].includes(item.tela) && (t.colors||[]).length){
+  if(['blackout','blackout_euro','sunscreen5','sunscreen3','sunscreen1'].includes(item.tela) && (t.colors||[]).length){
     return { editable:true, opciones:t.colors, actual:item.color||'', prefijo:'' };
   }
   // Accesorios con paleta de color (tubos, ángulos, ejes): "Nombre — Color [· Color]"
@@ -8796,6 +8800,7 @@ function convertToOrder(idOrDoc){
 
   const rollerLabel = t =>
        t==='blackout'    ? 'Blackout'
+     : t==='blackout_euro' ? 'Blackout EURO'
      : t==='sunscreen5'  ? 'Sunscreen 5%'
      : t==='sunscreen3'  ? 'Sunscreen 3%'
      : t==='sunscreen1'  ? 'Sunscreen 1%'
@@ -10156,7 +10161,7 @@ function abrirEstadisticas(){
       <div style="display:flex;flex-direction:column;gap:8px">
         ${Object.entries(telaCounts).length ? Object.entries(telaCounts).sort((a,b)=>b[1]-a[1]).map(([t,c])=>`
           <div>
-            <div style="font-size:10px;color:var(--muted);margin-bottom:3px">${t==='blackout'?'Roller Blackout':t==='sunscreen5'?'Roller Sunscreen 5%':t}</div>
+            <div style="font-size:10px;color:var(--muted);margin-bottom:3px">${t==='blackout'?'Roller Blackout':t==='blackout_euro'?'Roller Blackout EURO':t==='sunscreen5'?'Roller Sunscreen 5%':t}</div>
             ${bar(c,maxTela,'var(--blue)')}
           </div>`).join('') : '<div style="font-size:12px;color:var(--muted)">Sin datos aún</div>'}
       </div>
@@ -10293,7 +10298,7 @@ function renderInsumosAdmin(){
 
   // Helper para renderizar una fila de insumo
   const renderRow = (ins) => {
-    const esCalculo = ins.es_calculo !== false && ['tela_blackout','tela_screen5','tela_screen3','tela_screen1','eje_32','eje_38','eje_50liso','eje_50ref','eje_70','zoc_bolsillo','bifa_3m','mec_vtx10','mec_vtx20','mec_vtx30','contrapeso','union_cadena','tope_cadena','cadena_blanca','cadena_negra','sop_rueda_70'].includes(ins.id);
+    const esCalculo = ins.es_calculo !== false && ['tela_blackout','tela_blackout_euro','tela_screen5','tela_screen3','tela_screen1','eje_32','eje_38','eje_50liso','eje_50ref','eje_70','zoc_bolsillo','bifa_3m','mec_vtx10','mec_vtx20','mec_vtx30','contrapeso','union_cadena','tope_cadena','cadena_blanca','cadena_negra','sop_rueda_70'].includes(ins.id);
     return `<tr style="border-bottom:1px solid var(--border);${esCalculo?'background:#f8f6ff;':''}">
       <td style="padding:7px 12px">
         ${esCalculo?'<span title="Usado en cálculo automático de cortinas" style="font-size:9px;background:#e8e4f8;color:#5c3d8f;border-radius:3px;padding:1px 5px;margin-right:6px;font-weight:700">CÁLCULO</span>':''}
@@ -10782,6 +10787,7 @@ async function renderPreciosTelas(){
 
   const BRAND_NAMES = {
     'blackout':   'Vertilux USA Fiberglass ®',
+    'blackout_euro': 'EURO 520',
     'sunscreen5': 'Vertilux USA VX ®',
     'sunscreen3': 'Vertilux USA VX ®',
     'sunscreen1': 'Vertilux USA VX ®',
@@ -10789,6 +10795,7 @@ async function renderPreciosTelas(){
   function getBrand(tela){ return BRAND_NAMES[tela] || ''; }
   const TELA_LABELS = {
     'blackout':     'Roller Blackout',
+    'blackout_euro':'Roller Blackout',
     'sunscreen5':   'Roller Sunscreen 5%',
     'sunscreen3':   'Roller Sunscreen 3%',
     'sunscreen1':   'Roller Sunscreen 1%',
@@ -11817,7 +11824,7 @@ function openPlanilla(d){
   // por ancho/alto, pero lo dejamos explícito para que sea claro.
   const rollerItemsRaw = allItems.filter(it =>
     !esRielSuelto(it) && !esToldoItem(it) && (
-      it.tela==='blackout' || it.tela==='sunscreen5' ||
+      it.tela==='blackout' || it.tela==='blackout_euro' || it.tela==='sunscreen5' ||
       it.tela==='Roller Blackout' || it.tela==='Roller Sunscreen 5%' ||
       isCambioTela(it.tela) ||
       (it.ancho && it.alto && it.tela !== 'conf_liviana' && it.tela !== 'conf_blackout')
@@ -11952,6 +11959,8 @@ function openPlanilla(d){
     const dobleTag = it._dobleTag ? `<div style="font-size:8px;color:#8a6c3c;background:#fef7e8;border:1px solid #e8d8a8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔗 ${it._dobleTag}</div>` : '';
     // V292.4: tag visual para cambio de tela
     const cambioTag = esCambio ? `<div style="font-size:8px;color:#1f6e9c;background:#e8f1f7;border:1px solid #b8d4e8;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:700">🔄 Cambio de tela</div>` : '';
+    // Marca interna para que fábrica distinga el Blackout EURO (tela EURO 520) del USA (Vertilux Fiberglass). NO se ve en el presupuesto del cliente.
+    const euroTag = (it.tela==='blackout_euro') ? `<div style="font-size:8px;color:#5a3a8a;background:#f0eafa;border:1px solid #d4c4ec;border-radius:3px;padding:1px 5px;display:inline-block;margin-top:2px;font-weight:800">EURO 520</div>` : '';
     // V363: en vez del nombre comercial (Vertilux Fiberglass es para el presupuesto, en fábrica es obvio),
     // usamos este espacio para recomendarle al operario DE QUÉ ROLLO cortar (menos desperdicio).
     const _recTela = recomendarRolloTela(it.ancho, it.alto);
@@ -11974,7 +11983,7 @@ function openPlanilla(d){
     return `<tr>
       <td style="text-align:center;border-right:2px solid #e0eaf4"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum">${i+1}</span></td>
-      <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br>${telaSubtit}`:''}${dobleTag}${cambioTag}</td>
+      <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br>${telaSubtit}`:''}${dobleTag}${cambioTag}${euroTag}</td>
       <td style="font-size:10.5px">${it.color||'—'}</td>
       <td style="text-align:center"><span class="fcut">${ct.a} mm</span></td>
       <td style="text-align:center"><span class="fcut">${ct.h} mm</span></td>
@@ -15817,7 +15826,7 @@ function calcInsumosParaItem(item){
 
   // ── 1) TELA — V363: descuenta del ROLLO recomendado (mismo criterio que la planilla:
   // mejor orientación normal/girada + excedente del alto; m² = ancho_rollo × largo, sin +10%).
-  const telasConDescuento = ['blackout','sunscreen5','sunscreen3','sunscreen1','cambiotela','doble','duozebra'];
+  const telasConDescuento = ['blackout','blackout_euro','sunscreen5','sunscreen3','sunscreen1','cambiotela','doble','duozebra'];
   if(telasConDescuento.includes(tela) && ancho && alto){
     const colorRef = item.color||'';
     const rec = (typeof recomendarRolloTela==='function') ? recomendarRolloTela(ancho, alto) : null;
@@ -15834,7 +15843,7 @@ function calcInsumosParaItem(item){
   }
 
   // ── 2) EJE — para roller (ancho-35 mm)
-  const tiposConEje = ['blackout','sunscreen5','sunscreen3','sunscreen1','cambiotela','doble','duozebra'];
+  const tiposConEje = ['blackout','blackout_euro','sunscreen5','sunscreen3','sunscreen1','cambiotela','doble','duozebra'];
   if(tiposConEje.includes(tela) && ancho){
     const longEje = (ancho - 35) / 1000; // m
     let diam = '32mm';
