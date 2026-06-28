@@ -1,0 +1,4 @@
+# Indica a Netlify dónde están las funciones de servidor (el "intermediario" de la IA).
+# No define build ni publish a propósito: el sitio sigue sirviéndose tal cual (estático).
+[functions]
+  directory = "netlify/functions"

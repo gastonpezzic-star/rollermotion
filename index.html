@@ -16759,5 +16759,150 @@ document.addEventListener('DOMContentLoaded', ()=>{
 });
 
 </script>
+
+<!-- ════════════════ ASISTENTE IA (Claude Sonnet) ════════════════ -->
+<script>
+(function(){
+  function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  function md(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
+  function fmt(n){ try{ return '$ '+Number(n||0).toLocaleString('es-AR'); }catch(e){ return '$ '+(n||0); } }
+
+  var style = document.createElement('style');
+  style.textContent = ''
+    + '#ai-fab{position:fixed;right:20px;bottom:20px;z-index:9998;display:none;align-items:center;gap:8px;background:linear-gradient(135deg,#6a3df0,#a23df0);color:#fff;border:none;border-radius:999px;padding:12px 18px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 6px 20px rgba(106,61,240,.35);font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif}'
+    + '#ai-fab:active{transform:scale(.97)}'
+    + '#ai-ov{position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.35);display:none;align-items:flex-end;justify-content:flex-end}'
+    + '#ai-panel{width:min(440px,96vw);height:min(680px,92vh);margin:16px;background:#fff;border-radius:16px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 16px 50px rgba(0,0,0,.3);font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif}'
+    + '#ai-head{background:linear-gradient(135deg,#6a3df0,#a23df0);color:#fff;padding:14px 16px;display:flex;align-items:center;justify-content:space-between}'
+    + '#ai-head b{font-size:15px}#ai-head .sub{font-size:11px;opacity:.85}'
+    + '#ai-x{background:rgba(255,255,255,.2);border:none;color:#fff;width:30px;height:30px;border-radius:50%;font-size:16px;cursor:pointer}'
+    + '#ai-msgs{flex:1;overflow-y:auto;padding:14px;background:#f6f5fb;display:flex;flex-direction:column;gap:10px}'
+    + '.ai-b{max-width:85%;padding:10px 13px;border-radius:14px;font-size:13.5px;line-height:1.5;word-wrap:break-word}'
+    + '.ai-u{align-self:flex-end;background:#6a3df0;color:#fff;border-bottom-right-radius:4px}'
+    + '.ai-a{align-self:flex-start;background:#fff;color:#1a1a1a;border:1px solid #e6e2f5;border-bottom-left-radius:4px}'
+    + '.ai-chips{display:flex;flex-wrap:wrap;gap:6px;padding:8px 14px;background:#f6f5fb;border-top:1px solid #ececf5}'
+    + '.ai-chip{font-size:11.5px;background:#efe9fc;color:#5c3d8f;border:1px solid #ddd0f5;border-radius:999px;padding:5px 10px;cursor:pointer}'
+    + '#ai-form{display:flex;gap:8px;padding:10px 12px;border-top:1px solid #ececf5;background:#fff}'
+    + '#ai-inp{flex:1;border:1.5px solid #ddd;border-radius:10px;padding:10px 12px;font-size:14px;outline:none;resize:none;max-height:90px;font-family:inherit}'
+    + '#ai-send{background:#6a3df0;color:#fff;border:none;border-radius:10px;padding:0 16px;font-size:14px;font-weight:700;cursor:pointer}#ai-send:disabled{opacity:.5}';
+  document.head.appendChild(style);
+
+  var wrap = document.createElement('div');
+  wrap.innerHTML = ''
+    + '<button id="ai-fab">✨ Asistente</button>'
+    + '<div id="ai-ov"><div id="ai-panel">'
+    +   '<div id="ai-head"><div><b>✨ Asistente RollerMotion</b><div class="sub">con IA · sobre tus presupuestos</div></div><button id="ai-x">✕</button></div>'
+    +   '<div id="ai-msgs"></div>'
+    +   '<div class="ai-chips" id="ai-chips"></div>'
+    +   '<form id="ai-form"><textarea id="ai-inp" rows="1" placeholder="Escribí lo que necesitás…"></textarea><button id="ai-send" type="submit">Enviar</button></form>'
+    + '</div></div>';
+  document.body.appendChild(wrap);
+
+  var $ = function(id){ return document.getElementById(id); };
+  var msgs = $('ai-msgs');
+  var hist = [];
+  var busy = false;
+
+  function bubble(role, text){
+    var d = document.createElement('div');
+    d.className = 'ai-b ' + (role==='user'?'ai-u':'ai-a');
+    d.innerHTML = md(text);
+    msgs.appendChild(d); msgs.scrollTop = msgs.scrollHeight; return d;
+  }
+
+  function lbl(t){ try{ return (typeof getTelaLabel==='function') ? getTelaLabel(t) : t; }catch(e){ return t; } }
+
+  function ctx(){
+    var cat = '';
+    try{ cat = Object.keys(TELAS).map(function(k){ return '- '+k+' = '+(TELAS[k].label||k); }).join('\n'); }catch(e){}
+    var docs = [];
+    try{
+      docs = (typeof getDocs==='function') ? getDocs().slice() : [];
+      if(typeof ME!=='undefined' && ME && ME.role!=='admin' && ME.role!=='fabrica'){
+        docs = docs.filter(function(d){ return (ME.profile && d.vendedor_id) ? d.vendedor_id===ME.id : d.vendedor===ME.name; });
+      }
+      docs.sort(function(a,b){ return String(b.fecha||'').localeCompare(String(a.fecha||'')); });
+    }catch(e){}
+    var recent = docs.slice(0,12);
+    var docTxt = recent.map(function(d,i){
+      var head = (d.type==='order'?'Pedido':'Presupuesto')+' '+(d.numero||'')+' · Cliente: '+(d.cliente||'—')+' · Estado: '+(d.estado||'—')+' · Fecha: '+(d.fecha||'—')+' · Vendedor: '+(d.vendedor||'—')+' · TOTAL: '+fmt(d.total);
+      var items = '';
+      if(i<8 && Array.isArray(d.items)){
+        items = '\n' + d.items.map(function(it){ return '   • '+lbl(it.tela)+' | '+(it.color||'')+' | '+(it.ancho||'?')+'x'+(it.alto||'?')+'mm | cant '+(it.cant||1)+' | '+fmt(it.precio); }).join('\n');
+      }
+      return head + items;
+    }).join('\n\n');
+    var nombre = (typeof ME!=='undefined' && ME && ME.name) ? ME.name : 'el usuario';
+    return 'CATÁLOGO DE PRODUCTOS (clave = nombre):\n'+cat
+      + '\n\nNota: "Blackout EURO" y "Sunscreen 6% Mesh" son las telas económicas; la versión económica cambia Blackout USA→EURO y Sunscreen 5/3/1%→Mesh.'
+      + '\n\nPRESUPUESTOS QUE PUEDE VER '+nombre+' (más recientes primero):\n'+(docTxt || '(sin presupuestos cargados)');
+  }
+
+  var SYS = 'Sos el asistente de RollerMotion, una fábrica argentina de cortinas roller. Ayudás al equipo con sus presupuestos. '
+    + 'Podés: resumir un presupuesto, redactar el mensaje para el cliente (WhatsApp o mail), responder preguntas sobre los presupuestos y los productos, y explicar opciones como la versión económica.\n'
+    + 'Reglas:\n'
+    + '- Usá SOLO los datos que te paso abajo. NO inventes precios ni datos; si falta algo, decilo.\n'
+    + '- Moneda: pesos argentinos. Hablá en español rioplatense, claro, amable y sin tecnicismos.\n'
+    + '- Para "versión económica": las telas que cambian son Blackout USA→EURO y Sunscreen 5/3/1%→Mesh (más baratas). Podés explicar qué cambiaría, pero el TOTAL exacto se genera en el sistema (todavía no lo calculás vos); si te lo piden, aclaralo.\n'
+    + '- Sé conciso. Si redactás un mensaje para el cliente, devolvé el texto listo para copiar.';
+
+  async function send(text){
+    if(busy || !text || !text.trim()) return;
+    busy = true; $('ai-send').disabled = true;
+    bubble('user', text);
+    hist.push({ role:'user', content: text });
+    var loading = bubble('assistant', '…');
+    try{
+      var sess = await _sb.auth.getSession();
+      var token = sess && sess.data && sess.data.session && sess.data.session.access_token;
+      if(!token){ loading.textContent = '⚠ Iniciá sesión de nuevo para usar el asistente.'; hist.pop(); busy=false; $('ai-send').disabled=false; return; }
+      var r = await fetch('/.netlify/functions/ai', {
+        method:'POST',
+        headers:{ 'content-type':'application/json', authorization:'Bearer '+token },
+        body: JSON.stringify({ system: SYS + '\n\n' + ctx(), messages: hist, max_tokens: 2000 })
+      });
+      var data = await r.json().catch(function(){ return {}; });
+      if(!r.ok || data.error){
+        loading.innerHTML = '⚠ ' + esc(data.error || ('Error '+r.status)); hist.pop();
+      } else {
+        loading.innerHTML = md(data.text || '(sin respuesta)');
+        hist.push({ role:'assistant', content: data.text || '' });
+      }
+    }catch(e){
+      loading.textContent = '⚠ No se pudo conectar con el asistente.'; hist.pop();
+    }
+    busy = false; $('ai-send').disabled = false; msgs.scrollTop = msgs.scrollHeight;
+  }
+
+  ['Resumime el último presupuesto','Redactá el mensaje para el cliente del último presupuesto','¿Cómo sería la versión económica del último presupuesto?'].forEach(function(c){
+    var b = document.createElement('button'); b.type='button'; b.className='ai-chip'; b.textContent=c;
+    b.onclick = function(){ $('ai-inp').value=c; $('ai-inp').focus(); };
+    $('ai-chips').appendChild(b);
+  });
+
+  function open(){
+    $('ai-ov').style.display='flex';
+    if(!msgs.children.length){
+      var n = (typeof ME!=='undefined' && ME && ME.name) ? ' '+ME.name.split(' ')[0] : '';
+      bubble('assistant', '¡Hola'+n+'! Soy tu asistente. Puedo resumir un presupuesto, redactarte el mensaje para el cliente, o contarte cómo quedaría en la versión económica. Probá un atajo de abajo o escribime.');
+    }
+    setTimeout(function(){ $('ai-inp').focus(); }, 50);
+  }
+  function close(){ $('ai-ov').style.display='none'; }
+
+  $('ai-fab').onclick = open;
+  $('ai-x').onclick = close;
+  $('ai-ov').onclick = function(e){ if(e.target.id==='ai-ov') close(); };
+  $('ai-form').onsubmit = function(e){ e.preventDefault(); var v=$('ai-inp').value; $('ai-inp').value=''; send(v); };
+  $('ai-inp').addEventListener('keydown', function(e){ if(e.key==='Enter' && !e.shiftKey){ e.preventDefault(); $('ai-form').requestSubmit(); } });
+
+  // Mostrar el botón solo dentro de la app (usuario logueado)
+  setInterval(function(){
+    var app = document.getElementById('app');
+    var fab = $('ai-fab');
+    if(fab) fab.style.display = (app && app.style.display!=='none' && typeof ME!=='undefined' && ME) ? 'flex' : 'none';
+  }, 800);
+})();
+</script>
 </body>
 </html>
