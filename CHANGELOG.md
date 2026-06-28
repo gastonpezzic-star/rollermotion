@@ -1,5 +1,13 @@
 # Changelog
 
+## V412 — 2026-06-28 — Persistir telas del Roller Doble + generador único de versiones de COT-0767
+
+Dos cosas:
+
+(1) **Fix persistencia Doble (cierra el hueco de V408):** los Roller Doble guardaban `bkTela`/`scTela` solo en memoria; al persistir en Supabase se perdían (la tabla `items` no tenía columnas). Se agregaron columnas `bk_tela`/`sc_tela` a `items` (SQL corrido por el dueño), `saveDocToSupabase` ahora las escribe y `normalizeItem` las lee. Así un Doble EURO/Mesh sobrevive a guardar+recargar (precio, gris "Blackout EURO + Sunscreen Mesh" y planilla correctos). Aplica a todos los Doble de ahí en más.
+
+(2) **Generador de una sola vez (a pedido, para un cliente grande):** bloque `<script>` que SOLO se activa entrando a la URL con `#generar-767` (inerte en uso normal — verificado). Toma la cotización con "767" (Criba) de la lista, y crea 2 versiones nuevas en Cotizaciones recalculando precios con calcCostoRoller: **Económica** (Blackout→EURO, Screen→Mesh) e **Intermedia** (Blackout→EURO, Screen 5% igual). Medidas/colores/cantidades/cliente idénticos. Usa un factor `precio_original/precio_lista` por ítem, así preserva descuentos de distribuidor proporcionalmente. Número vía `next_doc_numero` (atómico), id vía uid(), estado Cotización, nota en observaciones. Corre con la sesión del usuario (sin contraseña, sin backdoor). Verificado en navegador: lógica de precios correcta (econ<mid<original) y descuento preservado. **Se elimina en el próximo deploy una vez usado.**
+
 ## V411 — 2026-06-28 — Asistente IA: EN PAUSA (oculto) — decisión del dueño
 
 El asistente IA (V410) queda desactivado y oculto por decisión del dueño (es de pago por uso y por ahora no se necesita). Se hizo con un interruptor: al inicio del bloque `<script>` del asistente, `var AI_ENABLED = false; if(!AI_ENABLED) return;` — el IIFE corta de entrada, así NO se crea ningún DOM (sin botón flotante, sin modal, sin interval) y no hay forma de gastar saldo desde la UI. Todo el código (chat + función Netlify) queda intacto para reactivarlo en 1 línea cuando se necesite (poner `AI_ENABLED = true` y asegurar `ANTHROPIC_API_KEY` + crédito en Netlify). La función `netlify/functions/ai.mjs` sigue desplegada pero inofensiva (gateada por login + clave; nadie la llama). Opcional para cero riesgo de costo: quitar `ANTHROPIC_API_KEY` de Netlify (entonces responde 503). Verificado: botón y modal no existen tras login, app carga OK, node --check OK.
