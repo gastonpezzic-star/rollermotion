@@ -5145,6 +5145,9 @@ function qaTelaChange(){
     const varianteLbl  = document.getElementById('qa-variante-lbl');
     if(varianteLbl) varianteLbl.textContent = 'Color Screen';
     if(varianteWrap) varianteWrap.style.display = 'flex';
+    // Default más común: Blackout USA + Sunscreen 5% (se resetea cada vez que se elige el Doble)
+    const _bkSelD = document.getElementById('qa-doble-bk'); if(_bkSelD) _bkSelD.value = 'blackout';
+    const _scSelD = document.getElementById('qa-doble-sc'); if(_scSelD) _scSelD.value = 'sunscreen5';
     onDobleTelaChange(); // puebla las listas de color según las telas elegidas + recalcula
     const anchoWrapEl  = document.getElementById('qa-ancho-wrap');
     const altoWrapEl   = document.getElementById('qa-alto-wrap');
@@ -6902,6 +6905,12 @@ function qaAgregar(){
   }
   const medEl = document.getElementById('qa-medida');
   if(medEl) medEl.value = '';
+  // Roller Doble: volver al default más común (USA + 5%) para el próximo ítem, así no queda pegado el EURO/Mesh
+  if(telaObjA?.tipo === 'rollerdoble'){
+    const _bkR=document.getElementById('qa-doble-bk'); if(_bkR) _bkR.value='blackout';
+    const _scR=document.getElementById('qa-doble-sc'); if(_scR) _scR.value='sunscreen5';
+    if(typeof onDobleTelaChange==='function') onDobleTelaChange();
+  }
   document.getElementById('qa-ref').value   = '';
   document.getElementById('qa-cant').value  = '1';
   document.getElementById('qa-precio-display').textContent = '—';
@@ -6988,6 +6997,7 @@ function addRow(item){
   // Store data — technical fields stored as defaults for quotes, editable for orders
   tr.dataset.item = JSON.stringify({
     tela:item.tela, color:item.color, ancho:item.ancho, alto:item.alto,
+    bkTela: item.bkTela, scTela: item.scTela,   // Roller Doble flexible: telas elegidas por lado (persisten al guardar)
     zoc:item.zoc||ZOCALOS[0], sent:item.sent||SENTS[0],
     sop:item.sop||SOPS[0], cad:item.cad||CADS[0],
     cadColor:item.cadColor||'Blanca', mecColor:item.mecColor||'Blanco',

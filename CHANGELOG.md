@@ -1,5 +1,15 @@
 # Changelog
 
+## V408 — 2026-06-28 — Roller Doble: default USA + 5% + fix persistencia de telas
+
+Dos cosas sobre el Roller Doble flexible (V407):
+
+1. **Default USA + 5%:** ahora el Doble arranca SIEMPRE en Blackout USA + Sunscreen 5% (lo más común), no solo la primera vez. Se resetea a ese default (a) cada vez que se elige "Roller Doble" en el desplegable, y (b) después de agregar un Doble. Así el EURO/Mesh es una elección deliberada por ítem y no queda "pegado" del ítem anterior (evita cotizar/cortar la tela equivocada por arrastre de estado).
+
+2. **Fix persistencia (bug de V407):** addRow serializa cada ítem a `tr.dataset.item` con una lista FIJA de campos, y `bkTela`/`scTela` no estaban → al guardar la cotización en Supabase se perdían y un Doble EURO/Mesh recargaba como USA+5%. Se agregaron `bkTela`/`scTela` a esa serialización; getItems() los lee de vuelta (JSON.parse), así sobreviven a guardar+recargar. (La verificación de V407 usó ítems armados a mano que ya los tenían, por eso no saltó.)
+
+Verificado end-to-end (camino real qaAgregar→getItems): al elegir Doble arranca USA+5%; tras cambiar a EURO+Mesh y reelegir el Doble, vuelve a USA+5%; tras agregar, vuelve a USA+5%; el ítem agregado guarda bkTela='blackout_euro'/scTela='screen_mesh' y el gris da "Blackout EURO + Sunscreen Mesh". node --check OK.
+
 ## V407 — 2026-06-28 — Roller Doble flexible: cualquier combinación de telas
 
 Antes el Roller Doble estaba clavado a Blackout USA + Sunscreen 5% (solo se elegían los colores; precio, planilla y corte siempre USA+5%). Ahora es flexible: al elegir "Roller Doble" aparecen 2 selectores nuevos — **Tela Blackout** (USA/EURO) y **Tela Screen** (5%/3%/1%/Mesh) — y las listas de color se acomodan a cada tela. El precio suma en vivo las dos telas elegidas; la planilla de fábrica expande el doble a las DOS telas correctas (no más USA+5% fijo); y en el presupuesto el gris muestra las telas, ej. "Blackout EURO + Sunscreen Mesh" (el USA va sin tag, es el estándar). Default al elegir Doble: USA + 5% (como antes).
