@@ -1,5 +1,13 @@
 # Changelog
 
+## V407 — 2026-06-28 — Roller Doble flexible: cualquier combinación de telas
+
+Antes el Roller Doble estaba clavado a Blackout USA + Sunscreen 5% (solo se elegían los colores; precio, planilla y corte siempre USA+5%). Ahora es flexible: al elegir "Roller Doble" aparecen 2 selectores nuevos — **Tela Blackout** (USA/EURO) y **Tela Screen** (5%/3%/1%/Mesh) — y las listas de color se acomodan a cada tela. El precio suma en vivo las dos telas elegidas; la planilla de fábrica expande el doble a las DOS telas correctas (no más USA+5% fijo); y en el presupuesto el gris muestra las telas, ej. "Blackout EURO + Sunscreen Mesh" (el USA va sin tag, es el estándar). Default al elegir Doble: USA + 5% (como antes).
+
+Compatibilidad: las cotizaciones de Doble ya guardadas no tienen telas elegidas → caen a USA + 5% en todos lados (precio congelado intacto, gris "Blackout + Sunscreen 5%", planilla USA+5%). Las telas elegidas se guardan en el item como `bkTela`/`scTela` (vía confData, persiste en Supabase). Descuento de distribuidor del Doble sin cambios (categoría 'rollerdoble').
+
+Touchpoints: HTML (fila #qa-doble-telas-wrap con #qa-doble-bk/#qa-doble-sc), reset de qaTelaChange (ocultar por defecto), branch rollerdoble de qaTelaChange (mostrar + onDobleTelaChange), nueva función onDobleTelaChange (repuebla colores por tela), branch rollerdoble de qaCalcPrecio y de qaAdd (usan las telas elegidas + guardan bkTela/scTela), helpers _dobleFabricLabel/_dobleBrand, gris dinámico en openDoc (isRollerDoble → _dobleBrand), y expansión de planilla (it.bkTela/it.scTela en vez de blackout/sunscreen5). Verificado end-to-end: selectores aparecen y colores se adaptan; USA+5% $472.678 > EURO+5% $440.805 > EURO+Mesh $376.118; presupuesto con gris "Blackout EURO + Sunscreen Mesh" (y doble viejo → "Blackout + Sunscreen 5%"); planilla expande a las 2 telas elegidas. node --check OK.
+
 ## V406 — 2026-06-28 — Nuevo producto: Roller Sunscreen 6% Mesh (tela Polyscreen Tech a $5.700/m²)
 
 Se agregó un Screen económico nuevo, "hermano" de los Sunscreen, como key aditivo `screen_mesh` (no se tocó ningún sunscreen existente ni cotizaciones guardadas). Se calcula igual que los otros roller (eje/mecanismo/zócalo/cadena/soportes por ancho) con tela propia `tela_screen_mesh` "Polyscreen Tech" a **$5.700/m²** (el screen más barato; 5% $16.700, 1% $18.400, 3% $26.718), editable en Lista de Precios → Telas y autocargada en cada dispositivo vía getInsumos. En el presupuesto del cliente se ve como **"Roller Sunscreen 6% Mesh"** con subtítulo gris **"Polyscreen Tech"**. Sin ficha técnica. Colores: Blanco, Ivory, Beige, Gris, Negro.

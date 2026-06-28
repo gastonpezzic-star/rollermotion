@@ -1588,6 +1588,25 @@ button:not([disabled]):active,
             </div>
           </div>
 
+          <div id="qa-doble-telas-wrap" style="display:none;gap:10px;margin-bottom:10px;align-items:flex-end;flex-wrap:nowrap">
+            <div class="f" style="flex:1;min-width:0">
+              <label>Tela Blackout</label>
+              <select id="qa-doble-bk" style="font-size:14px;padding:10px 11px" onchange="onDobleTelaChange()">
+                <option value="blackout">Blackout USA</option>
+                <option value="blackout_euro">Blackout EURO</option>
+              </select>
+            </div>
+            <div class="f" style="flex:1;min-width:0">
+              <label>Tela Screen</label>
+              <select id="qa-doble-sc" style="font-size:14px;padding:10px 11px" onchange="onDobleTelaChange()">
+                <option value="sunscreen5">Sunscreen 5%</option>
+                <option value="sunscreen3">Sunscreen 3%</option>
+                <option value="sunscreen1">Sunscreen 1%</option>
+                <option value="screen_mesh">Sunscreen 6% Mesh</option>
+              </select>
+            </div>
+          </div>
+
           <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
             <div class="f" style="width:72px">
               <label>Cant.</label>
@@ -5036,6 +5055,9 @@ function qaTelaChange(){
   // V290: ocultar panel info de Paneles Orientales
   const panelInfoBox = document.getElementById('qa-panel-info');
   if(panelInfoBox) panelInfoBox.style.display = 'none';
+  // Roller Doble: ocultar selectores de tela por defecto (el branch del doble los muestra)
+  const _dobleTelasDef = document.getElementById('qa-doble-telas-wrap');
+  if(_dobleTelasDef) _dobleTelasDef.style.display = 'none';
   restaurarColorSelect(); // restaurar select si había input libre
   // V287: restaurar visibilidad del wrapper de qa-color (toldos lo oculta)
   const _colorWrapDef = document.getElementById('qa-color')?.closest('.f');
@@ -5114,16 +5136,16 @@ function qaTelaChange(){
     setTimeout(qaCalcPrecio, 50);
 
   } else if(telaObj.tipo === 'rollerdoble'){
-    // Roller Doble: qa-color = color Blackout, qa-variante = color Screen 5%
-    colorSel.innerHTML = telaObj.coloresBlackout.map(c=>`<option>${c}</option>`).join('');
+    // Roller Doble flexible: 2 telas (Blackout USA/EURO + Screen 5/3/1/Mesh) + 2 colores.
+    const dobleWrap = document.getElementById('qa-doble-telas-wrap');
+    if(dobleWrap) dobleWrap.style.display = 'flex';
     const colorLblEl = document.getElementById('qa-color-lbl');
     if(colorLblEl) colorLblEl.textContent = 'Color Blackout';
     const varianteWrap = document.getElementById('qa-variante-wrap');
-    const varianteSel  = document.getElementById('qa-variante');
     const varianteLbl  = document.getElementById('qa-variante-lbl');
-    if(varianteLbl) varianteLbl.textContent = 'Color Sunscreen';
+    if(varianteLbl) varianteLbl.textContent = 'Color Screen';
     if(varianteWrap) varianteWrap.style.display = 'flex';
-    if(varianteSel) varianteSel.innerHTML = telaObj.coloresScreen.map(c=>`<option>${c}</option>`).join('');
+    onDobleTelaChange(); // puebla las listas de color según las telas elegidas + recalcula
     const anchoWrapEl  = document.getElementById('qa-ancho-wrap');
     const altoWrapEl   = document.getElementById('qa-alto-wrap');
     const medidaWrapEl = document.getElementById('qa-medida-wrap');
@@ -5590,6 +5612,18 @@ function _renderToldoTelaPanel(A, S){
 // V381 — Modelo A (distribuidores): el form muestra el precio CON el descuento del distribuidor
 // y, debajo, el "Precio venta público ref." (= precio de lista + IVA 21%, sin descuento ni cuotas).
 // Se implementa como overlay sobre el cálculo base para no tocar cada rama de precio.
+// Roller Doble flexible: al cambiar la tela Blackout o Screen, reponer las listas de color de cada lado.
+function onDobleTelaChange(){
+  const bk = document.getElementById('qa-doble-bk')?.value || 'blackout';
+  const sc = document.getElementById('qa-doble-sc')?.value || 'sunscreen5';
+  const colorSel = document.getElementById('qa-color');
+  const varSel   = document.getElementById('qa-variante');
+  const bkColors = (typeof TELAS!=='undefined' && TELAS[bk]?.colors) || ['Blanco'];
+  const scColors = (typeof TELAS!=='undefined' && TELAS[sc]?.colors) || ['Blanco'];
+  if(colorSel){ const prev=colorSel.value; colorSel.innerHTML = bkColors.map(c=>`<option>${c}</option>`).join(''); if(bkColors.includes(prev)) colorSel.value=prev; }
+  if(varSel){ const prev=varSel.value; varSel.innerHTML = scColors.map(c=>`<option>${c}</option>`).join(''); if(scColors.includes(prev)) varSel.value=prev; }
+  if(typeof qaCalcPrecio==='function') qaCalcPrecio();
+}
 function qaCalcPrecio(){
   _qaCalcPrecioBase();
   try { _qaRefDistribuidor(); } catch(e){ console.warn('[ref distribuidor]', e); }
@@ -5965,13 +5999,15 @@ function _qaCalcPrecioBase(){
   // ── ROLLER DOBLE — blackout + sunscreen5 ──
   if(telaInfo?.tipo === 'rollerdoble'){
     if(!ancho || !alto){ disp.textContent='—'; btn.disabled=true; btn.style.opacity='.4'; return; }
-    const rdRes = calcCostoRoller(ancho, alto, 'blackout', 'Blanca', false);
-    const rsRes = calcCostoRoller(ancho, alto, 'sunscreen5', 'Blanca', false);
+    const _bkD = document.getElementById('qa-doble-bk')?.value || 'blackout';
+    const _scD = document.getElementById('qa-doble-sc')?.value || 'sunscreen5';
+    const rdRes = calcCostoRoller(ancho, alto, _bkD, 'Blanca', false);
+    const rsRes = calcCostoRoller(ancho, alto, _scD, 'Blanca', false);
     const pu = (rdRes.precio_venta||0) + (rsRes.precio_venta||0);
     disp.textContent = fmtM(pu);
     disp.style.color = 'var(--brand)';
     subD.style.display = 'block';
-    subD.textContent = `Blackout ${fmtM(rdRes.precio_venta)} + Sunscreen 5% ${fmtM(rsRes.precio_venta)}`;
+    subD.textContent = `${_dobleFabricLabel(_bkD)} ${fmtM(rdRes.precio_venta)} + ${_dobleFabricLabel(_scD)} ${fmtM(rsRes.precio_venta)}`;
     if(cant > 1){ subD.textContent += ` × ${cant} = ${fmtM(pu*cant)}`; }
     btn.disabled = false; btn.style.opacity = '1';
     cutsEl.style.display = 'none';
@@ -6616,13 +6652,16 @@ function qaAgregar(){
     tela = 'duozebra';
 
   } else if(telaObjA?.tipo === 'rollerdoble'){
+    const _bkD = document.getElementById('qa-doble-bk')?.value || 'blackout';
+    const _scD = document.getElementById('qa-doble-sc')?.value || 'sunscreen5';
     const colorBK = document.getElementById('qa-color')?.value || 'Blanco';
     const colorSC = document.getElementById('qa-variante')?.value || 'Blanco';
-    const rdRes = calcCostoRoller(ancho, alto, 'blackout', 'Blanca', false);
-    const rsRes = calcCostoRoller(ancho, alto, 'sunscreen5', 'Blanca', false);
+    const rdRes = calcCostoRoller(ancho, alto, _bkD, 'Blanca', false);
+    const rsRes = calcCostoRoller(ancho, alto, _scD, 'Blanca', false);
     precio = (rdRes.precio_venta||0) + (rsRes.precio_venta||0);
     color = `BK:${colorBK} · SC:${colorSC}`;
     tela = 'rollerdoble';
+    confData = Object.assign(confData||{}, { bkTela: _bkD, scTela: _scD });
 
   } else if(telaObjA?.tipo === 'riel'){
     if(telaObjA.tieredPricing && Array.isArray(telaObjA.tiers)){
@@ -10806,6 +10845,11 @@ async function renderPreciosTelas(){
     'screen_mesh': 'Polyscreen Tech',
   };
   function getBrand(tela){ return BRAND_NAMES[tela] || ''; }
+  // Roller Doble flexible: etiqueta corta de cada tela para el gris del presupuesto (el USA va sin tag, es el estándar).
+  function _dobleFabricLabel(k){
+    return ({ 'blackout':'Blackout', 'blackout_euro':'Blackout EURO', 'sunscreen5':'Sunscreen 5%', 'sunscreen3':'Sunscreen 3%', 'sunscreen1':'Sunscreen 1%', 'screen_mesh':'Sunscreen Mesh' })[k] || k;
+  }
+  function _dobleBrand(it){ return `${_dobleFabricLabel(it.bkTela||'blackout')} + ${_dobleFabricLabel(it.scTela||'sunscreen5')}`; }
   const TELA_LABELS = {
     'blackout':     'Roller Blackout',
     'blackout_euro':'Roller Blackout',
@@ -10869,7 +10913,7 @@ function openDoc(d, fromForm){
     const esLibre = it.tela === 'libre';
     const esMotorOAccesorio = !it.ancho && !it.alto; // sin medidas → motor/accesorio
     const telaLabel = getTelaLabel(it.tela);
-    const brand     = getBrand(it.tela);
+    const brand     = isRollerDoble(it.tela) ? _dobleBrand(it) : getBrand(it.tela);
     const nd        = itemNombreDetalle(it); // V366: nombre + color separados (accesorios sin redundancia)
 
     if(esLibre){
@@ -11862,10 +11906,10 @@ function openPlanilla(d){
       const colorSC = m ? m[2].trim() : '—';
       const baseBk = it.bk || {};
       const baseSc = it.sc || {};
-      // Cortina Blackout
+      // Cortina Blackout (tela elegida: USA o EURO; default USA para cotizaciones viejas)
       rollerItems.push({
         ...it,
-        tela: 'blackout',
+        tela: it.bkTela || 'blackout',
         color: colorBK,
         sent:     baseBk.sent     || it.sent     || 'Detrás',
         ladoMec:  baseBk.ladoMec  || it.ladoMec  || 'Derecha',
@@ -11875,10 +11919,10 @@ function openPlanilla(d){
         soporte:  baseBk.soporte  || 'Doble',
         _dobleTag: `Doble #${pairTag}`,
       });
-      // Cortina Sunscreen
+      // Cortina Sunscreen (tela elegida: 5/3/1/Mesh; default 5% para cotizaciones viejas)
       rollerItems.push({
         ...it,
-        tela: 'sunscreen5',
+        tela: it.scTela || 'sunscreen5',
         color: colorSC,
         sent:     baseSc.sent     || it.sent     || 'Detrás',
         ladoMec:  baseSc.ladoMec  || it.ladoMec  || 'Derecha',
