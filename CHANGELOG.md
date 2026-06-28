@@ -1,5 +1,9 @@
 # Changelog
 
+## V413 — 2026-06-28 — Quitar el generador de un solo uso (ya cumplió)
+
+El generador de versiones de COT-0767 (V412) se usó y creó las 2 cotizaciones OK, así que se eliminó por completo el bloque `<script>` con `#generar-767` (no queda rastro; entrar a esa URL ya no hace nada). Se mantiene intacto el fix permanente de persistencia del Roller Doble (columnas `bk_tela`/`sc_tela` + saveDocToSupabase + normalizeItem de V412). node --check OK.
+
 ## V412 — 2026-06-28 — Persistir telas del Roller Doble + generador único de versiones de COT-0767
 
 Dos cosas:
