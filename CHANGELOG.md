@@ -1,5 +1,9 @@
 # Changelog
 
+## V409 — 2026-06-28 — Seguridad: eliminar código muerto con contraseñas en texto plano
+
+Se eliminó el bloque `LOCAL_USERS` (definición con 3 contraseñas de ejemplo en texto plano). Era código muerto: tenía una sola aparición (la definición) y el login (`doLogin`) usa exclusivamente Supabase Auth (`signInWithPassword`) + RLS por rol — no había fallback local, así que borrarlo NO afecta el ingreso. Verificado: la app arranca OK, doLogin intacto, `typeof LOCAL_USERS === 'undefined'`, 0 ocurrencias de las contraseñas de ejemplo, node --check OK. Nota: el frontend es público por naturaleza (como toda web); los datos siguen protegidos por login real + RLS y la única clave en el código es la anon (pública por diseño; no hay service_role). El cierre definitivo del riesgo es cambiar las contraseñas reales en Supabase (pendiente del lado del dueño/fábrica), ya que versiones anteriores tuvieron esos valores en el historial.
+
 ## V408 — 2026-06-28 — Roller Doble: default USA + 5% + fix persistencia de telas
 
 Dos cosas sobre el Roller Doble flexible (V407):

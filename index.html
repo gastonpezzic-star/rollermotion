@@ -4075,12 +4075,8 @@ const set = (k,v) => localStorage.setItem(k, JSON.stringify(v));
 function getCosts(){ return JSON.parse(key('rm3_costs')||JSON.stringify(DEFAULT_COSTS)); }
 function setCosts(a){ set('rm3_costs',a); }
 
-
-const LOCAL_USERS = {
-  "admin@rollermotion.com.ar":   { pass: "admin123", role: "admin",   nombre: "Admin"   },
-  "ventas@rollermotion.com.ar":  { pass: "ventas123", role: "vendor",  nombre: "Ventas"  },
-  "fabrica@rollermotion.com.ar": { pass: "fabrica123", role: "fabrica", nombre: "Fábrica" },
-};
+// LOCAL_USERS eliminado (V409): era código muerto con contraseñas en texto plano.
+// El login usa exclusivamente Supabase Auth (signInWithPassword) + RLS por rol.
 
 
 // V295 — AUTH REAL DE SUPABASE
