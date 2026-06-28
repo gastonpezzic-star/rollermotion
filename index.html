@@ -2954,7 +2954,7 @@ const PRICE_TABLES = {"blackout":{"widths":[800,900,1000,1100,1200,1300,1400,150
 const INSUMOS_DEFAULT = [
   // TELAS — internas para cálculo + a la venta
   { id:'tela_blackout',      cat:'Telas',     subcat:'',          nombre:'Tela Blackout Vinílico (costo)',        precio:13400,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
-  { id:'tela_blackout_euro', cat:'Telas',     subcat:'',          nombre:'Tela Roller Blackout EURO 520 (costo)', precio:5700,   unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
+  { id:'tela_blackout_euro', cat:'Telas',     subcat:'',          nombre:'Tela Roller Blackout EURO 520 (costo)', precio:7980,   unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
   { id:'tela_screen5',     cat:'Telas',       subcat:'',          nombre:'Tela Sunscreen 5% (costo)',           precio:16700,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
   { id:'tela_screen3',     cat:'Telas',       subcat:'',          nombre:'Tela Sunscreen 3% (costo)',           precio:26718,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
   { id:'tela_screen1',     cat:'Telas',       subcat:'',          nombre:'Tela Sunscreen 1% (costo)',           precio:18400,  unidad:'m2',  en_cotizador:false, cat_cotizador:'',      unidad_venta:'m2' },
@@ -3136,6 +3136,11 @@ function getInsumos(){
     // igual que la negra. Autocorrige el valor viejo sin tocar otros precios.
     arr.forEach(x => {
       if(x.id==='guia_blanca' && x.precio === 2970){ x.precio = 29700; changed = true; }
+    });
+    // Tela Roller Blackout EURO 520: precio actualizado de 5700 → 7980 (V405). Autocorrige
+    // los dispositivos que ya tenían el valor inicial sin tocar ediciones manuales posteriores.
+    arr.forEach(x => {
+      if(x.id==='tela_blackout_euro' && x.precio === 5700){ x.precio = 7980; changed = true; }
     });
     arr.forEach(x => {
       if(x.id === 'duozebra_ancho' && x.precio > 80000){

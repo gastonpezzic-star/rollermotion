@@ -1,5 +1,9 @@
 # Changelog
 
+## V405 — 2026-06-28 — Roller Blackout EURO: precio de tela 5.700 → 7.980/m²
+
+Ajuste de precio de la tela EURO 520 (`tela_blackout_euro`): de $5.700 a $7.980/m². Se cambió el valor por defecto en INSUMOS_DEFAULT y se agregó una migración en getInsumos (mismo patrón que la guía/motores): si el insumo tiene exactamente 5.700, lo lleva a 7.980 y persiste — autocorrige en todos los dispositivos que ya habían cargado el EURO, sin tocar ediciones manuales posteriores. Verificado en navegador: simulando un dispositivo con el valor viejo (5.700), la migración lo deja en 7.980; una cortina EURO 2000×1500 pasa a cotizar $194.763 (antes $181.355), sigue por debajo del USA ($226.636). node --check OK.
+
 ## V404 — 2026-06-26 — Nuevo producto: Roller Blackout EURO (tela EURO 520 a $5.700/m²)
 
 Se agregó un segundo Blackout como producto "hermano" del actual. El Blackout existente pasa a llamarse **"Roller Blackout USA"** SOLO en el desplegable interno del cotizador (su presupuesto al cliente queda IDÉNTICO). El nuevo **"Roller Blackout EURO"** se calcula igual que el USA (eje, mecanismo, zócalo, cadena, soportes — todo por ancho, idéntico) pero usa una tela propia **"EURO 520" a $5.700/m²** (vs $13.400 del USA), editable en Lista de Precios → Telas y autocargada en cada dispositivo vía getInsumos (patrón V378/V397, sin acción manual). En el presupuesto del cliente el EURO se ve como **"Roller Blackout"** con el subtítulo gris **"EURO 520"** (el sufijo USA/EURO NO se filtra al cliente). Sin ficha técnica (el USA mantiene la suya; si una cotización mezcla USA+EURO, la ficha del USA igual aparece). En la planilla de fábrica el EURO lleva un badge interno **"EURO 520"** (violeta) para que el taller corte la tela correcta. Comparte el descuento de distribuidor del Blackout.
