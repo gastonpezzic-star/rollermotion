@@ -1,5 +1,13 @@
 # Changelog
 
+## V406 — 2026-06-28 — Nuevo producto: Roller Sunscreen 6% Mesh (tela Polyscreen Tech a $5.700/m²)
+
+Se agregó un Screen económico nuevo, "hermano" de los Sunscreen, como key aditivo `screen_mesh` (no se tocó ningún sunscreen existente ni cotizaciones guardadas). Se calcula igual que los otros roller (eje/mecanismo/zócalo/cadena/soportes por ancho) con tela propia `tela_screen_mesh` "Polyscreen Tech" a **$5.700/m²** (el screen más barato; 5% $16.700, 1% $18.400, 3% $26.718), editable en Lista de Precios → Telas y autocargada en cada dispositivo vía getInsumos. En el presupuesto del cliente se ve como **"Roller Sunscreen 6% Mesh"** con subtítulo gris **"Polyscreen Tech"**. Sin ficha técnica. Colores: Blanco, Ivory, Beige, Gris, Negro.
+
+A diferencia del Blackout EURO, NO necesita badge en la planilla de fábrica: como el nombre del producto ya dice "6% Mesh" (distinto de "Sunscreen 5/3/1%"), la planilla y el taller lo distinguen solo. Descuento de distribuidor: **categoría propia** "Roller Sunscreen 6% Mesh" (PRODUCTS_DESC + _descKeyForItem `screen_mesh`→`screen_mesh`) — arranca en 0% para cada distribuidor hasta que se le cargue el % en el panel de descuentos.
+
+Touchpoints (mismo recipe que blackout_euro/V404, sin el badge de planilla): TELAS, insumo tela_screen_mesh, getTelaCostoId (crítico), _descKeyForItem + PRODUCTS_DESC (categoría propia), TIPOS_ROLLER, telasConDescuento, tiposConEje, TELA_LABELS, BRAND_NAMES, edición de color, y rótulos internos (dropdown de motores, histograma, badge CÁLCULO, filtro de planilla). Verificado end-to-end en navegador: dropdown muestra "Roller Sunscreen 6% Mesh"; tela $5.700; Mesh 2000×1500 = $181.355 < Sunscreen 5% $246.042; presupuesto con nombre + gris "Polyscreen Tech" sin ficha; planilla con insumos idénticos; descuento resuelve a 'screen_mesh'. node --check OK.
+
 ## V405 — 2026-06-28 — Roller Blackout EURO: precio de tela 5.700 → 7.980/m²
 
 Ajuste de precio de la tela EURO 520 (`tela_blackout_euro`): de $5.700 a $7.980/m². Se cambió el valor por defecto en INSUMOS_DEFAULT y se agregó una migración en getInsumos (mismo patrón que la guía/motores): si el insumo tiene exactamente 5.700, lo lleva a 7.980 y persiste — autocorrige en todos los dispositivos que ya habían cargado el EURO, sin tocar ediciones manuales posteriores. Verificado en navegador: simulando un dispositivo con el valor viejo (5.700), la migración lo deja en 7.980; una cortina EURO 2000×1500 pasa a cotizar $194.763 (antes $181.355), sigue por debajo del USA ($226.636). node --check OK.
