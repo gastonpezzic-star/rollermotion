@@ -16763,6 +16763,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
 <!-- ════════════════ ASISTENTE IA (Claude Sonnet) ════════════════ -->
 <script>
 (function(){
+  // ⏸ EN PAUSA: el asistente IA está oculto/desactivado (decisión del dueño, 2026-06-28).
+  // Para reactivarlo cuando se necesite: poner AI_ENABLED = true (y asegurar ANTHROPIC_API_KEY + crédito en Netlify).
+  var AI_ENABLED = false;
+  if(!AI_ENABLED) return;
   function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function md(s){ return esc(s).replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>').replace(/\n/g,'<br>'); }
   function fmt(n){ try{ return '$ '+Number(n||0).toLocaleString('es-AR'); }catch(e){ return '$ '+(n||0); } }
