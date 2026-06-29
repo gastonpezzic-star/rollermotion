@@ -1,5 +1,9 @@
 # Changelog
 
+## V419 — 2026-06-29 — Toldos · distribuidores: no eligen el rollo (se usa el más caro automáticamente)
+
+Para distribuidores, en la tela del toldo ya no pueden elegir el **rollo/corte** (evita que elijan un corte más barato que después no sea viable). La **marca/tela sí la siguen eligiendo**. Cambio en `_renderToldoTelaPanel`: nueva var `esDist=!!(ME&&ME.esDistribuidor)`; la opción auto pasa de la más BARATA (reduce `<=`) a la más CARA (`>=`) cuando es distribuidor; se ignora el override manual (`window._toldoTelaOverride`) para distribuidores; y en vez de la lista de botones clickeables (`qaSelectToldoTela`) se muestra una fila informativa NO clickeable con el rollo elegido (sin tag "MÁS CONVENIENTE"). El resto de roles sigue igual (más barata + opciones para elegir). Como `qaCalcPrecio` y `qaAgregar` usan el `opActiva` que devuelve el panel, el toldo se cotiza y se guarda con el rollo más caro. Verificado en navegador (Dickson: distribuidor toma $347.130 = max, sin botones; vendedor toma el mínimo, con botones); node --check OK, sin errores de consola.
+
 ## V418 — 2026-06-29 — Distribuidores: ocultar "Descuentos Adicionales" y "Presupuesto Corporativo"
 
 A pedido del dueño, los distribuidores ya no ven en el cotizador las tarjetas `#descuento-card` (🏷 Descuentos Adicionales) ni `#corp-card` (🏢 Presupuesto Corporativo). Nuevo helper `_aplicarRolFormCards()`: si `ME.esDistribuidor`, pone `display:none` a ambas tarjetas y fuerza `_descuentoActivo=false`/`_corpActivo=false` (para que no se cuelen en el cálculo aunque estuvieran activas de antes); si no es distribuidor, las muestra. Se llama en `resetForm()` (presupuesto nuevo) y en `editDoc()` (editar, justo tras `switchPage('pg-form')`), cubriendo ambos caminos de apertura del formulario. Verificado en navegador: con `ME.esDistribuidor=true` ambas quedan en `none`; con vendedor, visibles; node --check OK, sin errores de consola.
