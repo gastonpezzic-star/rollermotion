@@ -1,5 +1,9 @@
 # Changelog
 
+## V422 — 2026-06-29 — Toldos · distribuidores: ocultar también la info del rollo y la nota de corte
+
+Continuación de V419. Para distribuidores, en el panel de tela del toldo (`_renderToldoTelaPanel`) ya no se muestra NADA del rollo: ni la fila informativa "Rollo Xcm · N tramos · X.XXm tela" (se reemplazó por `opsHtml=''`) ni la nota al pie "Las soldaduras de unión son perpendiculares al eje…" (footnote ahora condicional: `const _footnote = esDist ? '' : '…'`). El distribuidor SOLO ve el selector de tela/marca. Internamente el precio sigue usando la opción más cara (vía `opActiva`, sin cambios). Vendedor/fábrica/admin: sin cambios (ven rollo, opciones y nota). Verificado en navegador: distribuidor → selector de marca presente, sin "Rollo"/sin botones/sin "soldaduras"; vendedor → todo presente. node --check OK, sin errores de consola.
+
 ## V421 — 2026-06-29 — Toldo motorizado: solo suma el motor (sin adicional $26.700) + motor por ancho (TITAN >6m)
 
 A pedido de Gastón, cambios en el toldo motorizado:
