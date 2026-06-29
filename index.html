@@ -3533,6 +3533,7 @@ const _sb = supabase.createClient(
 let _realtimeChannel = null;
 let _realtimeReloadTimeout = null;
 let _realtimeOnline = false; // ¿conexión en vivo activa? (alimenta el chip de estado único)
+let _realtimeRetry = null;   // timer para reconectar el canal en vivo si se cae
 
 function realtimeReloadDebounced(reason){
   if(_realtimeReloadTimeout) clearTimeout(_realtimeReloadTimeout);
@@ -3542,9 +3543,15 @@ function realtimeReloadDebounced(reason){
   }, 600);
 }
 
-function setupRealtime(){
+async function setupRealtime(){
   if(_realtimeChannel) return; // ya conectado
   try {
+    // Pasarle el token del usuario al canal en vivo (robustez extra para que RLS deje pasar los eventos).
+    try {
+      const { data } = await _sb.auth.getSession();
+      const tok = data && data.session && data.session.access_token;
+      if(tok && _sb.realtime && _sb.realtime.setAuth) _sb.realtime.setAuth(tok);
+    } catch(e){}
     _realtimeChannel = _sb
       .channel('rm-changes')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'documentos' },
@@ -3559,6 +3566,13 @@ function setupRealtime(){
         console.log('Realtime status:', status);
         _realtimeOnline = (status === 'SUBSCRIBED');
         updateSyncIndicator(); // un solo chip combina "en vivo" + "guardado"
+        // Si el canal se cae (background, suspensión, cambio de red, timeout), antes quedaba muerto hasta refrescar a mano.
+        // Ahora lo reciclamos y reconectamos solo.
+        if(status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED'){
+          teardownRealtime();                       // libera _realtimeChannel (si no, el guard de arriba impide re-armarlo)
+          if(_realtimeRetry) clearTimeout(_realtimeRetry);
+          _realtimeRetry = setTimeout(setupRealtime, 3000);  // reintento con un respiro
+        }
       });
   } catch(e){
     console.error('No se pudo iniciar realtime:', e);
@@ -3570,6 +3584,31 @@ function teardownRealtime(){
     try { _sb.removeChannel(_realtimeChannel); } catch(e){}
     _realtimeChannel = null;
   }
+}
+
+// Re-dibuja SOLO la pestaña que el usuario está mirando (además de Cotizaciones/Pedidos, que se redibujan siempre).
+// Así, cuando llega un cambio en vivo o el refresco de respaldo, la vista actual se actualiza sin tener que navegar.
+function refreshActiveView(){
+  try {
+    const active = document.querySelector('.pg.on');
+    const id = active && active.id;
+    if(!id) return;
+    if(id==='pg-clientes' && typeof renderClientes==='function') renderClientes();
+    else if(id==='pg-inicio' && typeof renderInicio==='function') renderInicio();
+    else if(id==='pg-fab' && typeof renderFab==='function') renderFab();
+    else if(id==='pg-dashboard' && typeof renderDashboard==='function') renderDashboard();
+    else if(id==='pg-mividash' && typeof renderMiDashboard==='function') renderMiDashboard();
+    else if(id==='pg-mi-cc' && typeof renderMiCC==='function') renderMiCC();
+    else if(id==='pg-ped' && typeof renderRecibos==='function') renderRecibos();
+  } catch(e){ console.error('refreshActiveView:', e); }
+}
+
+// "Plan B": baja del servidor los cambios de otros (docs + recibos) y re-dibuja la vista actual.
+// Es a prueba de fallos: funciona aunque el tiempo real esté caído.
+function pullRemote(){
+  if(!ME || _loadingDocs) return;
+  loadDocs(); // su finally re-dibuja Cot/Ped + la vista activa
+  loadRecibos().then(()=>{ refreshActiveView(); }).catch(()=>{});
 }
 
 /* ════════════════════════════
@@ -3705,15 +3744,19 @@ async function autoSyncNow(){
 function startAutoSync(){
   if(_autoSyncStarted) return;
   _autoSyncStarted = true;
-  // 1) Reintento periódico (cada 25s) — solo trabaja si hay algo pendiente
+  // 1) Reintento periódico (cada 25s) — solo SUBE lo que haya pendiente
   setInterval(autoSyncNow, 25000);
-  // 2) Cuando vuelve la conexión a internet
-  window.addEventListener('online', autoSyncNow);
-  // 3) Cuando el usuario vuelve a la pestaña/app
-  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden) autoSyncNow(); });
-  // 4) Cuando Supabase renueva el token o re-inicia sesión (recupera de sesión vencida)
+  // 1b) PLAN B / refresco de respaldo (cada 30s): BAJA los cambios de otros aunque el tiempo real esté caído.
+  //     Solo con la pestaña visible y logueado (no gasta cuota en segundo plano). Garantiza que nunca haya que refrescar a mano.
+  setInterval(()=>{ if(!document.hidden) pullRemote(); }, 30000);
+  // 2) Cuando vuelve la conexión a internet: subir pendientes + bajar cambios
+  window.addEventListener('online', ()=>{ autoSyncNow(); pullRemote(); });
+  // 3) Cuando el usuario vuelve a la pestaña/app: subir + bajar (así no ve datos viejos al volver)
+  document.addEventListener('visibilitychange', ()=>{ if(!document.hidden){ autoSyncNow(); pullRemote(); } });
+  // 4) Cuando Supabase renueva el token o re-inicia sesión: re-inyectar el token al tiempo real + sincronizar
   try {
-    _sb.auth.onAuthStateChange((event)=>{
+    _sb.auth.onAuthStateChange((event, session)=>{
+      if(session && session.access_token && _sb.realtime && _sb.realtime.setAuth){ try { _sb.realtime.setAuth(session.access_token); } catch(e){} }
       if(event==='TOKEN_REFRESHED' || event==='SIGNED_IN') autoSyncNow();
     });
   } catch(e){}
@@ -3815,6 +3858,7 @@ async function loadDocs(){
     renderCot(); renderPed();
     if(ME?.role==='admin'){ renderAdmin(); updateStats(); }
     updateSyncIndicator();
+    refreshActiveView(); // re-dibuja la pestaña visible (Clientes/Inicio/Fab/Dashboard) tras un cambio en vivo o el refresco de respaldo
   }
 }
 

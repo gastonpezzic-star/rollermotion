@@ -1,5 +1,17 @@
 # Changelog
 
+## V415 — 2026-06-28 — Tiempo real confiable: reconexión + refresco de respaldo (no más F5 manual)
+
+Problema reportado por el dueño: si alguien carga/edita un pedido o cotización, el otro usuario tenía que **refrescar a mano** para verlo. Diagnóstico con workflow (5 lectores en paralelo + síntesis + verificación adversarial). **La verificación adversarial corrigió la hipótesis inicial:** la causa NO es principalmente el token/RLS (el mismo `_sb` ya lee filas protegidas al refrescar → está autenticado, y supabase-js v2 propaga el token al realtime solo). La causa **dominante** es (a) el `.subscribe()` solo manejaba `SUBSCRIBED` y nunca reconectaba al caerse el canal (background/suspensión/cambio de red/timeout), con el guard `if(_realtimeChannel) return` impidiendo re-armarlo; y (b) **no existía ningún polling de respaldo**: `loadDocs()` solo se llamaba por evento realtime o carga inicial, así que si el realtime fallaba, nada traía los cambios ajenos hasta un F5.
+
+Fixes en `index.html` (solo cliente; el síntoma queda cubierto pase lo que pase con el servidor):
+- **Reconexión automática:** el callback de `.subscribe()` ahora maneja `CHANNEL_ERROR`/`TIMED_OUT`/`CLOSED` → `teardownRealtime()` (libera `_realtimeChannel`) + reintento `setTimeout(setupRealtime, 3000)` con var `_realtimeRetry` (clearTimeout para no acumular timers).
+- **Refresco de respaldo (PLAN B, lo que garantiza "nunca más F5"):** nuevo `setInterval` cada 30s en `startAutoSync` que, solo con la pestaña visible y logueado, baja `loadDocs()`+`loadRecibos()` (`pullRemote()`). Además se dispara al volver a la pestaña (`visibilitychange`) y al recuperar internet (`online`). Como mucho, los cambios ajenos tardan 30s en aparecer solos aunque el realtime esté 100% caído.
+- **Re-render de la pestaña visible:** nuevo `refreshActiveView()` llamado en el `finally` de `loadDocs()` — antes `loadDocs` solo redibujaba Cotizaciones/Pedidos (+admin), así que Clientes/Inicio/Fabricación/Dashboards quedaban mudos hasta navegar. Ahora se redibuja la `.pg.on` actual.
+- **Robustez de token (defensivo, barato):** `setupRealtime` ahora es `async` y hace `_sb.realtime.setAuth(token)` antes de suscribir; idem en `onAuthStateChange` (re-inyecta el token en `TOKEN_REFRESHED`/`SIGNED_IN`). Redundante en v2 moderno pero cubre el caso borde sin riesgo.
+
+PENDIENTE del lado de Gastón (para que el realtime sea INSTANTÁNEO, no solo cada 30s): correr en el SQL Editor de Supabase la verificación de que las 4 tablas (`documentos`, `items`, `config`, `recibos`) están en la publicación `supabase_realtime` (y agregarlas si faltan), + confirmar policy de SELECT. Se le pasaron los SQL. EN STANDBY (decisión del dueño): la alerta toast "🔔 nueva cotización" para cuando exista el formulario de cotización online ("Solicitudes Web"). Verificado: node --check OK; app carga en navegador sin errores de consola; `setupRealtime` es AsyncFunction; `refreshActiveView`/`pullRemote` no rompen sin login. La propagación entre 2 usuarios y la reconexión requieren 2 sesiones reales (no testeable con una sola).
+
 ## V414 — 2026-06-28 — Un solo chip de estado en el header (combina "Online" + "Sincronizado")
 
 Se unificaron los dos indicadores del header (`#sync-indicator` "Sincronizado" + `#realtime-indicator` "Online") en **un solo chip** `#status-chip`, más prolijo visualmente. Es una pastilla con punto de color que muestra el estado más importante de un vistazo y el detalle completo en el `title` (hover):
