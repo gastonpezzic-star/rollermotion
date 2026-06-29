@@ -1,5 +1,9 @@
 # Changelog
 
+## V418 — 2026-06-29 — Distribuidores: ocultar "Descuentos Adicionales" y "Presupuesto Corporativo"
+
+A pedido del dueño, los distribuidores ya no ven en el cotizador las tarjetas `#descuento-card` (🏷 Descuentos Adicionales) ni `#corp-card` (🏢 Presupuesto Corporativo). Nuevo helper `_aplicarRolFormCards()`: si `ME.esDistribuidor`, pone `display:none` a ambas tarjetas y fuerza `_descuentoActivo=false`/`_corpActivo=false` (para que no se cuelen en el cálculo aunque estuvieran activas de antes); si no es distribuidor, las muestra. Se llama en `resetForm()` (presupuesto nuevo) y en `editDoc()` (editar, justo tras `switchPage('pg-form')`), cubriendo ambos caminos de apertura del formulario. Verificado en navegador: con `ME.esDistribuidor=true` ambas quedan en `none`; con vendedor, visibles; node --check OK, sin errores de consola.
+
 ## V417 — 2026-06-29 — Descuento adicional: ahora también por monto fijo ($), no solo %
 
 El "descuento adicional" del cotizador aceptaba solo porcentaje. Se agregó un selector **% / $ (monto)** al lado del valor. Cambios: nuevo `getDescuentoModo()` ('pct' default | 'monto' si el select `#desc-tipo` = '$'); `getDescuentoMonto()` devuelve `-round(valor)` directo en modo monto (en modo % sigue calculando sobre el subtotal); `getDescuentoPct()` devuelve 0 en modo monto (para que el PDF no diga "5000%"); `onDescTipoChange()` ajusta min/max/step del input (en $ saca el tope, step 100). El objeto `descuento` guardado ahora incluye `modo` (en los 2 puntos de guardado + default en `normalizeDoc`; columna jsonb, sin SQL). El display en vivo muestra "Monto fijo → −$X" o "X% → −$X"; el PDF muestra "Descuento aplicado" (monto) o "X% sobre el subtotal" (pct). Verificado en navegador: selector con opciones %/$, modo $ con 5000 → −$5.000 y pct=0; modo % con 10 → 10%; node --check OK, sin errores de consola. (No se tocó el restore del descuento al editar, que es comportamiento preexistente.)

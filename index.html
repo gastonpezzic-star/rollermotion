@@ -7751,6 +7751,17 @@ function resetForm(){
   if(cdot) cdot.style.left = '3px';
   if(cres) cres.textContent = 'Aplica 25% OFF · Venta Corporativa — reemplaza las opciones de pago en cuotas';
   if(cdisp) cdisp.textContent = '';
+  _aplicarRolFormCards();
+}
+
+// V418 — Distribuidores: no ven "Descuentos Adicionales" ni "Presupuesto Corporativo".
+function _aplicarRolFormCards(){
+  var esDist = !!(ME && ME.esDistribuidor);
+  var dCard = document.getElementById('descuento-card');
+  var cCard = document.getElementById('corp-card');
+  if(dCard) dCard.style.display = esDist ? 'none' : '';
+  if(cCard) cCard.style.display = esDist ? 'none' : '';
+  if(esDist){ _descuentoActivo = false; _corpActivo = false; } // que no se cuelen en el cálculo
 }
 
 // Auto-numbering — always called on new doc, persists globally across sessions
@@ -8605,6 +8616,7 @@ function editDoc(id){
   editId=id; currentType=doc.type;
   _vincCotNum = doc.cotizacionOrigen || null;  // V327
   switchPage('pg-form');
+  _aplicarRolFormCards(); // V418 — ocultar descuentos/corporativo para distribuidores
   document.getElementById('form-ttl').textContent=doc.type==='quote'?'Editar Cotización':'Editar Pedido';
   document.getElementById('form-type-badge').textContent=doc.type==='quote'?'📄 Cotización':'📦 Pedido';
   // Show/hide pedido-only fields
