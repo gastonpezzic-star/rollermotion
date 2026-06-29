@@ -1346,7 +1346,7 @@ button:not([disabled]):active,
       <div class="sh">
         <h2 id="ped-title">Pedidos</h2>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-outline" onclick="openReciboForm(null)">🧾 Nuevo Recibo</button>
+          <button class="btn btn-outline" id="btn-nuevo-recibo" onclick="openReciboForm(null)">🧾 Nuevo Recibo</button>
           <button class="btn btn-primary" onclick="goNew('order')">＋ Nuevo Pedido</button>
         </div>
       </div>
@@ -4156,6 +4156,8 @@ function enterApp(){
   if(ME.role==='admin'){ renderAdmin(); updateStats(); loadDistribuidores(); }
   updateNavBadges();
   updateSyncIndicator();
+  // V423 — Distribuidores no generan recibos: ocultar el botón "Nuevo Recibo".
+  { const _br=document.getElementById('btn-nuevo-recibo'); if(_br) _br.style.display = (ME && ME.esDistribuidor) ? 'none' : ''; }
   // Sincroniza con Supabase en segundo plano
   loadDocsWithFallback();
   loadRecibos().then(()=>renderRecibos());
@@ -7880,6 +7882,8 @@ let _reciboEditId = null;
 let _reciboLinkedDocId = null;
 
 function openReciboForm(linkedDocId){
+  // V423 — Los recibos los genera RollerMotion, no los distribuidores.
+  if(ME && ME.esDistribuidor){ toast('Los recibos los genera RollerMotion.', 'err'); return; }
   _reciboEditId = null;
   _reciboLinkedDocId = linkedDocId;
   const numero = autoNumRecibo(linkedDocId);
@@ -8069,6 +8073,7 @@ function recUpdateSaldo(){
 }
 
 async function saveRecibo(thenView){
+  if(ME && ME.esDistribuidor){ toast('Los recibos los genera RollerMotion.', 'err'); return; } // V423
   const cliente = document.getElementById('r-cliente').value.trim();
   const monto = parseFloat(document.getElementById('r-monto').value)||0;
   if(!cliente){ toast('⚠ Ingresá el cliente','err'); return; }
