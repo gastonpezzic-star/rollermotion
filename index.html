@@ -5841,7 +5841,12 @@ function _qaCalcPrecioBase(){
   // Productos unitarios: precio fijo
   if(telaInfo?.tipo === 'unitario'){
     const modeloSel = document.getElementById('qa-color')?.value || '';
-    let pu = (telaInfo.precios && telaInfo.precios[modeloSel]) ||
+    // V416 — la vista previa de MOTORES debe leer el precio de la Lista de Precios (getPrecioMotor),
+    // igual que al Agregar. Antes leía solo el mapa interno (donde los Somfy estaban en $1), por eso
+    // mostraba $1 al seleccionar pero se agregaba con el precio real. Ahora preview = agregar.
+    const _esMotorPrev = (tela==='motores' || tela==='motor_somfy_wt' || tela==='motor_somfy_mv35');
+    let pu = (_esMotorPrev ? getPrecioMotor(modeloSel) : 0) ||
+               (telaInfo.precios && telaInfo.precios[modeloSel]) ||
                getAdicionalesLocal().find(a=>a.nombre===modeloSel)?.precio || 0;
     // PRECIO LISTA → aplicar IVA × coef cuotas dinámicamente
     if(pu > 0 && telaInfo.aplicarFV){
