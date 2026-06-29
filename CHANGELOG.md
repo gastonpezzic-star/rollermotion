@@ -1,5 +1,14 @@
 # Changelog
 
+## V414 — 2026-06-28 — Un solo chip de estado en el header (combina "Online" + "Sincronizado")
+
+Se unificaron los dos indicadores del header (`#sync-indicator` "Sincronizado" + `#realtime-indicator` "Online") en **un solo chip** `#status-chip`, más prolijo visualmente. Es una pastilla con punto de color que muestra el estado más importante de un vistazo y el detalle completo en el `title` (hover):
+- **"Online"** (verde, punto que "late" con `@keyframes sc-pulse`) → conectado en vivo y todo guardado.
+- **"Guardando N…"** (ámbar) → hay N cambios subiendo al servidor (prioridad sobre lo demás, porque "¿está guardado?" es lo importante).
+- **"Reconectando…"** (gris) → sin conexión en vivo (los cambios igual se guardan).
+
+Implementación: nueva var `_realtimeOnline` que el callback de `.subscribe()` de `setupRealtime` setea y luego llama a `updateSyncIndicator()`; `updateSyncIndicator()` reescrita para pintar el chip único combinando `pending` (cambios sin subir) + `_realtimeOnline`. CSS `.sc-dot`/`.sc-dot.live` con respeto a `prefers-reduced-motion`. Se eliminaron los dos `<div>` viejos y la manipulación directa de `#realtime-indicator`. node --check OK; verificado visualmente (los 3 estados sobre el header oscuro). NOTA: queda pendiente (a pedido del dueño, "luego lo revisamos") que a veces el estado en vivo no se reconecta solo y hay que refrescar.
+
 ## V413 — 2026-06-28 — Quitar el generador de un solo uso (ya cumplió)
 
 El generador de versiones de COT-0767 (V412) se usó y creó las 2 cotizaciones OK, así que se eliminó por completo el bloque `<script>` con `#generar-767` (no queda rastro; entrar a esa URL ya no hace nada). Se mantiene intacto el fix permanente de persistencia del Roller Doble (columnas `bk_tela`/`sc_tela` + saveDocToSupabase + normalizeItem de V412). node --check OK.
