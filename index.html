@@ -11170,6 +11170,10 @@ function openDoc(d, fromForm){
     if(TIPOS_TOLDO_VERTICAL.includes(t)) { _toldoVertQty   += c; if(it.motorizado) _toldoMotorAdd += c; }
   });
   let _instalRows = '';
+  // V420 — La instalación (incluidas las filas de TOLDO) solo se muestra si realmente está incluida.
+  // d.instalacion = getInstalTotal() al guardar → 0 si el toggle de instalación está apagado. Antes las
+  // filas de toldo se dibujaban contando ítems, así que aparecían aunque la instalación estuviera sacada.
+  if(d.instalacion > 0){
   if(_hasBreakdown){
     const mq = _instalManQty||0, tq = _instalMotQty||0;
     if(mq > 0){
@@ -11252,6 +11256,7 @@ function openDoc(d, fromForm){
       <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;white-space:nowrap">${fmtM(d.instalacion)}</td>
     </tr>`;
   }
+  } // V420 — fin del gate: la instalación solo se muestra si está incluida (d.instalacion > 0)
 
   document.getElementById('overlay-title').textContent = isOrder ? `Pedido #${d.numero||'—'}` : `Cotización #${d.numero||'—'}`;
   const esDist = esDocDistribuidor(d); // V324 — cotización en formato distribuidor (sin pago/cuotas/WhatsApp)
