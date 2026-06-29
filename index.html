@@ -1805,7 +1805,7 @@ button:not([disabled]):active,
               </div>
               <div>
                 <div style="font-size:13px;font-weight:700;color:var(--ink)">Aplicar descuento adicional</div>
-                <div id="desc-resumen" style="font-size:11px;color:var(--muted);margin-top:2px">Activá para ingresar concepto y porcentaje</div>
+                <div id="desc-resumen" style="font-size:11px;color:var(--muted);margin-top:2px">Activá para ingresar concepto y monto o porcentaje</div>
               </div>
             </div>
             <div style="font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;font-size:18px;font-weight:700;color:var(--red,#c0392b)" id="desc-monto-display"></div>
@@ -1816,11 +1816,14 @@ button:not([disabled]):active,
                 <label>Concepto del descuento</label>
                 <input type="text" id="desc-concepto" placeholder="Ej: Bonificación especial cliente" oninput="calcDescuento()">
               </div>
-              <div class="f" style="flex:0 0 130px">
-                <label>% Descuento</label>
+              <div class="f" style="flex:0 0 210px">
+                <label>Descuento</label>
                 <div style="display:flex;align-items:center;gap:6px">
-                  <input type="number" id="desc-pct" min="0" max="99" step="0.5" placeholder="0" style="width:90px" oninput="calcDescuento()">
-                  <span style="font-size:15px;font-weight:700;color:var(--muted)">%</span>
+                  <input type="number" id="desc-pct" min="0" max="99" step="0.5" placeholder="0" style="width:100px" oninput="calcDescuento()">
+                  <select id="desc-tipo" onchange="onDescTipoChange()" style="width:auto;flex:0 0 auto">
+                    <option value="%">%</option>
+                    <option value="$">$ (monto)</option>
+                  </select>
                 </div>
               </div>
             </div>
@@ -3889,7 +3892,7 @@ function normalizeDoc(d){
     instal_manual_qty: d.instal_manual_qty,
     instal_motor_qty:  d.instal_motor_qty,
     corporativo:      d.corporativo||false,
-    descuento:        d.descuento||{activo:false,pct:0,concepto:'',monto:0},
+    descuento:        d.descuento||{activo:false,modo:'pct',pct:0,concepto:'',monto:0},
     cotizacionOrigen: d.cotizacion_origen||'',
     // V291 — destacada (para seguimiento en Centro de Operaciones)
     destacada:        d.destacada === true,
@@ -7667,11 +7670,12 @@ function updateDescuentoDisplay(){
     return;
   }
   const monto = getDescuentoMonto();
-  const pct   = getDescuentoPct();
+  const modo  = getDescuentoModo();
+  const val   = parseFloat(document.getElementById('desc-pct')?.value||0)||0;
   if(disp) disp.textContent = monto ? `−${fmtM(Math.abs(monto))}` : '';
   if(res)  res.textContent  = monto
-    ? `${pct}% → −${fmtM(Math.abs(monto))}`
-    : 'Ingresá concepto y porcentaje abajo';
+    ? (modo==='monto' ? `Monto fijo → −${fmtM(Math.abs(monto))}` : `${val}% → −${fmtM(Math.abs(monto))}`)
+    : 'Ingresá concepto y monto/porcentaje abajo';
 }
 
 // addRow also needs selOpts available (already defined)
@@ -8325,7 +8329,7 @@ async function saveDoc(andPreview){
     tel1:     document.getElementById('f-tel1').value,
     tel2:     document.getElementById('f-tel2').value,
     obs:      document.getElementById('f-obs').value,
-    descuento: { activo: _descuentoActivo, pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
+    descuento: { activo: _descuentoActivo, modo: getDescuentoModo(), pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
     corporativo: _corpActivo,
     origen:   editId ? ((getDocs().find(x=>x.id===editId)||{}).origen||'') : '',
     pago:     document.getElementById('f-pago').value,
@@ -8447,7 +8451,7 @@ function buildDocFromForm(){
     tel1:     document.getElementById('f-tel1').value,
     tel2:     document.getElementById('f-tel2').value,
     obs:      document.getElementById('f-obs').value,
-    descuento: { activo: _descuentoActivo, pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
+    descuento: { activo: _descuentoActivo, modo: getDescuentoModo(), pct: getDescuentoPct(), concepto: getDescuentoConcepto(), monto: getDescuentoMonto() },
     corporativo: _corpActivo,
     origen:   editId ? ((getDocs().find(x=>x.id===editId)||{}).origen||'') : '',
     pago:     document.getElementById('f-pago').value,
@@ -11295,7 +11299,7 @@ function openDoc(d, fromForm){
           <td style="padding:7px 10px;font-weight:700;color:#c0392b;text-align:center">🏷</td>
           <td colspan="5" style="padding:7px 10px">
             <div style="font-weight:700;font-size:11.5px;color:#c0392b">${d.descuento.concepto || 'Descuento adicional'}</div>
-            <div style="font-size:9px;color:#aaa;margin-top:1px">${d.descuento.pct}% de descuento sobre el subtotal</div>
+            <div style="font-size:9px;color:#aaa;margin-top:1px">${d.descuento.modo==='monto' ? 'Descuento aplicado' : (d.descuento.pct+'% de descuento sobre el subtotal')}</div>
           </td>
           <td style="padding:7px 10px;text-align:center;color:#c0392b">—</td>
           <td style="padding:7px 10px;text-align:center;color:#c0392b">—</td>
@@ -14297,15 +14301,22 @@ function toggleDescuentos(){
   if(body)   body.style.display      = _descuentoActivo ? 'block' : 'none';
   if(toggle) toggle.style.background = _descuentoActivo ? 'var(--accent)' : 'var(--muted)';
   if(dot)    dot.style.left          = _descuentoActivo ? '23px' : '3px';
-  if(res)    res.textContent         = _descuentoActivo ? 'Ingresá concepto y porcentaje abajo' : 'Activá para ingresar concepto y porcentaje';
+  if(res)    res.textContent         = _descuentoActivo ? 'Ingresá concepto y monto/porcentaje abajo' : 'Activá para ingresar concepto y monto o porcentaje';
   calcDescuento();
   recalcTotalConInstal();
 }
 
+function getDescuentoModo(){
+  // 'monto' = descuento fijo en $; 'pct' = porcentaje sobre el subtotal (default)
+  return (document.getElementById('desc-tipo')?.value === '$') ? 'monto' : 'pct';
+}
 function getDescuentoMonto(){
   if(!_descuentoActivo) return 0;
-  const pct = parseFloat(document.getElementById('desc-pct')?.value||0)||0;
-  if(!pct) return 0;
+  const val = parseFloat(document.getElementById('desc-pct')?.value||0)||0;
+  if(!val) return 0;
+  // Monto fijo en $: el valor ingresado ES el descuento.
+  if(getDescuentoModo()==='monto') return -Math.round(val);
+  // Porcentaje: se aplica sobre el subtotal.
   let subtotal = 0;
   document.querySelectorAll('#items-list tr').forEach(tr=>{
     const item = JSON.parse(tr.dataset.item||'{}');
@@ -14313,7 +14324,7 @@ function getDescuentoMonto(){
     subtotal += cant * (parseFloat(item.precio)||0);
   });
   subtotal += getAdicionalesTotal() + getInstalTotal();
-  return -Math.round(subtotal * pct / 100);
+  return -Math.round(subtotal * val / 100);
 }
 
 function calcDescuento(){
@@ -14328,8 +14339,17 @@ function getDescuentoConcepto(){
 }
 
 function getDescuentoPct(){
-  if(!_descuentoActivo) return 0;
+  if(!_descuentoActivo || getDescuentoModo()==='monto') return 0;
   return parseFloat(document.getElementById('desc-pct')?.value||0)||0;
+}
+function onDescTipoChange(){
+  const t = document.getElementById('desc-tipo')?.value || '%';
+  const inp = document.getElementById('desc-pct');
+  if(inp){
+    if(t==='$'){ inp.removeAttribute('max'); inp.step='100'; } // monto: sin tope, salta de a 100
+    else { inp.max='99'; inp.step='0.5'; }                     // porcentaje: 0–99
+  }
+  calcDescuento();
 }
 
 /* ─── CORPORATIVO ─── */
