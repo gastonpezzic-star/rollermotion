@@ -1,5 +1,15 @@
 # Changelog
 
+## V421 — 2026-06-29 — Toldo motorizado: solo suma el motor (sin adicional $26.700) + motor por ancho (TITAN >6m)
+
+A pedido de Gastón, cambios en el toldo motorizado:
+- **Ya NO suma el adicional de instalación de $26.700** ("Adicional instalación toldo motorizado"). Al tildar motorizado solo se agrega el motor como ítem. Se quitó el término en los 3 lugares: `calcInstalacion` (panel, `subAdMotorT=0` + se sacó "+N motor toldo" del resumen), `getInstalTotal` (total real) y `_instalRows` (fila del PDF eliminada). La instalación BASE del toldo (brazos/vertical) NO se toca.
+- **Emojis quitados**: ⚡ del label "Toldo motorizado" y 🛡 de "Incluir Chapón cubre toldos". El detalle del label pasó a "— suma el motor correspondiente como ítem (según el ancho)".
+- **Motor por ancho**: `autoAddMotorToldoItem(anchoMm)` ahora elige `Somfy 100/12 TITAN` si `anchoMm > 6000`, si no el `Motor Vertilux 50/12 RF` de siempre.
+- **Nuevo motor TITAN**: agregado a INSUMOS_DEFAULT (`motor_somfy_titan`, cat Motores, $1.499.000 — editable en Lista de Precios), a `TELAS.motores.colors` (aparece en la lista de motores) y a `TELAS.motores.precios` (fallback). `getPrecioMotor('Somfy 100/12 TITAN')` = 1499000.
+
+Verificado en navegador: precio TITAN 1.499.000; en lista de motores y en insumos; ancho 7000mm→TITAN, 5000mm→50/12; y en `openDoc` el adicional $26.700 ya no aparece (delta 0) mientras la instalación base del toldo sí (delta 1). node --check OK, sin errores de consola.
+
 ## V420 — 2026-06-29 — Fix: la instalación aparecía en la cotización aunque estuviera apagada (toldos)
 
 Gastón notó que la instalación aparecía siempre en la cotización aunque sacara el toggle (aparecía pero NO sumaba al total). Causa: en `openDoc` las filas de instalación de **toldos** (`Instalación toldo brazos/vertical`, `Adicional motorizado`) se construían contando los ítems de toldo (`_toldoBrazosQty`/`_toldoVertQty`/`_toldoMotorAdd`), **independientemente del toggle de instalación**. Las de cortina ya estaban bien (salen de `instal_manual_qty` guardado, que es 0 con el toggle apagado). El total siempre estuvo bien (`getInstalTotal()` devuelve 0 apagado), por eso "aparecía pero no sumaba". Fix: se envolvió TODO el armado de `_instalRows` (cortinas + toldos + fallback) en `if(d.instalacion > 0){ … }`. `d.instalacion` = `getInstalTotal()` al guardar, que es 0 si la instalación está apagada e incluye los toldos cuando está prendida → fuente única de verdad. Verificado en navegador con `openDoc`: doc con toldo + `instalacion:0` → 0 filas de instalación; con `instalacion:120000` → aparece la fila. node --check OK, sin errores de consola.

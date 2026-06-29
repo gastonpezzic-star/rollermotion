@@ -1659,12 +1659,12 @@ button:not([disabled]):active,
           <div id="qa-toldo-extras" style="margin-top:8px;display:none;flex-wrap:wrap;gap:8px">
             <label id="qa-toldo-motor" style="display:inline-flex;align-items:center;gap:10px;background:#fff7ed;border:1px solid #fcd9a8;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#7c4a1e;cursor:pointer;user-select:none;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif">
               <input type="checkbox" id="qa-toldo-motor-chk" onchange="qaToggleToldoMotor()" style="width:16px;height:16px;cursor:pointer;accent-color:#d4820e">
-              <span>⚡ Toldo motorizado</span>
-              <span style="font-size:10.5px;color:#a87742;font-weight:500;font-style:italic">— suma Motor Vertilux 50/12 como item + $26.700 instalación</span>
+              <span>Toldo motorizado</span>
+              <span style="font-size:10.5px;color:#a87742;font-weight:500;font-style:italic">— suma el motor correspondiente como ítem (según el ancho)</span>
             </label>
             <label id="qa-toldo-chapon" style="display:inline-flex;align-items:center;gap:10px;background:#eef7f2;border:1px solid #aaddc0;border-radius:8px;padding:8px 12px;font-size:12px;font-weight:600;color:#1f6e45;cursor:pointer;user-select:none;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif">
               <input type="checkbox" id="qa-toldo-chapon-chk" onchange="qaToggleToldoChapon()" style="width:16px;height:16px;cursor:pointer;accent-color:#1f6e45">
-              <span>🛡 Incluir Chapón cubre toldos</span>
+              <span>Incluir Chapón cubre toldos</span>
               <span id="qa-toldo-chapon-detail" style="font-size:10.5px;color:#5a8e6e;font-weight:500;font-style:italic">— calcula automáticamente según el ancho</span>
             </label>
           </div>
@@ -2682,7 +2682,7 @@ const TELAS = {
 
   // ── MOTORES TUBULARES ──
   'motores': { label:'Motores Tubulares', grupo:'Motores', tipo:'unitario', colorLabel:'Modelo',
-    colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto','Motor Vertilux 50/12 RF','Somfy 6/28 RF','Somfy 6/28 WD','Somfy 10/28 RF','Control 1 Somfy','Control 5 Somfy','Control 1 canal Vertilux','Control 6 canales Vertilux','Cargador USB-C Vertilux'],
+    colors:['Motor Vertilux BATERIA 2N','Motor Vertilux BATERIA 6N','Motor Vertilux RF 6N Control remoto','Motor Vertilux WD Accionamiento tecla','Motor Vertilux RF 12N Control remoto','Motor Vertilux 50/12 RF','Somfy 100/12 TITAN','Somfy 6/28 RF','Somfy 6/28 WD','Somfy 10/28 RF','Control 1 Somfy','Control 5 Somfy','Control 1 canal Vertilux','Control 6 canales Vertilux','Cargador USB-C Vertilux'],
     fichas:{
       'Motor Vertilux BATERIA 2N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
       'Motor Vertilux BATERIA 6N':'https://s3.amazonaws.com/vertilux-website/cabinet_files/files/000/002/090/original/TS_6800MB25B02.pdf',
@@ -2699,6 +2699,7 @@ const TELAS = {
       'Motor Vertilux WD Accionamiento tecla':210306,
       'Motor Vertilux RF 12N Control remoto':478500,
       'Motor Vertilux 50/12 RF':511000,
+      'Somfy 100/12 TITAN':1499000,
       'Somfy 6/28 RF':1,
       'Somfy 6/28 WD':1,
       'Somfy 10/28 RF':1,
@@ -3044,6 +3045,7 @@ const INSUMOS_DEFAULT = [
   { id:'motor_wdtecla',cat:'Motores', subcat:'', nombre:'Motor Vertilux WD Accionamiento tecla', precio:210306, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   { id:'motor_rf12n',  cat:'Motores', subcat:'', nombre:'Motor Vertilux RF 12N Control remoto',  precio:478500, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   { id:'motor_5012rf', cat:'Motores', subcat:'', nombre:'Motor Vertilux 50/12 RF',               precio:511000, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
+  { id:'motor_somfy_titan', cat:'Motores', subcat:'', nombre:'Somfy 100/12 TITAN',               precio:1499000, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   // V380 — motores Somfy tubulares nuevos (precio $1, el usuario lo ajusta)
   { id:'motor_somfy_628rf',  cat:'Motores', subcat:'', nombre:'Somfy 6/28 RF',  precio:1, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
   { id:'motor_somfy_628wd',  cat:'Motores', subcat:'', nombre:'Somfy 6/28 WD',  precio:1, unidad:'u', en_cotizador:false, cat_cotizador:'', unidad_venta:'u' },
@@ -5587,7 +5589,9 @@ function autoAddChaponItem(anchoMm){
   });
 }
 function autoAddMotorToldoItem(anchoMm){
-  const MODELO = 'Motor Vertilux 50/12 RF';
+  // V421 — Si el toldo supera 6000mm de ancho, lleva el motor Somfy 100/12 TITAN (más fuerza);
+  // si no, el Vertilux 50/12 RF de siempre.
+  const MODELO = (anchoMm > 6000) ? 'Somfy 100/12 TITAN' : 'Motor Vertilux 50/12 RF';
   const precioLista = getPrecioMotor(MODELO);
   if(precioLista <= 0) return;
   // motores usa aplicarSoloCoef (coef de cuotas, no FV completo con IVA)
@@ -7350,7 +7354,7 @@ function calcInstalacion(){
   const puAdMotorT  = Math.round((getPrecio('instal_motor_toldo')    || 0) * getFV());
   const subBrazos   = puBrazos   * (auto.toldoBrazosManual   + auto.toldoBrazosMotor);
   const subVertical = puVertical * (auto.toldoVerticalManual + auto.toldoVerticalMotor);
-  const subAdMotorT = puAdMotorT * (auto.toldoBrazosMotor    + auto.toldoVerticalMotor);
+  const subAdMotorT = 0; // V421 — el toldo motorizado ya no suma adicional de instalación ($26.700)
   const total = subManual + subMotor + subBrazos + subVertical + subAdMotorT;
 
   // Sincronizar inputs (sin disparar onInstalQtyInput)
@@ -7386,10 +7390,8 @@ function calcInstalacion(){
       if(motorQty)  parts.push(`${motorQty} motor${motorQty>1?'izadas':'izada'}`);
       const totToldoBrazos   = auto.toldoBrazosManual   + auto.toldoBrazosMotor;
       const totToldoVertical = auto.toldoVerticalManual + auto.toldoVerticalMotor;
-      const totMotToldos     = auto.toldoBrazosMotor    + auto.toldoVerticalMotor;
       if(totToldoBrazos)   parts.push(`${totToldoBrazos} toldo${totToldoBrazos>1?'s':''} brazos`);
       if(totToldoVertical) parts.push(`${totToldoVertical} toldo${totToldoVertical>1?'s':''} vert.`);
-      if(totMotToldos)     parts.push(`+${totMotToldos} motor toldo`);
       mont.textContent = parts.join(' + ');
     }
   }
@@ -7639,7 +7641,7 @@ function getInstalTotal(){
   const puAdMotorT  = Math.round((getPrecio('instal_motor_toldo')    || 0) * getFV());
   total += puBrazos   * (auto.toldoBrazosManual   + auto.toldoBrazosMotor);
   total += puVertical * (auto.toldoVerticalManual + auto.toldoVerticalMotor);
-  total += puAdMotorT * (auto.toldoBrazosMotor    + auto.toldoVerticalMotor);
+  // V421 — el toldo motorizado ya no suma adicional de instalación ($26.700)
   return total;
 }
 
@@ -11230,19 +11232,7 @@ function openDoc(d, fromForm){
       <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;white-space:nowrap">${fmtM(sub)}</td>
     </tr>`;
   }
-  if(_toldoMotorAdd > 0){
-    const sub = _puAdMotorTold * _toldoMotorAdd;
-    _instalRows += `<tr style="border-bottom:1px solid #e0e0de">
-      <td style="padding:7px 10px;color:#888;text-align:center">⚡</td>
-      <td colspan="5" style="padding:7px 10px;white-space:nowrap">
-        <span style="font-weight:700;font-size:11.5px;color:#141414">Adicional instalación toldo motorizado</span>
-        <span style="font-size:9.5px;color:#aaa;margin-left:8px">+ Conexión eléctrica + programación</span>
-      </td>
-      <td style="padding:7px 10px;text-align:center;font-weight:600;color:#444">${_toldoMotorAdd}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap">${fmtM(_puAdMotorTold)}</td>
-      <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;white-space:nowrap">${fmtM(sub)}</td>
-    </tr>`;
-  }
+  // V421 — quitado: el toldo motorizado ya no agrega "Adicional instalación toldo motorizado" ($26.700).
   if(!_hasBreakdown && !_instalRows && d.instalacion){
     // Backward compat: docs viejos sin breakdown — una sola fila como antes
     _instalRows = `<tr style="border-bottom:1px solid #e0e0de">
