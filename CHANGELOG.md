@@ -1,5 +1,9 @@
 # Changelog
 
+## V426 — 2026-06-29 — "Necesita Revisión": leyenda al pasar el mouse (para el distribuidor)
+
+El badge "⚠️ Revisión" no decía nada; ahora al pasar el mouse muestra una leyenda (`title`). En `getStatusHTMLForDoc(d)` se agregó un caso para `d.estado==='Necesita Revisión'`: si hay `d.revision_comentario` muestra "Necesita revisión — {comentario}"; si no, una explicación genérica ("Este pedido necesita una corrección antes de poder aprobarse. Revisalo o consultá con RollerMotion."). El comentario se escapa con `esc()` (seguro en atributo). Se agregó `cursor:help` al badge para que se note que tiene info. Aplica en la lista de pedidos (usa `getStatusHTMLForDoc` en L9512) y en el historial de cliente. Verificado en navegador: con comentario → title con el comentario; sin comentario → leyenda genérica; otros estados sin title. node --check OK, sin errores de consola.
+
 ## V425 — 2026-06-29 — Pedido aprobado: solo Fábrica o admin pueden eliminarlo
 
 Una vez aprobado un pedido, ni distribuidores ni vendedores pueden borrarlo: solo Fábrica o un administrador. Guard al inicio de `deleteDoc(id)` (antes del `confirm`): busca el doc y, si `pedidoTrabado(doc)` (= order fuera de Pendiente/Necesita Revisión, o sea Aprobado/En Fabricación/Parcialmente/Finalizado/Cancelado) y el usuario NO es admin/fabrica → `toast('Este pedido ya fue aprobado. Solo Fábrica o un administrador pueden eliminarlo.')` y return. Reusa el helper `pedidoTrabado` del candado de edición (V345), así borrado y edición quedan con el mismo criterio. Pedidos Pendiente/Necesita Revisión y cotizaciones se borran como antes. Verificado en navegador (inyectando docs en `_docsCache` + contando si se llega al `confirm`): distribuidor+aprobado y vendedor+aprobado → bloqueado; distribuidor+pendiente, fábrica+aprobado, admin+aprobado → permitido. node --check OK, sin errores de consola.

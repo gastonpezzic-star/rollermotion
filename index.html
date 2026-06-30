@@ -4906,6 +4906,14 @@ function getStatusHTMLForDoc(d){
       return '<span class="badge s-f">🧵 Confección</span>';
     }
   }
+  // V426 — "Necesita Revisión": leyenda al pasar el mouse (sobre todo para el distribuidor).
+  // Muestra el comentario de revisión si lo hay; si no, una explicación genérica.
+  if(d.estado === 'Necesita Revisión'){
+    const _leg = d.revision_comentario
+      ? ('Necesita revisión — ' + d.revision_comentario)
+      : 'Este pedido necesita una corrección antes de poder aprobarse. Revisalo o consultá con RollerMotion.';
+    return '<span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;cursor:help" title="'+esc(_leg)+'">⚠️ Revisión</span>';
+  }
   if(d.estado !== 'Parcialmente terminado') return STATUS_HTML[d.estado] || d.estado;
   // Construir tooltip según el estado de los sub-flags
   const tieneConf   = (typeof _hasConfeccionItems==='function') ? _hasConfeccionItems(d) : false;
