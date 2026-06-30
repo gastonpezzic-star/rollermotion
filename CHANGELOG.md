@@ -1,5 +1,9 @@
 # Changelog
 
+## V425 — 2026-06-29 — Pedido aprobado: solo Fábrica o admin pueden eliminarlo
+
+Una vez aprobado un pedido, ni distribuidores ni vendedores pueden borrarlo: solo Fábrica o un administrador. Guard al inicio de `deleteDoc(id)` (antes del `confirm`): busca el doc y, si `pedidoTrabado(doc)` (= order fuera de Pendiente/Necesita Revisión, o sea Aprobado/En Fabricación/Parcialmente/Finalizado/Cancelado) y el usuario NO es admin/fabrica → `toast('Este pedido ya fue aprobado. Solo Fábrica o un administrador pueden eliminarlo.')` y return. Reusa el helper `pedidoTrabado` del candado de edición (V345), así borrado y edición quedan con el mismo criterio. Pedidos Pendiente/Necesita Revisión y cotizaciones se borran como antes. Verificado en navegador (inyectando docs en `_docsCache` + contando si se llega al `confirm`): distribuidor+aprobado y vendedor+aprobado → bloqueado; distribuidor+pendiente, fábrica+aprobado, admin+aprobado → permitido. node --check OK, sin errores de consola.
+
 ## V424 — 2026-06-29 — Distribuidores no pueden cambiar la fecha (queda en hoy)
 
 Para distribuidores, el campo Fecha (`#f-fecha`) del cotizador queda deshabilitado (no editable) y fijo en hoy. Mismo patrón que `#f-ent` (validez, solo admin): se agregó `{ const _ff=document.getElementById('f-fecha'); if(_ff) _ff.disabled = !!(ME && ME.esDistribuidor); }` en `resetForm` (nuevo, tras setear `today()`) y en `editDoc` (editar, tras setear `doc.fecha`). El input disabled igual conserva su `.value`, así que se guarda bien (saveDoc lee `f-fecha`.value). Verificado en navegador: distribuidor → `f-fecha.disabled=true` con la fecha de hoy; vendedor → editable. node --check OK, sin errores de consola.

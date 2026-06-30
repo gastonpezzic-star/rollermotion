@@ -8689,6 +8689,13 @@ function editDoc(id){
 }
 
 async function deleteDoc(id){
+  // V425 — Pedido aprobado (o más avanzado): solo Fábrica o un administrador pueden eliminarlo.
+  // Reusa pedidoTrabado() (= pedido fuera de Pendiente/Necesita Revisión).
+  const _doc = getDocs().find(x=>x.id===id);
+  if(_doc && pedidoTrabado(_doc) && !(ME && (ME.role==='admin' || ME.role==='fabrica'))){
+    toast('Este pedido ya fue aprobado. Solo Fábrica o un administrador pueden eliminarlo.', 'err');
+    return;
+  }
   if(!confirm('¿Eliminar este documento?')) return;
   // 1. Eliminar localmente SIEMPRE
   _docsCache = _docsCache.filter(x=>x.id!==id);
