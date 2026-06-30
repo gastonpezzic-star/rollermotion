@@ -1,5 +1,9 @@
 # Changelog
 
+## V429 — 2026-06-29 — Confección: nombre de tela manual (fuera de catálogo) sale en la planilla
+
+En cortinas de confección (liviana / Blackout Tex), si no se carga un código de tela, antes la planilla mostraba solo el color (el campo "Tela" es un desplegable de colores). Ahora se puede escribir el nombre de la tela y sale en la planilla de confección. (1) Nuevo input `#qa-conf-tela-nombre` ("Nombre de la tela — si está fuera de catálogo") dentro de la sección `#qa-conf-extra` (visible solo en confección). (2) En `qaAgregar` rama confección: `nombreTela = telaSelData ? '{cod} — {nombre}' : (telaNombreManual || colorBase)` — si hay código manda el código; si no, el nombre escrito; si no, el color (como antes). (3) Se limpia el campo en `resetForm`. El dato viaja por el pipeline existente (confData.nombreTela → spread en addRow → item.nombreTela → nombre_tela en Supabase → planilla `it.nombreTela`). Verificado en navegador end-to-end: qaInit + agregar confección con "Lino Pampa Beige" → item.nombreTela='Lino Pampa Beige'; openPlanillaConfeccion lo muestra. node --check OK, sin errores de consola.
+
 ## V428 — 2026-06-29 — Nota de fabricación: muestra la fecha de entrega del calendario (entrega_estimada)
 
 La nota de fabricación mostraba en "Entrega:" el valor de `d.entrega` (que en realidad es la "Válido hasta"/validez del form, campo `f-ent`), no la fecha de entrega real. Ahora usa `d.entrega_estimada` (la que se carga con el calendario ✎ "Definir entrega"). Cambio en `openPlanilla` (L12138) y `openPlanillaConfeccion` (L13069): `const fecha = d.entrega_estimada ? fmtD(d.entrega_estimada) : 'a confirmar'` (antes `d.entrega ? … : '—'`). `entrega_estimada` ya estaba normalizado/guardado (V385). Verificado en navegador con un pedido con entrega_estimada=15/07/2026 y validez=31/12/2026: ambas planillas muestran 15/07/2026 y NO 31/12/2026. node --check OK, sin errores de consola.

@@ -1722,6 +1722,12 @@ button:not([disabled]):active,
                   onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
               </div>
             </div>
+            <div class="f" style="margin-top:10px">
+              <label>Nombre de la tela <span style="color:var(--muted);font-weight:400">(si está fuera de catálogo — sale en la planilla de fábrica)</span></label>
+              <input type="text" id="qa-conf-tela-nombre" placeholder="Ej: Lino Pampa Beige"
+                style="font-size:13.5px;padding:9px 11px;border:1.5px solid var(--border);border-radius:7px;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;outline:none;transition:border-color .15s;width:100%;box-sizing:border-box"
+                onfocus="this.style.borderColor='var(--accent)'" onblur="this.style.borderColor='var(--border)'">
+            </div>
           </div>
         </div>
       </div>
@@ -6755,7 +6761,9 @@ function qaAgregar(){
     const costoRiel = conRiel ? anchoMA * getPrecio('riel_manual_ml') : 0;
     precio = Math.round((costoTela + costoMO + costoRiel) * 2 * getFV());
     const colorBase = document.getElementById('qa-color')?.value || '';
-    const nombreTela = telaSelDataA ? `${telaSelDataA.cod} — ${telaSelDataA.nombre}` : colorBase;
+    // V429 — nombre de tela manual (tela fuera de catálogo): si lo cargaron y no hay código, va a la planilla.
+    const telaNombreManual = (document.getElementById('qa-conf-tela-nombre')?.value || '').trim();
+    const nombreTela = telaSelDataA ? `${telaSelDataA.cod} — ${telaSelDataA.nombre}` : (telaNombreManual || colorBase);
     color = nombreTela + (conRiel ? ' · Con riel' : ' · Sin riel') + ` · Frunce: ${frunceReal.toFixed(2)}`;
     tela = esBlackoutTex ? 'conf_blackout' : 'conf_liviana';
     // Datos para la planilla de confección — se persisten en el item
@@ -7768,7 +7776,7 @@ function resetForm(){
   document.getElementById('f-num').value = num||'';
   // V370: NO pedimos el número atómico al abrir (lo "quemaría" sin guardar y dejaría huecos).
   // Se muestra el provisional local; el número real y único se asigna recién al GUARDAR (ver saveDoc).
-  ['f-cuit','f-cli','f-dir','f-obra','f-cont','f-tel1','f-tel2','f-obs','f-pago','f-tiempo'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  ['f-cuit','f-cli','f-dir','f-obra','f-cont','f-tel1','f-tel2','f-obs','f-pago','f-tiempo','qa-conf-tela-nombre'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   ['f-pago-sel','f-tiempo-sel'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
   document.getElementById('f-fecha').value = today();
   document.getElementById('f-vend').value  = ME?ME.name:'';
