@@ -1,5 +1,9 @@
 # Changelog
 
+## V424 — 2026-06-29 — Distribuidores no pueden cambiar la fecha (queda en hoy)
+
+Para distribuidores, el campo Fecha (`#f-fecha`) del cotizador queda deshabilitado (no editable) y fijo en hoy. Mismo patrón que `#f-ent` (validez, solo admin): se agregó `{ const _ff=document.getElementById('f-fecha'); if(_ff) _ff.disabled = !!(ME && ME.esDistribuidor); }` en `resetForm` (nuevo, tras setear `today()`) y en `editDoc` (editar, tras setear `doc.fecha`). El input disabled igual conserva su `.value`, así que se guarda bien (saveDoc lee `f-fecha`.value). Verificado en navegador: distribuidor → `f-fecha.disabled=true` con la fecha de hoy; vendedor → editable. node --check OK, sin errores de consola.
+
 ## V423 — 2026-06-29 — Distribuidores no pueden generar recibos
 
 Los distribuidores ya no pueden generar recibos. (1) El botón "🧾 Nuevo Recibo" (pg-ped) recibió `id="btn-nuevo-recibo"` y se oculta en `enterApp` si `ME.esDistribuidor` (`display:none`). (2) Guard defensivo al inicio de `openReciboForm` (cubre crear y editar, ya que `editRecibo` llama a `openReciboForm`) y de `saveRecibo`: si `ME.esDistribuidor` → `toast('Los recibos los genera RollerMotion.')` y return. Verificado en navegador: distribuidor → botón oculto y `openReciboForm` no abre el form (overlay-title no cambia); vendedor → botón visible y form abre normal. node --check OK, sin errores de consola.

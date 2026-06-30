@@ -7729,6 +7729,7 @@ function resetForm(){
   document.getElementById('f-vend').value  = ME?ME.name:'';
   autoValidez();
   { const _fe=document.getElementById('f-ent'); if(_fe) _fe.disabled = (ME?.role!=='admin'); } // V385: "Válido hasta" (validez) solo la edita admin
+  { const _ff=document.getElementById('f-fecha'); if(_ff) _ff.disabled = !!(ME && ME.esDistribuidor); } // V424: distribuidores no cambian la fecha (queda hoy)
   _vincCotNum = null; actualizarVincBadge();  // V327
   // Show/hide pedido-only fields
   const isOrder = currentType === 'order';
@@ -8650,6 +8651,7 @@ function editDoc(id){
   document.getElementById('f-vend').value  = doc.vendedor||'';
   document.getElementById('f-ent').value   = doc.entrega||'';
   { const _fe=document.getElementById('f-ent'); if(_fe) _fe.disabled = (ME?.role!=='admin'); } // V385: validez solo admin
+  { const _ff=document.getElementById('f-fecha'); if(_ff) _ff.disabled = !!(ME && ME.esDistribuidor); } // V424: distribuidores no cambian la fecha
   document.getElementById('f-cli').value   = doc.cliente||'';
   document.getElementById('f-cuit').value  = doc.cuit||'';
   document.getElementById('f-dir').value   = doc.dir||'';
