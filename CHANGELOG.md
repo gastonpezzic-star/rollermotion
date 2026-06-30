@@ -1,5 +1,9 @@
 # Changelog
 
+## V428 — 2026-06-29 — Nota de fabricación: muestra la fecha de entrega del calendario (entrega_estimada)
+
+La nota de fabricación mostraba en "Entrega:" el valor de `d.entrega` (que en realidad es la "Válido hasta"/validez del form, campo `f-ent`), no la fecha de entrega real. Ahora usa `d.entrega_estimada` (la que se carga con el calendario ✎ "Definir entrega"). Cambio en `openPlanilla` (L12138) y `openPlanillaConfeccion` (L13069): `const fecha = d.entrega_estimada ? fmtD(d.entrega_estimada) : 'a confirmar'` (antes `d.entrega ? … : '—'`). `entrega_estimada` ya estaba normalizado/guardado (V385). Verificado en navegador con un pedido con entrega_estimada=15/07/2026 y validez=31/12/2026: ambas planillas muestran 15/07/2026 y NO 31/12/2026. node --check OK, sin errores de consola.
+
 ## V427 — 2026-06-29 — "Necesita Revisión": el tooltip ahora es un pop-up lindo (tarjeta)
 
 Reemplazo del `title` nativo (gris del navegador, V426) por una tarjeta custom. El badge ahora es `<span class="badge rev-badge" data-tip="…">` (sin `title`). Nuevo `#rev-tooltip` (creado una vez, appendeado al body): tarjeta `position:fixed` (z-index 99999, no se recorta por la tabla), redondeada (radius 12px), con sombra suave, tono ámbar, header "⚠️ NECESITA REVISIÓN" + cuerpo con el comentario (o leyenda genérica). IIFE con delegación de eventos: `mouseover`/`mouseout` sobre `.rev-badge` muestra/oculta; posiciona arriba del badge (o abajo si no entra) centrado y clampeado al viewport; `click`/tap también lo muestra (con `stopPropagation` para no abrir el pedido) y un click afuera lo cierra; `scroll` (capture) lo oculta. Texto escapado con `esc()`. Verificado en navegador (tooltip creado con el texto correcto, `position:fixed`, captura del pop-up). node --check OK, sin errores de consola.

@@ -12135,7 +12135,7 @@ function openPlanilla(d){
     toast('Sin items para generar planilla','err'); return;
   }
 
-  const fecha  = d.entrega ? fmtD(d.entrega) : '—';
+  const fecha  = d.entrega_estimada ? fmtD(d.entrega_estimada) : 'a confirmar'; // V428: la nota de fábrica usa la fecha de entrega del calendario (no la validez)
   const pedNum = `${d.numero||'—'}`;
 
   // ── HOJA 1: CORTE DE TELA + ARMADO (Roller) ──
@@ -13066,7 +13066,7 @@ function openPlanillaConfeccion(d){
   }
   const pedNum = d.numero || '—';
   const cliente = d.cliente || '—';
-  const fechaEnt = d.entrega ? fmtD(d.entrega) : '—';
+  const fechaEnt = d.entrega_estimada ? fmtD(d.entrega_estimada) : 'a confirmar'; // V428: fecha de entrega del calendario (no la validez)
 
   const cortinasHtml = items.map((it,i)=>{
     const cant = parseInt(it.cant)||1;
