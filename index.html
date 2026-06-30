@@ -9918,7 +9918,14 @@ async function registrarCobroCC(){
   }catch(e){ console.error('[CC] cobro:', e); toast('⚠ No se pudo cargar el cobro','err'); }
 }
 async function eliminarMovCC(id){
-  if(!confirm('¿Eliminar este movimiento?')) return;
+  // V430 — el admin puede borrar cualquier movimiento. Si es el débito automático de un pedido,
+  // avisar fuerte: lo correcto es cancelar/eliminar el pedido (ajusta la CC solo); el borrado manual puede descuadrar.
+  const _mov = (_ccCache||[]).find(m=>m.id===id);
+  const _esDebPedido = _mov && _mov.tipo==='debito' && _mov.pedido_id;
+  const _msg = _esDebPedido
+    ? 'Este es el DÉBITO AUTOMÁTICO de un pedido aprobado'+(_mov.pedido_numero?` (${_mov.pedido_numero})`:'')+'.\n\nLo recomendable es CANCELAR o eliminar el pedido — eso ajusta la cuenta corriente solo. Si lo borrás a mano, la deuda puede quedar descuadrada con el pedido.\n\n¿Eliminar igual?'
+    : '¿Eliminar este movimiento?';
+  if(!confirm(_msg)) return;
   try{ const { error } = await _sb.from('cc_movimientos').delete().eq('id', id); if(error) throw error;
     _ccCache = _ccCache.filter(m=>m.id!==id); renderCCLedger(); renderMiniDashDistrib(_ccSelDist); toast('🗑 Movimiento eliminado'); }
   catch(e){ toast('⚠ No se pudo eliminar','err'); }
@@ -10120,7 +10127,7 @@ function renderCCLedger(){
       <td style="text-align:right;color:var(--red);font-weight:600;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif">${m.tipo==='debito'?fmtM(+m.monto):''}</td>
       <td style="text-align:right;color:var(--green);font-weight:600;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif">${m.tipo==='credito'?fmtM(+m.monto):''}</td>
       <td style="text-align:right;font-weight:800;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif">${fmtM(saldo)}</td>
-      <td style="text-align:center">${(m.tipo==='credito' || (m.tipo==='debito' && !m.pedido_id))?`<button class="btn-t" style="color:var(--red);border-color:#e8b4b4" onclick="eliminarMovCC('${m.id}')" title="Eliminar movimiento">✕</button>`:''}</td>
+      <td style="text-align:center"><button class="btn-t" style="color:var(--red);border-color:#e8b4b4" onclick="eliminarMovCC('${m.id}')" title="Eliminar movimiento">✕</button></td>${''/* V430: el admin puede borrar cualquier movimiento (incl. el débito automático de un pedido), con aviso en eliminarMovCC. */}
     </tr>`; }).join('');
   wrap.innerHTML = `
     <div style="background:#fafafa;border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:16px">
