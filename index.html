@@ -16,6 +16,12 @@
 @keyframes sc-pulse{0%{transform:scale(.5);opacity:.5}100%{transform:scale(1.9);opacity:0}}
 @media (prefers-reduced-motion: reduce){ .sc-dot.live::after{ animation:none } }
 
+/* ── Pop-up "Necesita revisión" (V427) ── */
+#rev-tooltip{position:fixed;z-index:99999;max-width:264px;background:#fffdf6;color:#4a4326;border:1px solid #ffd87a;border-radius:12px;box-shadow:0 8px 26px rgba(120,90,10,.18);padding:11px 13px;font-size:12px;line-height:1.45;font-family:inherit;pointer-events:none;opacity:0;transform:translateY(4px);transition:opacity .13s ease,transform .13s ease;display:none}
+#rev-tooltip.show{opacity:1;transform:translateY(0)}
+#rev-tooltip .rt-h{font-weight:700;color:#a6791a;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+#rev-tooltip .rt-body{color:#4a4a4a;white-space:normal}
+
 /* ── Tipografías RollerMotion ── */
 @font-face {
   font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;font-weight:300;font-style:normal;
@@ -4909,10 +4915,11 @@ function getStatusHTMLForDoc(d){
   // V426 — "Necesita Revisión": leyenda al pasar el mouse (sobre todo para el distribuidor).
   // Muestra el comentario de revisión si lo hay; si no, una explicación genérica.
   if(d.estado === 'Necesita Revisión'){
+    // V427 — pop-up lindo (no el tooltip gris del navegador): el texto va en data-tip y lo muestra revTip().
     const _leg = d.revision_comentario
-      ? ('Necesita revisión — ' + d.revision_comentario)
-      : 'Este pedido necesita una corrección antes de poder aprobarse. Revisalo o consultá con RollerMotion.';
-    return '<span class="badge" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;cursor:help" title="'+esc(_leg)+'">⚠️ Revisión</span>';
+      ? d.revision_comentario
+      : 'Necesita una corrección antes de poder aprobarse. Revisalo o consultá con RollerMotion.';
+    return '<span class="badge rev-badge" data-tip="'+esc(_leg)+'" style="background:#fff3cd;color:#856404;border:1px solid #ffc107;cursor:help">⚠️ Revisión</span>';
   }
   if(d.estado !== 'Parcialmente terminado') return STATUS_HTML[d.estado] || d.estado;
   // Construir tooltip según el estado de los sub-flags
@@ -4934,6 +4941,36 @@ function getStatusHTMLForDoc(d){
   const tip = detalle.replace(/"/g,'&quot;');
   return `<span class="badge" title="${tip}" style="background:#dbeafe;color:#1e40af;border:1px solid #93c5fd;cursor:help">🔄 Parcial</span>`;
 }
+
+// V427 — Pop-up de "Necesita Revisión" (tarjeta linda en vez del tooltip gris del navegador).
+(function(){
+  var tip;
+  function ensureTip(){
+    if(tip) return tip;
+    tip = document.createElement('div'); tip.id='rev-tooltip';
+    tip.innerHTML = '<div class="rt-h">⚠️ Necesita revisión</div><div class="rt-body"></div>';
+    document.body.appendChild(tip);
+    return tip;
+  }
+  function showRevTip(el){
+    var t = ensureTip();
+    t.querySelector('.rt-body').textContent = el.getAttribute('data-tip')||'';
+    t.style.display='block'; t.classList.remove('show');
+    var r = el.getBoundingClientRect();
+    var tr = t.getBoundingClientRect();
+    var left = Math.max(8, Math.min(r.left + r.width/2 - tr.width/2, window.innerWidth - tr.width - 8));
+    var top  = r.top - tr.height - 9;
+    if(top < 8) top = r.bottom + 9; // si no entra arriba, va abajo
+    t.style.left = Math.round(left)+'px'; t.style.top = Math.round(top)+'px';
+    requestAnimationFrame(function(){ t.classList.add('show'); });
+  }
+  function hideRevTip(){ if(tip){ tip.classList.remove('show'); tip.style.display='none'; } }
+  document.addEventListener('mouseover', function(e){ var b=e.target.closest&&e.target.closest('.rev-badge'); if(b) showRevTip(b); });
+  document.addEventListener('mouseout',  function(e){ var b=e.target.closest&&e.target.closest('.rev-badge'); if(b) hideRevTip(); });
+  // Touch/click: tocar el badge muestra el pop-up (sin abrir el pedido); tocar afuera lo cierra.
+  document.addEventListener('click', function(e){ var b=e.target.closest&&e.target.closest('.rev-badge'); if(b){ e.stopPropagation(); showRevTip(b); } else hideRevTip(); });
+  window.addEventListener('scroll', hideRevTip, true);
+})();
 
 /* ════════════════════════════
    CUT CALCULATIONS

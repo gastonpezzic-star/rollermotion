@@ -1,5 +1,9 @@
 # Changelog
 
+## V427 — 2026-06-29 — "Necesita Revisión": el tooltip ahora es un pop-up lindo (tarjeta)
+
+Reemplazo del `title` nativo (gris del navegador, V426) por una tarjeta custom. El badge ahora es `<span class="badge rev-badge" data-tip="…">` (sin `title`). Nuevo `#rev-tooltip` (creado una vez, appendeado al body): tarjeta `position:fixed` (z-index 99999, no se recorta por la tabla), redondeada (radius 12px), con sombra suave, tono ámbar, header "⚠️ NECESITA REVISIÓN" + cuerpo con el comentario (o leyenda genérica). IIFE con delegación de eventos: `mouseover`/`mouseout` sobre `.rev-badge` muestra/oculta; posiciona arriba del badge (o abajo si no entra) centrado y clampeado al viewport; `click`/tap también lo muestra (con `stopPropagation` para no abrir el pedido) y un click afuera lo cierra; `scroll` (capture) lo oculta. Texto escapado con `esc()`. Verificado en navegador (tooltip creado con el texto correcto, `position:fixed`, captura del pop-up). node --check OK, sin errores de consola.
+
 ## V426 — 2026-06-29 — "Necesita Revisión": leyenda al pasar el mouse (para el distribuidor)
 
 El badge "⚠️ Revisión" no decía nada; ahora al pasar el mouse muestra una leyenda (`title`). En `getStatusHTMLForDoc(d)` se agregó un caso para `d.estado==='Necesita Revisión'`: si hay `d.revision_comentario` muestra "Necesita revisión — {comentario}"; si no, una explicación genérica ("Este pedido necesita una corrección antes de poder aprobarse. Revisalo o consultá con RollerMotion."). El comentario se escapa con `esc()` (seguro en atributo). Se agregó `cursor:help` al badge para que se note que tiene info. Aplica en la lista de pedidos (usa `getStatusHTMLForDoc` en L9512) y en el historial de cliente. Verificado en navegador: con comentario → title con el comentario; sin comentario → leyenda genérica; otros estados sin title. node --check OK, sin errores de consola.
