@@ -1323,7 +1323,7 @@ button:not([disabled]):active,
         <button class="btn btn-primary" onclick="goNew('quote')">＋ Nueva Cotización</button>
       </div>
       <div class="srow">
-        <input type="text" id="cq-q" placeholder="Buscar cliente o N°…" oninput="_pageCot=1;renderCot()">
+        <input type="text" id="cq-q" placeholder="Buscar cliente, N° o distribuidor…" oninput="_pageCot=1;renderCot()">
         <select id="cq-s" onchange="_pageCot=1;renderCot()">
           <option value="">Todos los estados</option>
           <option value="Cotización">Cotización</option><option value="Enviada">Enviada</option>
@@ -1357,7 +1357,7 @@ button:not([disabled]):active,
         </div>
       </div>
       <div class="srow">
-        <input type="text" id="pq-q" placeholder="Buscar cliente o N°…" oninput="_pagePed=1;renderPed()">
+        <input type="text" id="pq-q" placeholder="Buscar cliente, N° o distribuidor…" oninput="_pagePed=1;renderPed()">
         <select id="pq-s" onchange="_pagePed=1;renderPed()">
           <option value="">Todos los estados</option>
           <option value="Pendiente">Pendiente</option><option value="Aprobado">Aprobado</option>
@@ -1401,7 +1401,7 @@ button:not([disabled]):active,
       <!-- Barra de demora siempre visible -->
       <div id="fab-demora" style="background:var(--surface);border-radius:var(--radius-lg);padding:12px 18px;margin-bottom:16px;box-shadow:var(--shadow);display:flex;align-items:center;gap:14px;border-left:4px solid var(--accent)"></div>
       <div class="srow">
-        <input type="text" id="fq-q" placeholder="Buscar cliente o N°…" oninput="renderFab()">
+        <input type="text" id="fq-q" placeholder="Buscar cliente, N° o distribuidor…" oninput="renderFab()">
         <select id="fq-s" onchange="renderFab()">
           <option value="">Todos los estados</option>
           <option value="Pendiente">Pendiente</option>
@@ -9019,7 +9019,10 @@ function filterDocs(type, qId, sId){
       }
     }
     if(st&&d.estado!==st) return false;
-    if(q&&!(d.cliente||'').toLowerCase().includes(q)&&!(d.numero||'').toLowerCase().includes(q)) return false;
+    // V432 — la búsqueda también matchea el nombre del vendedor/distribuidor dueño del doc (d.vendedor),
+    // así el admin puede escribir "Charly" y ver todo lo de esa persona. Para un distribuidor no cambia
+    // nada (solo ve lo suyo por el filtro de rol de arriba).
+    if(q&&!(d.cliente||'').toLowerCase().includes(q)&&!(d.numero||'').toLowerCase().includes(q)&&!(d.vendedor||'').toLowerCase().includes(q)) return false;
     return true;
   }).sort(docComparator(document.getElementById(qId.replace('-q','-sort'))?.value));
 }
@@ -10520,7 +10523,7 @@ function renderFab(){
   const data = getDocs().filter(d=>{
     if(d.type !== 'order') return false;
     if(st && d.estado !== st) return false;
-    if(q && !(d.cliente||'').toLowerCase().includes(q) && !(d.numero||'').toLowerCase().includes(q)) return false;
+    if(q && !(d.cliente||'').toLowerCase().includes(q) && !(d.numero||'').toLowerCase().includes(q) && !(d.vendedor||'').toLowerCase().includes(q)) return false; // V432: también por distribuidor/vendedor
     return true;
   }).sort(docComparator(document.getElementById('fq-sort')?.value));
 

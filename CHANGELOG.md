@@ -1,5 +1,9 @@
 # Changelog
 
+## V432 — 2026-07-01 — Buscar cotizaciones/pedidos por distribuidor (nombre del vendedor)
+
+Los buscadores de Cotizaciones, Pedidos y Fábrica ahora también matchean el nombre del vendedor/distribuidor dueño del documento (`d.vendedor`), no solo cliente y número. Así el admin puede escribir "Charly" y ver todo lo de esa persona. Cambios: `filterDocs` (L9022, cubre Cotizaciones `cq-q` + Pedidos `pq-q`) y el filtro inline de `renderFab` (L10523) agregan `&& !(d.vendedor||'').toLowerCase().includes(q)`; los 3 placeholders pasan de "Buscar cliente o N°…" a "Buscar cliente, N° o distribuidor…". El panel de Administración (`renderAdmin`) ya buscaba por vendedor (y tiene un desplegable `aq-v`), así que ahora todos los listados quedan consistentes. Para distribuidores no cambia nada (por el filtro de rol solo ven lo suyo). node --check OK, 0 errores de sintaxis.
+
 ## V431 — 2026-07-01 — Auditoría pre-go-live de distribuidores (Charly, Aleydani): arreglos de precios, seguridad, numeración y datos
 
 Revisión integral multi-agente antes de que los distribuidores reales empiecen a operar. 7 críticos + importantes, todos aplicados y verificados (node --check: 0 errores de sintaxis; barrido XSS: 0 renders crudos de texto libre).
