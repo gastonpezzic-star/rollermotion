@@ -3715,7 +3715,7 @@ async function syncPendingDocs(){
   let synced = 0;
   for(const doc of pending){
     try {
-      await saveDocToSupabase(doc);
+      await saveDocToSupabase(doc, { preserveServerEstado: true }); // V431: no pisar el estado que fábrica pudo avanzar mientras el usuario estuvo offline
       doc._pendingSync = false;
       saveDocLocal(doc);
       // actualizar cache
@@ -3986,10 +3986,22 @@ function normalizeItem(it){
   };
 }
 
-async function saveDocToSupabase(doc){
+async function saveDocToSupabase(doc, opts){
+  opts = opts || {};
   // Helper: convierte string vacío a null para campos DATE
   const d = v => (v && v.trim() !== '') ? v : null;
   const n = v => (v !== undefined && v !== null && v !== '') ? v : null;
+
+  // V431 — Sincronización offline: NO pisar el estado que fábrica/admin pudo haber avanzado en el
+  // servidor mientras el usuario estuvo sin señal (ej. lo pasaron a "En Fabricación"). Traemos el
+  // estado remoto y lo respetamos. Si el doc todavía no existe (recién creado offline), no hay estado
+  // remoto y se conserva el local. Solo aplica cuando se pide (opts.preserveServerEstado).
+  if(opts.preserveServerEstado){
+    try{
+      const { data: _cur } = await _sb.from('documentos').select('estado').eq('id', doc.id).limit(1);
+      if(_cur && _cur[0] && _cur[0].estado) doc.estado = _cur[0].estado;
+    }catch(e){ /* si la consulta falla, seguimos con el estado local */ }
+  }
 
   // Upsert documento principal
   const { error: docErr } = await _sb
@@ -5629,7 +5641,10 @@ function calcChaponCubre(anchoMm){
 function autoAddChaponItem(anchoMm){
   const info = calcChaponCubre(anchoMm);
   if(info.qty <= 0) return;
-  const precioUnitVenta = Math.round(info.precioUnitLista * getFV());
+  let precioUnitVenta = Math.round(info.precioUnitLista * getFV());
+  // V431 — aplicar descuento de distribuidor (clave 'toldos'), igual que el item principal del toldo (~línea 7004).
+  // Antes el cobertor auto-agregado se cargaba a precio de lista sin descuento → se cobraba de más al distribuidor.
+  { const _dPct = descDistribuidorPct('cobertor_toldo', 'Cada unidad cubre 2m de ancho'); if(_dPct > 0) precioUnitVenta = Math.round(precioUnitVenta * (1 - _dPct/100)); }
   addRow({
     // V290.1: usar 'cobertor_toldo' como tela para que el sistema muestre 'Cobertor de toldo'
     tela: 'cobertor_toldo',
@@ -5647,8 +5662,12 @@ function autoAddMotorToldoItem(anchoMm){
   const MODELO = (anchoMm > 6000) ? 'Somfy 100/12 TITAN' : 'Motor Vertilux 50/12 RF';
   const precioLista = getPrecioMotor(MODELO);
   if(precioLista <= 0) return;
-  // motores usa aplicarSoloCoef (coef de cuotas, no FV completo con IVA)
-  const precioVenta = Math.round(precioLista * (typeof getCoefCuotas === 'function' ? getCoefCuotas() : getFV()));
+  // V431 — 'motores' es aplicarFV:true (~línea 2724): venta = lista × getFV(), igual que el alta manual
+  // y la vista previa (~líneas 5925-5926). Antes usaba getCoefCuotas() por error (comentario equivocado que
+  // lo confundía con los motores de RIEL, que sí son aplicarSoloCoef) → el motor salía mal calculado.
+  let precioVenta = Math.round(precioLista * getFV());
+  // aplicar descuento de distribuidor (clave 'motores'), igual que el resto de los items
+  { const _dPct = descDistribuidorPct('motores', MODELO); if(_dPct > 0) precioVenta = Math.round(precioVenta * (1 - _dPct/100)); }
   addRow({
     tela: 'motores',
     color: MODELO,
@@ -7159,6 +7178,12 @@ function addRow(item){
     // Motor seleccionado para Riel Motorizado Somfy (id de insumo + label legible)
     motorId:       item.motorId,
     motorLabel:    item.motorLabel,
+    // V431 — vínculo motor↔cortina y flag de toldo motorizado. Se persistían en la DB (motor_asignado,
+    // cortina_asignada, motorizado) pero addRow NO los guardaba en el JSON del item, así que al
+    // re-editar y re-guardar un pedido se PERDÍAN (la planilla dejaba de saber qué cortina lleva motor).
+    motor:            item.motor,
+    cortina_asignada: item.cortina_asignada,
+    motorizado:       item.motorizado,
     // Datos de tela de toldo (rolloId, marca, ancho, modo, strips, linearM)
     toldoTelaRollo:      item.toldoTelaRollo,
     toldoTelaMarca:      item.toldoTelaMarca,
@@ -7680,6 +7705,14 @@ function getAdicionalesTotal(){
   return total;
 }
 
+// V431 — descuento de distribuidor para la INSTALACIÓN (clave 'instalacion' del panel de descuentos).
+// La instalación no es un item con tela/color, así que se lee la clave directo (no via _descKeyForItem).
+// Antes esta clave del panel no se aplicaba nunca (control muerto). Devuelve 0 si no es distribuidor.
+function descInstalacionPct(){
+  if(!ME || !ME.esDistribuidor || !ME.descuentos) return 0;
+  const v = parseFloat(ME.descuentos['instalacion']);
+  return (v>0 && v<=100) ? v : 0;
+}
 function getInstalTotal(){
   if(!_instalacionActiva) return 0;
   const manualQty = _instalManualQty||0;
@@ -7693,6 +7726,9 @@ function getInstalTotal(){
   total += puBrazos   * (auto.toldoBrazosManual   + auto.toldoBrazosMotor);
   total += puVertical * (auto.toldoVerticalManual + auto.toldoVerticalMotor);
   // V421 — el toldo motorizado ya no suma adicional de instalación ($26.700)
+  // V431 — aplicar el descuento de instalación del distribuidor (si tiene uno cargado en el panel).
+  const _dInstal = descInstalacionPct();
+  if(_dInstal > 0) total = Math.round(total * (1 - _dInstal/100));
   return total;
 }
 
@@ -7822,6 +7858,18 @@ function resetForm(){
   if(cdot) cdot.style.left = '3px';
   if(cres) cres.textContent = 'Aplica 25% OFF · Venta Corporativa — reemplaza las opciones de pago en cuotas';
   if(cdisp) cdisp.textContent = '';
+  // V431 — Descuento adicional: desactivar y limpiar. Antes NO se reseteaba, así que un descuento
+  // hecho en un presupuesto se "filtraba" activo al siguiente presupuesto nuevo. Espeja el reseteo
+  // de corporativo de arriba.
+  _descuentoActivo = false;
+  { const _b=document.getElementById('desc-body'); if(_b) _b.style.display='none';
+    const _t=document.getElementById('desc-toggle'); if(_t) _t.style.background='var(--muted)';
+    const _dt=document.getElementById('desc-toggle-dot'); if(_dt) _dt.style.left='3px';
+    const _r=document.getElementById('desc-resumen'); if(_r) _r.textContent='Activá para ingresar concepto y monto o porcentaje';
+    const _md=document.getElementById('desc-monto-display'); if(_md) _md.textContent='';
+    const _p=document.getElementById('desc-pct'); if(_p) _p.value='';
+    const _c=document.getElementById('desc-concepto'); if(_c) _c.value='';
+    const _ty=document.getElementById('desc-tipo'); if(_ty) _ty.value='%'; }
   _aplicarRolFormCards();
 }
 
@@ -8675,6 +8723,12 @@ function lockMotivo(d){
 }
 // ¿Modificar este pedido toca la cuenta corriente? (ya fue aprobado/imputado al distribuidor)
 function esModifControlada(d){
+  // V431 — NO incluir 'Necesita Revisión' a propósito: ese estado es AMBIGUO (se le puede poner a un
+  // pedido que nunca se aprobó, cuando fábrica lo revisa antes de aprobar). El trigger de ajuste de la
+  // base (cc_ajustar_modif_pedido) también lo excluye, justamente para NO imputarle deuda a un pedido sin
+  // aprobar. Front y trigger quedan ALINEADOS: solo los estados que sí implican aprobación previa disparan
+  // el aviso/ajuste de cuenta corriente. (El caso raro "aprobado → revisión → cambia total" se ajusta a
+  // mano desde la cuenta corriente del admin si hiciera falta.)
   return !!(d && d.type==='order' && ['Aprobado','En Fabricación','Parcialmente terminado'].includes(d.estado||''));
 }
 
@@ -8684,6 +8738,8 @@ function editDoc(id){
   // V345 — candado: bloquear según estado/rol; si fábrica/admin modifica un aprobado, confirmar
   const _lockMot = lockMotivo(doc);
   if(_lockMot){ toast(_lockMot,'err'); return; }
+  // 'Necesita Revisión' NO entra en esModifControlada (ver ahí el porqué), así que no dispara este
+  // confirm: editarlo es lo esperado (fábrica lo devolvió para corregir). Los estados post-aprobación sí.
   if(esModifControlada(doc)){
     if(!confirm('Este pedido ya fue APROBADO.\n\n¿Querés modificarlo igual?')) return;
   }
@@ -8736,6 +8792,36 @@ function editDoc(id){
   (doc.items||[]).forEach(addRow);
   recalcTotal();
   calcInstalacion();
+  // V431 — restaurar Descuento adicional y Corporativo guardados. Antes editDoc no los restauraba:
+  // al guardar se perdía el descuento (el total subía) y el corporativo, y el estado quedaba "pegado"
+  // de un doc a otro. No aplica a distribuidores (V418: no usan estas opciones; _aplicarRolFormCards
+  // ya las forzó en false más arriba).
+  if(!(ME && ME.esDistribuidor)){
+    const _dsc = doc.descuento;
+    if(_dsc && _dsc.activo){
+      _descuentoActivo = true;
+      const _modo = (_dsc.modo==='monto') ? 'monto' : 'pct';
+      const _tipoEl=document.getElementById('desc-tipo'); if(_tipoEl) _tipoEl.value = (_modo==='monto') ? '$' : '%';
+      const _pctEl =document.getElementById('desc-pct'); if(_pctEl) _pctEl.value = (_modo==='monto') ? Math.abs(_dsc.monto||0) : (_dsc.pct||0);
+      const _conEl =document.getElementById('desc-concepto'); if(_conEl) _conEl.value = _dsc.concepto||'';
+      const _b=document.getElementById('desc-body'); if(_b) _b.style.display='block';
+      const _t=document.getElementById('desc-toggle'); if(_t) _t.style.background='var(--accent)';
+      const _dt=document.getElementById('desc-toggle-dot'); if(_dt) _dt.style.left='23px';
+      if(typeof onDescTipoChange==='function') onDescTipoChange();
+    } else {
+      _descuentoActivo = false;
+      const _tipoEl=document.getElementById('desc-tipo'); if(_tipoEl) _tipoEl.value='%';
+      const _pctEl =document.getElementById('desc-pct'); if(_pctEl) _pctEl.value='';
+      const _conEl =document.getElementById('desc-concepto'); if(_conEl) _conEl.value='';
+      const _b=document.getElementById('desc-body'); if(_b) _b.style.display='none';
+      const _t=document.getElementById('desc-toggle'); if(_t) _t.style.background='var(--muted)';
+      const _dt=document.getElementById('desc-toggle-dot'); if(_dt) _dt.style.left='3px';
+    }
+    _corpActivo = !!doc.corporativo;
+    { const _ct=document.getElementById('corp-toggle'); if(_ct) _ct.style.background = _corpActivo ? '#1a5f8a' : 'var(--muted)';
+      const _cd=document.getElementById('corp-toggle-dot'); if(_cd) _cd.style.left = _corpActivo ? '23px' : '3px'; }
+    if(typeof recalcTotalConInstal==='function') recalcTotalConInstal();
+  }
   qaInit();
   actualizarVincBadge();  // V327
   window.scrollTo(0,0);
@@ -8952,6 +9038,17 @@ function convertToOrder(idOrDoc){
     _pedidoIsDraft = !!src._isDraft;
   }
   if(!src) return;
+  // V431 — evitar DOBLE conversión de una cotización guardada. Si ya fue convertida (quedó
+  // 'Aprobada') o ya existe un pedido derivado de ella, abortar: crear un segundo pedido con el
+  // mismo número duplicaría la deuda del distribuidor al aprobarse. (Los drafts "Nuevo Pedido"
+  // se saltean este chequeo porque no son la cotización.)
+  if(!_pedidoIsDraft && src.type==='quote'){
+    const pedExistente = getDocs().find(x => x.type==='order' && String(x.cotizacionOrigen)===String(src.numero||src.id));
+    if(src.estado==='Aprobada' || pedExistente){
+      toast(pedExistente ? `Esta cotización ya fue convertida en el pedido #${pedExistente.numero}.` : 'Esta cotización ya fue convertida en pedido.', 'err');
+      return;
+    }
+  }
   _pedidoSrc = src;
 
   function getDefaults(item){
@@ -9465,8 +9562,19 @@ async function confirmarPedido(){
   // Construir el pedido
   let next, order;
   if(_pedidoIsDraft){
-    // Pedido directo: no hay cotización origen
-    next = await nextNumero('order'); // V370: número atómico al confirmar (evita duplicados entre terminales)
+    // V431 — Si el pedido fue VINCULADO a una cotización ("Nuevo Pedido" + 🔗), derivar el número
+    // de ella (PED-<base>), igual que la conversión normal, para que COINCIDAN. Antes tomaba un
+    // número secuencial nuevo (ej. cot COT-0657 → pedido PED-0646), rompiendo la trazabilidad.
+    const _vinc = String(src.cotizacionOrigen||'');
+    const _vincBase = /^COT-?/i.test(_vinc) ? _vinc.replace(/^COT-?/i,'') : '';
+    if(_vincBase){
+      // Evitar doble conversión también por esta vía: si ya existe un pedido de esa cotización, abortar.
+      const _yaPed = _docsCache.find(x => x.type==='order' && String(x.cotizacionOrigen)===_vinc);
+      if(_yaPed){ toast(`Esa cotización ya tiene un pedido (#${_yaPed.numero}).`, 'err'); return; }
+      next = `PED-${_vincBase}`;
+    } else {
+      next = await nextNumero('order'); // V370: pedido directo sin cotización → número atómico nuevo
+    }
     order = {
       ...src,
       id:     uid(),
@@ -9589,7 +9697,7 @@ function renderRow(d, isAdmin){
     <td style="vertical-align:middle;white-space:nowrap">
       <div style="display:flex;gap:5px;align-items:center">
         <button class="btn-t" onclick="openDoc(getDocById('${d.id}'))" title="Ver">👁</button>
-        ${isQuote&&canEdit?`<button class="btn-t ok" onclick="convertToOrder('${d.id}')" title="Convertir en pedido">📦</button>`:''}
+        ${isQuote&&canEdit&&d.estado!=='Aprobada'?`<button class="btn-t ok" onclick="convertToOrder('${d.id}')" title="Convertir en pedido">📦</button>`:''}
         ${menuItems.length?`<span class="btn-menu-wrap"><button class="btn-t" onclick="toggleActionMenu(this,event)" data-menu="${menuHTML}" title="Más acciones">⋮</button></span>`:''}
       </div>
     </td>
@@ -9918,12 +10026,23 @@ async function registrarCobroCC(){
   }catch(e){ console.error('[CC] cobro:', e); toast('⚠ No se pudo cargar el cobro','err'); }
 }
 async function eliminarMovCC(id){
-  // V430 — el admin puede borrar cualquier movimiento. Si es el débito automático de un pedido,
-  // avisar fuerte: lo correcto es cancelar/eliminar el pedido (ajusta la CC solo); el borrado manual puede descuadrar.
+  // V430/V431 — el admin puede borrar movimientos, PERO NO el débito automático de un pedido que
+  // todavía está activo: eso descuadra la cuenta (el pedido sigue facturado y el trigger no recrea el
+  // débito). Para revertir esa deuda hay que CANCELAR/eliminar el pedido, que ajusta la CC solo. Sí se
+  // permite borrar débitos HUÉRFANOS (el pedido ya no existe) o de pedidos cancelados — el caso legítimo
+  // de limpieza (ej. los débitos fantasma que había en la cuenta de Charly).
   const _mov = (_ccCache||[]).find(m=>m.id===id);
   const _esDebPedido = _mov && _mov.tipo==='debito' && _mov.pedido_id;
+  if(_esDebPedido){
+    const _ped = getDocs().find(d => d.id===_mov.pedido_id);
+    if(_ped && _ped.estado!=='Cancelado'){
+      const _ref = _mov.pedido_numero ? ` (${_mov.pedido_numero})` : '';
+      toast(`No se puede borrar a mano el débito de un pedido activo${_ref}. Para revertir la deuda, cancelá o eliminá el pedido — eso ajusta la cuenta corriente automáticamente.`, 'err');
+      return;
+    }
+  }
   const _msg = _esDebPedido
-    ? 'Este es el DÉBITO AUTOMÁTICO de un pedido aprobado'+(_mov.pedido_numero?` (${_mov.pedido_numero})`:'')+'.\n\nLo recomendable es CANCELAR o eliminar el pedido — eso ajusta la cuenta corriente solo. Si lo borrás a mano, la deuda puede quedar descuadrada con el pedido.\n\n¿Eliminar igual?'
+    ? 'Este débito no tiene un pedido activo (es huérfano o de un pedido cancelado).\n\n¿Eliminarlo de la cuenta corriente?'
     : '¿Eliminar este movimiento?';
   if(!confirm(_msg)) return;
   try{ const { error } = await _sb.from('cc_movimientos').delete().eq('id', id); if(error) throw error;
@@ -11094,7 +11213,7 @@ function openDoc(d, fromForm){
       return `<tr style="border-bottom:1px solid #e0e0de">
         <td style="padding:7px 10px;font-weight:700;color:#888;text-align:center;width:28px">${i+1}</td>
         <td style="padding:7px 10px;white-space:nowrap" colspan="5">
-          <span style="font-weight:700;font-size:11.5px;color:#141414">${it.color||'Producto personalizado'}</span>
+          <span style="font-weight:700;font-size:11.5px;color:#141414">${esc(it.color||'Producto personalizado')}</span>
           ${it.ref ? `<span style="font-size:9px;color:#aaa;margin-left:6px">Ref: ${esc(it.ref)}</span>` : ''}
         </td>
         <td style="padding:7px 10px;text-align:center;width:38px">${cant}</td>
@@ -11128,7 +11247,7 @@ function openDoc(d, fromForm){
       <td style="padding:7px 9px;font-size:11px;width:116px;line-height:1.3">${esc(nd.detalle)||'—'}</td>
       <td style="padding:7px 10px;text-align:center;font-weight:600;white-space:nowrap;width:50px">${it.ancho||'—'}</td>
       <td style="padding:7px 10px;text-align:center;font-weight:600;white-space:nowrap;width:50px">${it.alto||'—'}</td>
-      <td style="padding:7px 10px;font-size:10.5px;color:#666;white-space:nowrap;width:70px">${it.ref||'—'}</td>
+      <td style="padding:7px 10px;font-size:10.5px;color:#666;white-space:nowrap;width:70px">${esc(it.ref||'—')}</td>
       <td style="padding:7px 10px;text-align:center;width:38px">${cant}</td>
       <td style="padding:7px 10px;text-align:right;font-weight:600;color:#555;white-space:nowrap;width:100px">${fmtM(precio)}</td>
       <td style="padding:7px 10px;text-align:right;font-weight:700;color:#141414;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;white-space:nowrap;width:100px">${fmtM(subtotal)}</td>
@@ -11140,7 +11259,7 @@ function openDoc(d, fromForm){
     const cant = parseInt(it.cant)||1;
     return Array.from({length:cant},(_,k)=>`<tr>
       <td style="text-align:center;font-weight:700;color:#888">${i+1}${cant>1?` <span style="font-size:9px;color:#f09620">(${k+1}/${cant})</span>`:''}</td>
-      <td style="font-weight:700">${it.ref||'—'}${cant>1?` (${k+1}/${cant})`:''}</td>
+      <td style="font-weight:700">${esc(it.ref||'—')}${cant>1?` (${k+1}/${cant})`:''}</td>
       <td><span style="font-weight:600">${getTelaLabel(it.tela)}</span> <span style="color:#888;font-size:10px">${esc(it.color)}</span></td>
       <td style="text-align:center">${it.ancho||'—'} mm</td>
       <td style="text-align:center">${it.alto||'—'} mm</td>
@@ -12209,7 +12328,7 @@ function openPlanilla(d){
       <td style="text-align:center;border-right:2px solid #e0eaf4"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum">${i+1}</span></td>
       <td><strong style="font-size:10px">${getTelaLabel(it.tela)}</strong>${telaSubtit?`<br>${telaSubtit}`:''}${dobleTag}${cambioTag}${euroTag}</td>
-      <td style="font-size:10.5px">${it.color||'—'}</td>
+      <td style="font-size:10.5px">${esc(it.color||'—')}</td>
       <td style="text-align:center"><span class="fcut">${ct.a} mm</span></td>
       <td style="text-align:center"><span class="fcut">${ct.h} mm</span></td>
       <td style="text-align:center;border-left:2px solid #e0eaf4">${getSentidoTag(it.sent)}</td>
@@ -12217,7 +12336,7 @@ function openPlanilla(d){
       <td style="text-align:center">${cadenaCell}</td>
       <td style="text-align:center">${zoc==='Reutilizar existente' ? '<span style="color:#aaa;font-size:9px;font-style:italic">Reusa</span>' : `<span class="ftag ${zocCls}">${zoc}</span>`}</td>
       <td style="text-align:center">${soporteCell}</td>
-      <td style="font-size:10px;color:#888">${it._cant>1 ? `${it.ref||'—'} (${it._k}/${it._cant})` : (it.ref||'—')}</td>
+      <td style="font-size:10px;color:#888">${it._cant>1 ? `${esc(it.ref||'—')} (${it._k}/${it._cant})` : esc(it.ref||'—')}</td>
     </tr>`;
   }).join('');
 
@@ -12261,10 +12380,10 @@ function openPlanilla(d){
       <td style="text-align:center;border-right:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum">${i+1}</span></td>
       <td style="font-weight:700;font-size:10px">${getTelaLabel(it.tela)||'—'}${dobleTag2}${cambioTag2}${medidaReal}</td>
-      <td style="font-size:9px;color:#555">${it.color||'—'}${motorBadge}</td>
+      <td style="font-size:9px;color:#555">${esc(it.color||'—')}${motorBadge}</td>
       <td>${ejeCell}</td>
       <td>${zocCell}</td>
-      <td style="font-size:10px;color:#888">${it._cant>1 ? `${it.ref||'—'} (${it._k}/${it._cant})` : (it.ref||'—')}</td>
+      <td style="font-size:10px;color:#888">${it._cant>1 ? `${esc(it.ref||'—')} (${it._k}/${it._cant})` : esc(it.ref||'—')}</td>
     </tr>`;
   }).join('');
 
@@ -12285,7 +12404,7 @@ function openPlanilla(d){
           <div class="alum-val"><span class="alum-val-lbl">corte exacto al ancho</span><div class="cut-wrap"><span class="fcut" style="color:#7a4a00">${corteRiel} mm</span><span class="fcheck"></span></div></div>
         </div>
       </td>
-      <td style="font-size:10px;color:#888">${refLabel}</td>
+      <td style="font-size:10px;color:#888">${esc(refLabel)}</td>
     </tr>`;
   }).join('');
 
@@ -12300,14 +12419,14 @@ function openPlanilla(d){
       <td style="text-align:center;border-right:2px solid #f0d8a0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
       <td><span class="fnum" style="background:#2a6496">A</span></td>
       <td style="font-weight:700;font-size:10px;color:#1a4a6a">${getTelaLabel(it.tela)||'Accesorio'}</td>
-      <td style="font-size:9px;color:#1a4a6a;font-weight:600">${colorStr}</td>
+      <td style="font-size:9px;color:#1a4a6a;font-weight:600">${esc(colorStr)}</td>
       <td colspan="2">
         <div class="alum-cell">
           <div class="alum-sym"><span style="font-size:9px;font-weight:800;color:#1a4a6a;background:#d4e8f8;padding:2px 6px;border-radius:4px">ACCESORIO</span></div>
           <div class="alum-val"><span class="alum-val-lbl">corte directo${cant>1?' × '+cant:''}</span><div class="cut-wrap"><span class="fcut" style="color:#1a4a6a">${corteMm} mm</span><span class="fcheck"></span></div></div>
         </div>
       </td>
-      <td style="font-size:10px;color:#888">${refStr}</td>
+      <td style="font-size:10px;color:#888">${esc(refStr)}</td>
     </tr>`;
   }).join('');
 
@@ -12373,7 +12492,7 @@ function openPlanilla(d){
       <td style="text-align:center"><span class="fnum">${i+1}</span></td>
       <td>
         <div style="font-weight:700;font-size:10.5px">${telaLabel}</div>
-        <div style="font-size:8.5px;color:#888">${it.color||'—'}</div>
+        <div style="font-size:8.5px;color:#888">${esc(it.color||'—')}</div>
       </td>
       <td style="text-align:center;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;font-weight:700">${parseInt(it.ancho)||'—'} mm</td>
       <td style="text-align:center;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;font-weight:700">${parseInt(it.alto)||'—'} mm</td>
@@ -12389,7 +12508,7 @@ function openPlanilla(d){
       <td style="text-align:center">
         <div style="font-size:10.5px;font-weight:700;color:${arr>0?'#d4820e':'#888'}">${arr > 0 ? arr+' cm' : 'Sin arrastre'}</div>
       </td>
-      <td style="font-size:10px;color:#555;font-weight:600">${refLabel}</td>
+      <td style="font-size:10px;color:#555;font-weight:600">${esc(refLabel)}</td>
     </tr>`;
   }).join('');
 
@@ -12423,7 +12542,7 @@ function openPlanilla(d){
 
     return `<tr>
       <td style="text-align:center"><span class="fnum">${i+1}</span></td>
-      <td style="font-size:10px;color:#555;font-weight:600">${refLabel}</td>
+      <td style="font-size:10px;color:#555;font-weight:600">${esc(refLabel)}</td>
       <td style="text-align:center">
         <div style="font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;font-size:14px;font-weight:800;color:#141414">${corteRiel} mm</div>
         <div style="font-size:7.5px;color:#888">corte exacto al ancho</div>
@@ -12439,7 +12558,7 @@ function openPlanilla(d){
   const _rielEsMotor = (it)=>{
     if(it.tela === 'riel_motorizado' || it.tela === 'riel_motorizado_celtic') return true;
     if(it.tela === 'riel_manual') return false;
-    if(it.confData && it.confData.motorLabel) return true;
+    if((it.confData && it.confData.motorLabel) || it.motorLabel) return true; // V431: fallback al campo plano (confData no existe tras recargar)
     if(it.motor) return true;
     return /motor/i.test(it.color||'');
   };
@@ -12457,9 +12576,9 @@ function openPlanilla(d){
   confItems.forEach((it, idx)=>{ if(_confSinRiel(it)) return; const c=parseInt(it.cant)||1; for(let k=0;k<c;k++) _rielEntradas.push({ ...it, _conf:true,  _idx:idx+1, _k:k+1, _cant:c }); });
   const _rielRow = (it, i)=>{
     const corteRiel = parseInt(it.ancho)||0;
-    const celtic    = (it.confData && it.confData.celticTramos) ? it.confData.celticTramos : '';
+    const celtic    = (it.confData && it.confData.celticTramos) ? it.confData.celticTramos : (it.celticTramos || ''); // V431: fallback plano
     const esCeltic  = it.tela === 'riel_motorizado_celtic' || !!celtic;
-    const motorLbl  = it._conf ? (it.motor||'') : ((it.confData && it.confData.motorLabel) ? it.confData.motorLabel : '');
+    const motorLbl  = it._conf ? (it.motor||'') : ((it.confData && it.confData.motorLabel) ? it.confData.motorLabel : (it.motorLabel || '')); // V431: fallback plano
     const esMotor   = _rielEsMotor(it);
     const tipoLbl   = it._conf ? (it.tela==='conf_blackout' ? 'Blackout Tex' : 'Gasa de lino') : (getTelaLabel(it.tela)||'Riel');
     const motorCell = esMotor
@@ -12499,7 +12618,7 @@ function openPlanilla(d){
   });
   const hToldoRows = toldoRowsExpanded.map((it,i)=>{
     const refLabel = it._cant>1 ? `${it.ref||('Toldo '+it._idx)} (${it._k}/${it._cant})` : (it.ref||('Toldo '+it._idx));
-    const motorTag = (it.confData && it.confData.motorizado)
+    const motorTag = ((it.confData && it.confData.motorizado) || it.motorizado) // V431: fallback plano (confData no persiste tras recargar)
       ? `<span style="background:#fff4e0;border:1px solid #f5c97a;border-radius:4px;padding:1px 7px;font-size:8.5px;font-weight:800;color:#a85d00;white-space:nowrap;margin-left:6px">⚡ Motorizado</span>` : '';
     return `<tr>
       <td style="text-align:center;border-right:2px solid #a8d8b0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
@@ -12892,12 +13011,12 @@ function openPlanilla(d){
               <td style="text-align:center;border-right:2px solid #cdb8e0"><div style="width:22px;height:22px;border:1.5px solid #888;border-radius:4px;margin:0 auto;background:#fff"></div></td>
               <td><span class="fnum" style="background:#6a3a9a">${i+1}</span></td>
               <td style="font-size:11px;font-weight:700;color:#3a1a5a">${getTelaLabel(it.tela)}</td>
-              <td style="font-size:10.5px">${it.color||'—'}</td>
+              <td style="font-size:10.5px">${esc(it.color||'—')}</td>
               <td style="text-align:center"><span class="fcut">${med}</span></td>
               <td style="text-align:center;font-size:10px">${it.ladoMec||'—'}</td>
               <td style="text-align:center;font-size:10px">${it.mecColor||'—'}</td>
               <td style="text-align:center;font-weight:700;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif">${cant}</td>
-              <td style="font-size:10px;color:#888">${it.ref||'—'}</td>
+              <td style="font-size:10px;color:#888">${esc(it.ref||'—')}</td>
             </tr>`;
           }).join('')}
         </tbody>
@@ -13153,7 +13272,7 @@ function openPlanillaConfeccion(d){
       <!-- Header de la cortina -->
       <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;padding-bottom:8px;border-bottom:1.5px dashed #c8e1d2">
         <div style="background:#2c6e49;color:#fff;border-radius:5px;padding:3px 10px;font-size:12px;font-weight:800">🧵 ${i+1}</div>
-        <div style="font-size:13px;font-weight:800;color:#1a4a2a">${telaLabel}</div>
+        <div style="font-size:13px;font-weight:800;color:#1a4a2a">${esc(telaLabel)}</div>
         <div style="font-size:11px;color:#666">${cant} und.</div>
         ${it.ref?`<div style="font-size:11px;color:#666;margin-left:auto;background:#f4fbf5;padding:3px 9px;border-radius:4px">Ref: ${esc(it.ref)}</div>`:''}
       </div>
@@ -13204,7 +13323,7 @@ function openPlanillaConfeccion(d){
           <!-- Tela: span completo abajo -->
           <div style="background:#1a4a2a;color:#fff;border-radius:6px;padding:7px 12px;margin-top:6px">
             <div style="font-size:8.5px;text-transform:uppercase;letter-spacing:.08em;opacity:.7;font-weight:700">Tela</div>
-            <div style="font-size:12px;font-weight:700;margin-top:1px;line-height:1.3">${nombreTela}</div>
+            <div style="font-size:12px;font-weight:700;margin-top:1px;line-height:1.3">${esc(nombreTela)}</div>
           </div>
         </div>
       </div>
@@ -13225,7 +13344,7 @@ function openPlanillaConfeccion(d){
     </div>
     <!-- INFO PEDIDO -->
     <div style="padding:10px 20px;background:#f4fbf5;border-bottom:2px solid #2c6e49;display:flex;gap:24px;align-items:center;font-family:-apple-system,BlinkMacSystemFont,system-ui,Inter,sans-serif;font-size:11.5px">
-      <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Cliente</span><span style="font-weight:700">${cliente}</span></div>
+      <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Cliente</span><span style="font-weight:700">${esc(cliente)}</span></div>
       <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Entrega</span><span style="font-weight:700">${fechaEnt}</span></div>
       <div><span style="font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#666;display:block">Cortinas</span><span style="font-weight:700">${items.length}</span></div>
       <div style="margin-left:auto;display:flex;flex-direction:column;align-items:flex-end;gap:2px">
